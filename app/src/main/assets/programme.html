@@ -8,8 +8,8 @@
 <meta name="theme-color" content="#1a1a2e">
 <title>Callisthénie — Thierry</title>
 <style>
-*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#F8F9FA;color:#1a1a2e;overflow:hidden}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#F8F9FA;color:#1a1a2e;overflow:hidden;overscroll-behavior:none}
 :root{--bg:#F8F9FA;--white:#fff;--txt:#1a1a2e;--txt2:#555;--txt3:#999;--border:#eee;}
 #app{display:flex;flex-direction:column;height:100vh;max-width:430px;margin:0 auto;background:var(--bg)}
 #header{background:#fff;padding:20px 16px 14px;flex-shrink:0;border-bottom:1px solid var(--border)}
@@ -23,7 +23,7 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
 .tab{flex:1;min-width:0;padding:9px 4px;font-size:11px;font-weight:700;color:var(--txt3);cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;text-align:center;transition:color .2s;white-space:nowrap}
 .tab .tab-sub{display:block;font-size:9px;font-weight:500;margin-top:2px;color:var(--txt3)}
 .tab.active .tab-sub{color:inherit}
-#content{flex:1;overflow-y:auto;overflow-x:hidden;padding-bottom:env(safe-area-inset-bottom,0px)}
+#content{flex:1;overflow-y:auto;overflow-x:hidden;overscroll-behavior-y:contain;padding-bottom:env(safe-area-inset-bottom,0px)}
 .session-header{padding:14px 16px;background:#fff;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px}
 .session-badge{width:56px;height:56px;border-radius:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;line-height:1.1}
 .session-badge .s-icon{font-size:20px}
@@ -96,6 +96,7 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
 #timer-num{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:58px;font-weight:800;color:#fff;line-height:1}
 #timer-sec{font-size:14px;color:rgba(255,255,255,.5);margin-bottom:24px;margin-top:4px}
 #btn-stop{background:rgba(255,255,255,.12);border:1.5px solid rgba(255,255,255,.25);color:#fff;font-size:15px;font-weight:600;padding:13px 36px;border-radius:16px;cursor:pointer;-webkit-appearance:none}
+  .exo-card:active,.btn-timer:active,.btn-done:active,.round-btn:active,.tab:active,#btn-stop:active,button:active{transform:scale(.96)}
 </style>
 </head>
 <body>
@@ -401,21 +402,31 @@ var SESSIONS=[
 ];
 
 var currentTab=0,doneExos={},timerInterval=null,timerTotal=0,timerLeft=0;
-
+function todayKey(){var d=new Date();return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate();}
+function loadState(){
+    try{
+      var raw=localStorage.getItem('calli_state');
+      var st=raw?JSON.parse(raw):null;
+      doneExos=(st&&st.day===todayKey())?(st.doneExos||{}):{};
+      currentTab=(st&&typeof st.currentTab==='number')?st.currentTab:(new Date().getDay()+6)%7;
+    }catch(e){currentTab=(new Date().getDay()+6)%7;}
+  }
+  function saveState(){
+    try{localStorage.setItem('calli_state',JSON.stringify({day:todayKey(),doneExos:doneExos,currentTab:currentTab}));}catch(e){}
+  }
 function buildTabs(){
   var bar=document.getElementById('tabs');
   bar.innerHTML='';
   DAYS.forEach(function(d,i){
     var el=document.createElement('div');
-    el.className='tab'+(i===0?' active':'');
+    el.className='tab'+(i===currentTab?' active':'');
     el.style.cssText='';
     var C=COLORS[SESSIONS[SESSION_IDX[i]].col];
     el.innerHTML=d.tab+'<span class="tab-sub">'+d.sub+'</span>';
     el.onclick=(function(idx){return function(){showTab(idx);};})(i);
     bar.appendChild(el);
   });
-  updateTabColors(0);
-}
+    updateTabColors(currentTab);
 
 function updateTabColors(activeIdx){
   document.querySelectorAll('.tab').forEach(function(t,i){
@@ -432,6 +443,7 @@ function updateTabColors(activeIdx){
 
 function showTab(i){
   currentTab=i;
+  saveState();
   document.querySelectorAll('.tab').forEach(function(t,j){t.classList.toggle('active',j===i);});
   updateTabColors(i);
   renderSession(SESSIONS[SESSION_IDX[i]]);
@@ -551,6 +563,7 @@ function renderSession(s){
 
 function setRound(sid,r){
   doneExos['__round_'+sid]=r;
+  saveState();
   renderSession(SESSIONS[SESSION_IDX[currentTab]]);
 }
 
@@ -565,6 +578,8 @@ function markDone(sid,i){
   if(!doneExos[sid])doneExos[sid]={};
   if(doneExos[sid][i])delete doneExos[sid][i];
   else doneExos[sid][i]=true;
+  saveState();
+  if(window.AndroidBridge&&AndroidBridge.haptic)AndroidBridge.haptic();
   var sc=document.getElementById('content').scrollTop;
   renderSession(SESSIONS[SESSION_IDX[currentTab]]);
   document.getElementById('content').scrollTop=sc;
@@ -600,8 +615,16 @@ function stopTimer(){
   document.getElementById('timer-overlay').classList.remove('show');
 }
 
-buildTabs();
-renderSession(SESSIONS[0]);
+loadState();
+  buildTabs();
+  renderSession(SESSIONS[SESSION_IDX[currentTab]]);
+  window.handleBack=function(){
+    var openCard=document.querySelector('.exo-card.open');
+    if(openCard){openCard.classList.remove('open');return true;}
+    var timerOverlay=document.getElementById('timer-overlay');
+    if(timerOverlay&&timerOverlay.classList.contains('show')){stopTimer();return true;}
+    return false;
+  };
 </script>
 </body>
 </html>
