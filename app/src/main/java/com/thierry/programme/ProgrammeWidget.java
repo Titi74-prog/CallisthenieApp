@@ -24,7 +24,7 @@ public class ProgrammeWidget extends AppWidgetProvider {
         views.setTextViewText(R.id.widget_horaire, HORAIRES[jour]);
                              Intent intent = new Intent(ctx, MainActivity.class);
         PendingIntent pi = PendingIntent.getActivity(ctx, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-        views.setOnClickPendingIntent(R.id.widget_root, pi);
+        views.setOnClickPendingIntent(R.id.widget_frame, pi);
         mgr.updateAppWidget(id, views);
     }
 }
