@@ -97,6 +97,92 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
 #timer-sec{font-size:14px;color:rgba(255,255,255,.5);margin-bottom:24px;margin-top:4px}
 #btn-stop{background:rgba(255,255,255,.12);border:1.5px solid rgba(255,255,255,.25);color:#fff;font-size:15px;font-weight:600;padding:13px 36px;border-radius:16px;cursor:pointer;-webkit-appearance:none}
   .exo-card:active,.btn-timer:active,.btn-done:active,.round-btn:active,.tab:active,#btn-stop:active,button:active{transform:scale(.96)}
+  /* ===== Modernisation : jetons, thème sombre, animations ===== */
+  :root{
+    --ease:cubic-bezier(.22,1,.36,1);
+    --card:#fff;
+    --shadow:0 1px 2px rgba(16,24,40,.05),0 6px 20px rgba(16,24,40,.06);
+    --shadow-open:0 8px 30px rgba(16,24,40,.13);
+    --warm-bg:#EEFAF7;--warm-border:#ddf2ec;--warm-title:#4daa95;
+    --tip-bg:#fff8e0;--tip-txt:#8a7000;
+    --err-bg:#fff0f0;--err-txt:#c0392b;
+    --rest-bg:rgba(80,80,80,.08);--rest-txt:#555;--rest-border:#e0d8e8;
+    --done-bg:#f0fffe;
+    --conseil-bg:rgba(0,0,0,.028);
+    --roundbtn-bg:#fff;
+    --overlay:rgba(14,14,24,.88);
+  }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){
+      --bg:#0f0f17;--white:#191922;--txt:#f1f1f6;--txt2:#b4b4c4;--txt3:#77778a;--border:#272733;
+      --card:#191922;
+      --shadow:0 1px 2px rgba(0,0,0,.5),0 6px 20px rgba(0,0,0,.4);
+      --shadow-open:0 10px 34px rgba(0,0,0,.55);
+      --warm-bg:#12211e;--warm-border:#1d3a34;--warm-title:#5fc7ac;
+      --tip-bg:#2a2410;--tip-txt:#e9cb72;
+      --err-bg:#2c1719;--err-txt:#ff9d9d;
+      --rest-bg:rgba(255,255,255,.07);--rest-txt:#b4b4c4;--rest-border:#272733;
+      --done-bg:#102b29;
+      --conseil-bg:rgba(255,255,255,.05);
+      --roundbtn-bg:transparent;
+      --overlay:rgba(8,8,14,.92);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#0f0f17;--white:#191922;--txt:#f1f1f6;--txt2:#b4b4c4;--txt3:#77778a;--border:#272733;
+    --card:#191922;
+    --shadow:0 1px 2px rgba(0,0,0,.5),0 6px 20px rgba(0,0,0,.4);
+    --shadow-open:0 10px 34px rgba(0,0,0,.55);
+    --warm-bg:#12211e;--warm-border:#1d3a34;--warm-title:#5fc7ac;
+    --tip-bg:#2a2410;--tip-txt:#e9cb72;
+    --err-bg:#2c1719;--err-txt:#ff9d9d;
+    --rest-bg:rgba(255,255,255,.07);--rest-txt:#b4b4c4;--rest-border:#272733;
+    --done-bg:#102b29;
+    --conseil-bg:rgba(255,255,255,.05);
+    --roundbtn-bg:transparent;
+    --overlay:rgba(8,8,14,.92);
+  }
+  /* surfaces pilotées par les jetons */
+  html,body{background:var(--bg);color:var(--txt)}
+  #header,#tabs,.session-header,.progress-wrap,.round-bar,.exo-card,.btn-done,.repos-card{background:var(--card)}
+  .warm-section{background:var(--warm-bg);border-bottom-color:var(--warm-border)}
+  .warm-title{color:var(--warm-title)}
+  .tip-box{background:var(--tip-bg);color:var(--tip-txt)}
+  .err-box{background:var(--err-bg);color:var(--err-txt)}
+  .btn-rest{background:var(--rest-bg);color:var(--rest-txt);border-color:var(--rest-border)}
+  .btn-done.is-done{background:var(--done-bg)}
+  .conseil{background:var(--conseil-bg)!important}
+  .round-btn:not(.active){background:var(--roundbtn-bg)!important}
+  #timer-overlay{background:var(--overlay);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px)}
+  /* finitions */
+  #content{scroll-behavior:smooth;-webkit-overflow-scrolling:touch}
+  #header{position:relative;overflow:hidden}
+  #header:after{content:'';position:absolute;left:0;right:0;bottom:0;height:2px;background:linear-gradient(90deg,#5C6BC0,#26A69A,#7E57C2,#EF5350,#F9A825);opacity:.8}
+  .tab{transition:color .25s var(--ease),border-color .25s var(--ease),background .25s}
+  .tab:focus-visible,.exo-card:focus-visible,button:focus-visible{outline:2px solid #5C6BC0;outline-offset:2px}
+  .exo-card{box-shadow:var(--shadow);transition:box-shadow .3s var(--ease),opacity .3s var(--ease),transform .16s var(--ease),border-color .3s}
+  .exo-card.open{box-shadow:var(--shadow-open)}
+  .exo-detail{display:block!important;max-height:0;opacity:0;overflow:hidden;border-top:0;transition:max-height .22s var(--ease),opacity .18s ease}
+  .exo-card.open .exo-detail{max-height:900px;opacity:1;border-top:1px solid var(--border);transition:max-height .4s var(--ease),opacity .3s ease}
+  .exo-chevron{transition:transform .3s var(--ease)}
+  .progress-fill{transition:width .8s var(--ease)}
+  .progress-track{height:8px}
+  @keyframes cardIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+  .exo-list .exo-card,.session-header,.progress-wrap,.warm-section,.round-bar,.bloc-titre,.conseil,.repos-wrap{animation:cardIn .4s var(--ease) both}
+  @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+  @keyframes ringIn{from{transform:scale(.85);opacity:0}to{transform:none;opacity:1}}
+  #timer-overlay.show{animation:fadeIn .3s var(--ease)}
+  #timer-ring{animation:ringIn .45s var(--ease)}
+  #timer-num{transition:transform .16s var(--ease),color .3s}
+  #timer-num.tick{transform:translate(-50%,-50%) scale(1.09)}
+  #timer-overlay.urgent #timer-num{color:#FF7A7A}
+  @keyframes pop{0%{transform:translate(-50%,-50%) scale(.6);opacity:0}55%{transform:translate(-50%,-50%) scale(1.06);opacity:1}100%{transform:translate(-50%,-50%) scale(1);opacity:1}}
+  #celebrate{position:fixed;left:50%;top:50%;z-index:120;background:var(--card);border-radius:24px;padding:26px 32px;text-align:center;box-shadow:0 20px 70px rgba(0,0,0,.3);animation:pop .5s var(--ease);pointer-events:none;transition:opacity .4s}
+  #celebrate .ce-ico{font-size:48px;line-height:1}
+  #celebrate .ce-txt{font-weight:800;font-size:16px;margin-top:10px;color:var(--txt)}
+  @media (prefers-reduced-motion:reduce){
+    *,*:before,*:after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}
+  }
 </style>
 </head>
 <body>
@@ -626,6 +712,121 @@ loadState();
     if(timerOverlay&&timerOverlay.classList.contains('show')){stopTimer();return true;}
     return false;
   };
+  /* ===== Son, retour haptique, animations, swipe ===== */
+  var audioCtx=null,beepIv=null;
+  function initAudio(){try{if(!audioCtx){var AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;audioCtx=new AC();}if(audioCtx.state==='suspended'){audioCtx.resume();}}catch(e){}}
+  function beep(freq,dur,vol){
+    try{
+      initAudio();
+      if(!audioCtx)return;
+      var t=audioCtx.currentTime;
+      var o=audioCtx.createOscillator(),g=audioCtx.createGain();
+      o.type='sine';o.frequency.value=freq;
+      g.gain.setValueAtTime(0.0001,t);
+      g.gain.exponentialRampToValueAtTime(vol,t+0.012);
+      g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+      o.connect(g);g.connect(audioCtx.destination);
+      o.start(t);o.stop(t+dur+0.03);
+    }catch(e){}
+  }
+  function buzz(){try{if(window.AndroidBridge&&AndroidBridge.haptic)AndroidBridge.haptic();else if(navigator.vibrate)navigator.vibrate(12);}catch(e){}}
+
+  var _startTimer=startTimer;
+  startTimer=function(sec,label){
+    initAudio();
+    _startTimer(sec,label);
+    var num=document.getElementById('timer-num');
+    var ov=document.getElementById('timer-overlay');
+    clearInterval(beepIv);
+    beepIv=setInterval(function(){
+      if(timerLeft>0){
+        beep(880,0.05,0.05);
+        if(num){num.classList.add('tick');setTimeout(function(){num.classList.remove('tick');},150);}
+        if(ov)ov.classList.toggle('urgent',timerLeft<=5);
+      }else{
+        beep(1320,0.3,0.09);buzz();clearInterval(beepIv);
+        if(ov)ov.classList.remove('urgent');
+      }
+    },1000);
+  };
+
+  var _stopTimer=stopTimer;
+  stopTimer=function(){
+    clearInterval(beepIv);
+    var ov=document.getElementById('timer-overlay');
+    if(ov)ov.classList.remove('urgent');
+    _stopTimer();
+  };
+
+  var _showTab=showTab;
+  showTab=function(i){buzz();_showTab(i);};
+
+  var _setRound=setRound;
+  setRound=function(sid,r){buzz();_setRound(sid,r);};
+
+  var _toggleCard=toggleCard;
+  toggleCard=function(sid,i){
+    buzz();
+    _toggleCard(sid,i);
+    var c=document.getElementById('card-'+sid+'-'+i);
+    if(c&&c.classList.contains('open')){setTimeout(function(){c.scrollIntoView({behavior:'smooth',block:'nearest'});},260);}
+  };
+
+  var _renderSession=renderSession;
+  renderSession=function(s){
+    _renderSession(s);
+    var cards=document.querySelectorAll('#content .exo-card');
+    for(var i=0;i<cards.length;i++){cards[i].style.animationDelay=(Math.min(i,10)*35)+'ms';}
+  };
+
+  function doneCountOf(sid){var dk=doneExos[sid]||{};return Object.keys(dk).filter(function(k){return k.indexOf('__')<0;}).length;}
+  function totalExosOf(s){return (s.blocs?s.blocs.reduce(function(a,b){return a.concat(b.exos);},[]):s.exos).length;}
+
+  var _markDone=markDone;
+  markDone=function(sid,i){
+    var before=doneCountOf(sid);
+    _markDone(sid,i);
+    var after=doneCountOf(sid);
+    var s=SESSIONS[SESSION_IDX[currentTab]];
+    if(after>before&&after===totalExosOf(s)&&after>0)celebrate();
+  };
+
+  function celebrate(){
+    buzz();
+    beep(880,0.12,0.07);
+    setTimeout(function(){beep(1174,0.12,0.07);},130);
+    setTimeout(function(){beep(1568,0.3,0.08);},260);
+    var old=document.getElementById('celebrate');
+    if(old&&old.parentNode)old.parentNode.removeChild(old);
+    var d=document.createElement('div');
+    d.id='celebrate';
+    d.innerHTML='<div class="ce-ico">&#127942;</div><div class="ce-txt">S&eacute;ance termin&eacute;e !</div>';
+    document.body.appendChild(d);
+    setTimeout(function(){d.style.opacity='0';setTimeout(function(){if(d.parentNode)d.parentNode.removeChild(d);},450);},1600);
+  }
+
+  /* Balayage horizontal pour changer de jour */
+  (function(){
+    var x0=null,y0=null,t0=0;
+    var el=document.getElementById('content');
+    if(!el)return;
+    el.addEventListener('touchstart',function(e){var t=e.touches[0];x0=t.clientX;y0=t.clientY;t0=Date.now();},{passive:true});
+    el.addEventListener('touchend',function(e){
+      if(x0===null)return;
+      var t=e.changedTouches[0],dx=t.clientX-x0,dy=t.clientY-y0;
+      x0=null;
+      if(Date.now()-t0>700)return;
+      if(Math.abs(dx)<60||Math.abs(dx)<Math.abs(dy)*1.8)return;
+      var n=currentTab+(dx<0?1:-1);
+      if(n<0||n>DAYS.length-1)return;
+      showTab(n);
+      var tabs=document.querySelectorAll('.tab');
+      if(tabs[n]&&tabs[n].scrollIntoView)tabs[n].scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});
+    },{passive:true});
+  })();
+
+  /* Re-rendu initial pour bénéficier des animations d'entrée */
+  renderSession(SESSIONS[SESSION_IDX[currentTab]]);
 </script>
 </body>
 </html>
