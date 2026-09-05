@@ -11,6 +11,7 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
 #header .header-sub{display:flex;align-items:center;gap:8px;margin-top:6px}
 #header .h-dot{width:5px;height:5px;border-radius:50%;background:linear-gradient(135deg,#5C6BC0,#A29BFE)}
 #header .h-tag{font-size:12px;font-weight:600;color:var(--txt3)}
+#clock{font-size:12px;font-weight:800;color:var(--txt3);margin-bottom:4px;font-variant-numeric:tabular-nums;letter-spacing:.5px;text-align:left}
 #tabs{display:flex;background:#fff;overflow-x:auto;scrollbar-width:none;flex-shrink:0;border-bottom:2px solid var(--border);box-shadow:0 2px 8px rgba(0,0,0,.04)}
 #tabs::-webkit-scrollbar{display:none}
 .tab{flex:1;min-width:0;padding:9px 4px;font-size:11px;font-weight:700;color:var(--txt3);cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;text-align:center;transition:color .2s;white-space:nowrap}
@@ -199,6 +200,7 @@ html,body{background:var(--bg);color:var(--txt)}
 </style>
 <div id="app">
 <div id="header">
+<div id="clock"></div>
 <h1>Callisthénie · <span>Thierry</span></h1>
 <div class="header-sub">
 <div class="h-dot"></div>
@@ -475,11 +477,14 @@ exos:[]},
 
 /* ─── DIMANCHE REPOS ─── */
 {id:'DIM',letter:'🌿',col:'REC',day:'Dim',time:'',
-name:'Récupération',desc:'Marche douce + étirements',
-conseil:'15 min de gainage pour relancer le métabolisme sans fatigue. Sans impact — juste du travail profond pour casser le plateau.',
-warmup:[],repos:true,
+name:'Force & Récupération',desc:'Bloc Force (gainage) puis Bloc Repos',
+conseil:'Bloc Force : gainage sans impact pour casser le plateau, sans fatiguer les muscles sollicités en semaine. Bloc Repos : marche et étirements — c\'est ici que le muscle se reconstruit, ne le sautez pas.',
+warmup:[],
+blocs:[
+{
+titre:'BLOC 1 — Force (Gainage)',
+type:'linear',
 exos:[
-/* gainage dimanche */
 {name:'Planche frontale — tenue max',reps:'30 sec',rest:20,hold:30,kg:'',
 steps:['Avant-bras au sol, corps aligné tête-talon.','Nombril rentré, fessiers contractés.','Tenir en respirant lentement.','Augmenter de 5 sec chaque semaine.'],
 tip:'💡 Le dimanche = gainage sans fatigue. Parfait pour casser le plateau.',
@@ -496,6 +501,12 @@ erreur:'⚠ Le dos ne décolle pas.'},
 steps:['Expirer à fond.','Rentrer le nombril vers la colonne au maximum.','Tenir 20 sec.','Respiration courte et superficielle pendant la tenue.'],
 tip:'💡 L\'exercice ventre plat n°1 — 3 fois par jour idéalement.',
 erreur:'⚠ C\'est une rétraction vers l\'intérieur, pas vers le haut.'},
+]
+},
+{
+titre:'BLOC 2 — Repos (Récupération)',
+type:'linear',
+exos:[
 {name:'Marche extérieure douce',reps:'20 min',rest:0,hold:1200,kg:'',
 steps:['Rythme tranquille, pas de performance.','La lumière naturelle du matin régule le sommeil.','Respiration libre, épaules relâchées.','20 minutes minimum.'],
 tip:'💡 La marche matinale améliore le sommeil du soir.',
@@ -512,7 +523,10 @@ erreur:'⚠ Serviette sous les fesses si les genoux font mal.'},
 steps:['Allongé, genou droit ramené vers la poitrine.','Jambe gauche tendue sur le sol.','Pousser doucement le genou vers la poitrine.','Sentir l\'étirement à l\'avant de la hanche gauche.'],
 tip:'💡 Psoas = cause n°1 des maux de dos. Prioritaire.',
 erreur:'⚠ Le dos reste plaqué au sol.'},
-]},
+]
+}
+],
+exos:[]},
 ];
 
 var currentTab=0,doneExos={},timerInterval=null,timerTotal=0,timerLeft=0;
@@ -1066,5 +1080,15 @@ return _handleBack();
 };
 
 renderSession(SESSIONS[SESSION_IDX[currentTab]]);
+
+/* ---------- Horloge (haut à gauche, toutes les pages) ---------- */
+function updateClock(){
+var el=document.getElementById('clock');
+if(!el)return;
+var d=new Date();
+el.textContent=('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2);
+}
+updateClock();
+setInterval(updateClock,15000);
 </script>
 
