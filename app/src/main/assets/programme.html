@@ -50,9 +50,9 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
 .exo-num{width:32px;height:32px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0}
 .exo-num.is-done{background:linear-gradient(135deg,#4ECDC4,#95E1D3)!important;color:#fff!important}
 .exo-info{flex:1;min-width:0}
-.exo-name{font-size:14px;font-weight:700;color:var(--txt);margin-bottom:3px}
+.exo-name{font-size:16px;font-weight:700;color:var(--txt);margin-bottom:3px}
 .badge-row{display:flex;gap:5px;flex-wrap:wrap}
-.badge{font-size:10px;font-weight:600;padding:2px 7px;border-radius:20px}
+.badge{font-size:11px;font-weight:600;padding:2px 7px;border-radius:20px}
 .badge-kg{background:#fff8e0;color:#b8860b}
 .exo-chevron{font-size:20px;color:var(--txt3);transition:transform .25s;line-height:1;flex-shrink:0}
 .exo-card.open .exo-chevron{transform:rotate(180deg)}
@@ -62,17 +62,17 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
 .steps-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px}
 .step{display:flex;gap:10px;margin-bottom:9px;align-items:flex-start}
 .step-num{width:22px;height:22px;min-width:22px;border-radius:50%;color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center}
-.step-txt{font-size:13px;color:var(--txt2);line-height:1.55}
-.tip-box{background:#fff8e0;border-radius:10px;padding:10px 12px;margin:8px 0 4px;font-size:12px;color:#8a7000;line-height:1.55;border-left:3px solid #ffd93d}
-.err-box{background:#fff0f0;border-radius:10px;padding:10px 12px;margin:6px 0;font-size:12px;color:#c0392b;line-height:1.55;border-left:3px solid #FF6B6B}
+.step-txt{font-size:15px;color:var(--txt2);line-height:1.55}
+.tip-box{background:#fff8e0;border-radius:10px;padding:10px 12px;margin:8px 0 4px;font-size:14px;color:#8a7000;line-height:1.55;border-left:3px solid #ffd93d}
+.err-box{background:#fff0f0;border-radius:10px;padding:10px 12px;margin:6px 0;font-size:14px;color:#c0392b;line-height:1.55;border-left:3px solid #FF6B6B}
 .btn-row{display:flex;gap:8px;margin-top:12px}
 .btn-row .btn-timer{margin-top:0;flex:1}
-.btn-timer{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;border:none;font-size:13px;font-weight:700;padding:11px 10px;border-radius:12px;cursor:pointer;-webkit-appearance:none}
+.btn-timer{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;border:none;font-size:14px;font-weight:700;padding:11px 10px;border-radius:12px;cursor:pointer;-webkit-appearance:none}
 .btn-hold{background:linear-gradient(135deg,#7FCDBB,#4ECDC4);color:#fff}
 .btn-rest{background:rgba(80,80,80,.08);color:#555;border:1.5px solid #e0d8e8}
 .btn-done{display:flex;align-items:center;gap:8px;width:100%;background:#fff;border:1.5px solid var(--border);color:var(--txt2);font-size:13px;font-weight:600;padding:10px 16px;border-radius:12px;cursor:pointer;margin-top:8px;-webkit-appearance:none;justify-content:center}
 .btn-done.is-done{border-color:#4ECDC4;color:#3db8b0;background:#f0fffe}
-.conseil{margin:0 12px 80px;border-radius:16px;padding:13px 14px;font-size:12px;line-height:1.7;border:1px solid}
+.conseil{margin:0 12px 80px;border-radius:16px;padding:13px 14px;font-size:14px;line-height:1.7;border:1px solid}
 .conseil-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
 .repos-wrap{padding:16px}
 .repos-card{background:#fff;border:1.5px solid var(--border);border-radius:16px;padding:18px;margin-bottom:12px;text-align:center}
@@ -267,8 +267,8 @@ steps:['À 4 pattes, dos plat comme une table.','Tendre bras droit + jambe gauch
 tip:'💡 4 secondes de tension = gainage profond bien plus intense.',
 erreur:'⚠ Le bassin ne pivote pas — hanches parallèles au sol.'},
 {name:'Curl biceps haltères — tempo lent',reps:'12 rép.',rest:60,hold:0,kg:'3 kg',
-steps:['Debout, haltères de 3 kg dans chaque main, paumes vers le haut.','Fléchir les coudes lentement sur 2 secondes.','Tenir 1 sec en haut, descendre sur 3 secondes.','Les coudes restent collés au corps — ne pas les écarter.'],
-tip:'💡 La descente lente (3 sec) est ce qui dessine les biceps.',
+steps:['Debout, haltères de 3 kg dans chaque main, paumes vers le haut.','Fléchir les coudes lentement sur 2 secondes.','Tenir 1 sec en haut, descendre sur 4 sec (tempo 4-0-2).','Les coudes restent collés au corps — ne pas les écarter.'],
+tip:'💡 La descente 4-0-2 (4 sec) est ce qui dessine les biceps.',
 erreur:'⚠ Ne pas balancer le buste pour prendre de l\'élan — mouvement strict.'},
 {name:'Planche latérale — tenue',reps:'25 sec/côté',rest:30,hold:25,kg:'',
 steps:['Sur le côté, appui sur l\'avant-bras.','Lever les hanches — corps aligné tête-pied.','Tenir 25 secondes sans laisser les hanches descendre.','Alterner les côtés.'],
@@ -351,23 +351,23 @@ erreur:'⚠ Mouvement des fessiers, pas du dos.'},
 /* ─── D — JEUDI : Haut du corps haltères ─── */
 {id:'D',letter:'D',col:'D',day:'Jeu',time:'7h15',
 name:'Haut du Corps',desc:'Épaules, bras, poitrine — haltères',
-conseil:'Tempo lent sur tous les exercices haltères. La descente sur 3 sec est ce qui dessine la musculature. Notez vos pompes négatives — c\'est votre baromètre.',
+conseil:'Tempo lent sur tous les exercices haltères. La descente 4-0-2 (4 sec) est ce qui dessine la musculature. Notez vos pompes négatives — c\'est votre baromètre.',
 warmup:[
 {n:'Rotations épaules + poignets',d:'Amplitude complète',b:'2x10'},
 {n:'Cat-Cow',d:'Mobilité colonne',b:'2x8'},
 {n:'Rotations bras complets',d:'Avant puis arrière',b:'2x10'},
 ],
 exos:[
-{name:'Développé épaules haltères',reps:'12 rép.',rest:60,hold:0,kg:'3 kg',
-steps:['Assis ou debout, haltères à hauteur des épaules, paumes vers l\'avant.','Pousser les haltères vers le haut en expirant jusqu\'à bras tendus.','Descendre lentement sur 3 secondes.','Ne pas verrouiller les coudes en haut.'],
+{name:'Développé épaules haltères ⚡',reps:'12 rép.',rest:0,hold:0,kg:'3 kg',note:'SUPERSET → enchaîner sans repos',
+steps:['Assis ou debout, haltères à hauteur des épaules, paumes vers l\'avant.','Pousser les haltères vers le haut en expirant jusqu\'à bras tendus.','Descendre lentement sur 4 sec (tempo 4-0-2).','Ne pas verrouiller les coudes en haut.'],
 tip:'💡 C\'est l\'exercice qui dessine les épaules le plus efficacement.',
 erreur:'⚠ Ne pas cambrer le dos — buste droit tout au long.'},
-{name:'Élévations latérales haltères',reps:'12 rép.',rest:60,hold:0,kg:'1,5 kg',
-steps:['Debout, haltères de 1,5 kg le long du corps, légère flexion des coudes.','Lever les bras latéralement jusqu\'à hauteur des épaules.','Tenir 1 sec en haut, descendre sur 3 secondes.','Les coudes restent légèrement fléchis tout au long.'],
+{name:'Élévations latérales haltères ⚡',reps:'12 rép.',rest:90,hold:0,kg:'1,5 kg',note:'← fin SUPERSET · repos 90s',
+steps:['Debout, haltères de 1,5 kg le long du corps, légère flexion des coudes.','Lever les bras latéralement jusqu\'à hauteur des épaules.','Tenir 1 sec en haut, descendre sur 4 sec (tempo 4-0-2).','Les coudes restent légèrement fléchis tout au long.'],
 tip:'💡 Le 1,5 kg suffit — cet exercice est plus difficile qu\'il n\'y paraît.',
 erreur:'⚠ Ne pas lever au-dessus des épaules — risque de tendinite.'},
 {name:'Pompes négatives',reps:'8 rép.',rest:60,hold:0,kg:'',
-steps:['Monter en position haute sur les genoux.','Basculer en position complète (orteils au sol), corps aligné.','Descendre lentement sur 5 secondes — poitrine qui touche le sol.','Remonter sur les genoux et recommencer.'],
+steps:['Monter en position haute sur les genoux.','Basculer en position complète (orteils au sol), corps aligné.','Descendre lentement sur 6 secondes — poitrine qui touche le sol.','Remonter sur les genoux et recommencer.'],
 tip:'💡 5 secondes de descente. C\'est ce qui construit la force le plus vite.',
 erreur:'⚠ Ne pas s\'effondrer en bas — contrôle total jusqu\'au sol.'},
 {name:'Extension triceps haltères',reps:'12 rép.',rest:60,hold:0,kg:'3 kg',
@@ -375,8 +375,8 @@ steps:['Debout, tenir un haltère de 3 kg à deux mains derrière la tête.','Co
 tip:'💡 Les coudes ne bougent pas — seuls les avant-bras s\'étendent.',
 erreur:'⚠ Ne pas laisser les coudes s\'écarter vers les côtés.'},
 {name:'Curl biceps haltères — tempo lent',reps:'12 rép.',rest:60,hold:0,kg:'3 kg',
-steps:['Debout, haltères dans chaque main, paumes vers le haut.','Fléchir les coudes lentement sur 2 secondes.','Tenir 1 sec en haut, descendre sur 3 secondes.','Coudes collés au corps — mouvement strict.'],
-tip:'💡 La descente sur 3 sec est ce qui dessine les biceps.',
+steps:['Debout, haltères dans chaque main, paumes vers le haut.','Fléchir les coudes lentement sur 2 secondes.','Tenir 1 sec en haut, descendre sur 4 sec (tempo 4-0-2).','Coudes collés au corps — mouvement strict.'],
+tip:'💡 La descente 4-0-2 (4 sec) est ce qui dessine les biceps.',
 erreur:'⚠ Ne pas balancer le buste — mouvement strict.'},
 {name:'Bird-Dog — pause longue',reps:'8 rép./côté',rest:45,hold:0,kg:'',
 steps:['À 4 pattes, dos plat.','Tendre bras droit + jambe gauche à l\'horizontale.','Tenir 4 secondes — gainage profond.','Revenir lentement et alterner.'],
@@ -439,7 +439,7 @@ steps:['Penché à 45°, dos plat, haltères bras tendus.','Tirer les coudes ver
 tip:'💡 Le dos se dessine ici. Qualité avant vitesse.',
 erreur:'⚠ Dos plat et rigide — jamais arrondi.'},
 {name:'Développé épaules haltères',reps:'12 rép.',rest:0,hold:0,kg:'3 kg',
-steps:['Assis, haltères à hauteur des épaules.','Pousser vers le haut en expirant.','Descendre lentement sur 3 secondes.','Ne pas verrouiller les coudes en haut.'],
+steps:['Assis, haltères à hauteur des épaules.','Pousser vers le haut en expirant.','Descendre lentement sur 4 sec (tempo 4-0-2).','Ne pas verrouiller les coudes en haut.'],
 tip:'💡 Épaules qui se dessinent en 4 à 6 semaines.',
 erreur:'⚠ Dos droit — ne pas cambrer.'},
 {name:'Pompes inclinées (mains sur chaise)',reps:'10 rép.',rest:0,hold:0,kg:'',
@@ -476,9 +476,26 @@ exos:[]},
 /* ─── DIMANCHE REPOS ─── */
 {id:'DIM',letter:'🌿',col:'REC',day:'Dim',time:'',
 name:'Récupération',desc:'Marche douce + étirements',
-conseil:'La récupération fait partie du programme. C\'est ici que le muscle se reconstruit. Ne la sautez pas.',
+conseil:'15 min de gainage pour relancer le métabolisme sans fatigue. Sans impact — juste du travail profond pour casser le plateau.',
 warmup:[],repos:true,
 exos:[
+/* gainage dimanche */
+{name:'Planche frontale — tenue max',reps:'30 sec',rest:20,hold:30,kg:'',
+steps:['Avant-bras au sol, corps aligné tête-talon.','Nombril rentré, fessiers contractés.','Tenir en respirant lentement.','Augmenter de 5 sec chaque semaine.'],
+tip:'💡 Le dimanche = gainage sans fatigue. Parfait pour casser le plateau.',
+erreur:'⚠ Genoux au sol si le dos s\'affaisse.'},
+{name:'Planche latérale — tenue',reps:'20 sec/côté',rest:15,hold:20,kg:'',
+steps:['Sur le côté, avant-bras au sol, hanches levées.','Corps aligné tête-pied.','Tenir 20 sec sans laisser les hanches descendre.','Alterner les côtés.'],
+tip:'💡 Obliques travaillent sans aucun impact.',
+erreur:'⚠ Hanches qui s\'affaissent = obliques inactifs.'},
+{name:'Dead Bug — 4 sec',reps:'6 rép./côté',rest:30,hold:0,kg:'',
+steps:['Allongé, dos plaqué au sol.','Bras au plafond, genoux à 90°.','Descendre bras droit + jambe gauche sur 4 secondes.','Revenir et alterner.'],
+tip:'💡 4 sec de descente = gainage profond maximal.',
+erreur:'⚠ Le dos ne décolle pas.'},
+{name:'Vacuum abdominal',reps:'3 x 20 sec',rest:20,hold:20,kg:'',
+steps:['Expirer à fond.','Rentrer le nombril vers la colonne au maximum.','Tenir 20 sec.','Respiration courte et superficielle pendant la tenue.'],
+tip:'💡 L\'exercice ventre plat n°1 — 3 fois par jour idéalement.',
+erreur:'⚠ C\'est une rétraction vers l\'intérieur, pas vers le haut.'},
 {name:'Marche extérieure douce',reps:'20 min',rest:0,hold:1200,kg:'',
 steps:['Rythme tranquille, pas de performance.','La lumière naturelle du matin régule le sommeil.','Respiration libre, épaules relâchées.','20 minutes minimum.'],
 tip:'💡 La marche matinale améliore le sommeil du soir.',
@@ -557,6 +574,7 @@ return '<div class="exo-card'+(done?' done':'')+'" id="card-'+s.id+'-'+i+'" oncl
 +'<span class="badge" style="background:'+C.light+';color:'+C.badge+'">'+ex.reps+'</span>'
 +(ex.kg?'<span class="badge badge-kg">&#x1F3CB; '+ex.kg+'</span>':'')
 +(ex.hold>0?'<span class="badge" style="background:#f0fffe;color:#3db8b0">&#x23F1; '+ex.hold+'s</span>':'')
++(ex.note?'<span class="badge" style="background:#fff0eb;color:#e05500;font-weight:800">'+ex.note+'</span>':'')
 +'</div></div>'
 +'<span class="exo-chevron">&#x2304;</span></div>'
 +'<div class="exo-detail"><div class="exo-body">'
