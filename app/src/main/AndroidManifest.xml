@@ -27,7 +27,7 @@
         <receiver
             android:name=".ProgrammeWidget"
             android:exported="true"
-            android:label="Programme Thierry">
+                                android:label="Callisthénie">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
