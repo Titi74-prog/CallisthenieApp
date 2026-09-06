@@ -659,6 +659,7 @@ function adjustTimer(delta){
 }
 
 function updateTimer(){
+  document.getElementById('timer-num').textContent=timerLeft;
   var fg=document.getElementById('ring-fg');
   fg.style.strokeDashoffset=534*(1-timerLeft/timerTotal);
   fg.style.stroke=timerLeft<=5?'#EF5350':timerLeft<=10?'#F9A825':'#5C6BC0';
