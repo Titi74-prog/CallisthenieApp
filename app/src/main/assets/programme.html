@@ -14,7 +14,7 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
   --bg:#0f0f13;--white:#1a1a22;--txt:#f0efec;--txt2:#b0aeb8;--txt3:#6b6a75;--border:#2a2a35;
 }
 #app{display:flex;flex-direction:column;height:100vh;max-width:430px;margin:0 auto;background:var(--bg)}
-#header{background:#1a1a22;padding:38px 16px 12px;flex-shrink:0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+#header{background:#1a1a22;padding:24px 16px 12px;flex-shrink:0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
 #header .header-left{display:flex;flex-direction:column;gap:4px}
 #header h1{font-size:18px;font-weight:800;color:var(--txt);letter-spacing:-.5px;line-height:1.1}
 #header h1 span{color:#0055A4}
@@ -144,11 +144,10 @@ var DAYS=[
   {tab:'Jeu',sub:'Séance D'},
   {tab:'Ven',sub:'Séance C'},
   {tab:'Sam',sub:'Séance E'},
-  {tab:'Dim',sub:'Gainage'},
-  {tab:'Dim',sub:'Repos'},
+  {tab:'Dim',sub:'Séance F'},
 ];
 
-var SESSION_IDX=[0,1,2,3,4,5,6,6];
+var SESSION_IDX=[0,1,2,3,4,5,6];
 
 var SESSIONS=[
 /* ─── A — LUNDI : Dos & Gainage avec haltères ─── */
