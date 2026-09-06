@@ -651,15 +651,17 @@ html+='<div class="exo-list">';
 s.blocs.forEach(function(bloc,b){
 html+='<div class="bloc-titre" style="background:'+C.light+';color:'+C.badge+'">'+bloc.titre+'</div>';
 if(bloc.type==='rounds'){
-var curRound=doneExos['__round_'+s.id]||1;
+var curRound=doneExos['__round_'+s.id+(b?'_'+b:'')]||1;
+var maxR=bloc.maxRounds||3;
+var restSec=bloc.restSec||90;
 html+='<div class="round-bar">'
 +'<span class="round-lbl">Tour</span>'
-+[1,2,3].map(function(r){
++Array.from({length:maxR},function(_,i){return i+1;}).map(function(r){
 return '<button class="round-btn'+(curRound===r?' active':'')+'" '
-+'style="'+(curRound===r?'background:'+C.bg+';color:#fff;border-color:'+C.bg:'background:#fff;color:'+C.badge+';border-color:'+C.badge)+'" '
-+'onclick="setRound(\''+s.id+'\','+r+')">'+r+'</button>';
++'style="'+(curRound===r?'background:'+C.bg+';color:#fff;border-color:'+C.bg:'background:transparent;color:'+C.badge+';border-color:'+C.badge)+'" '
++'onclick="setRound(\''+s.id+(b?'_'+b:'')+'\','+r+')">'+r+'</button>';
 }).join('')
-+'<button class="round-rest-btn" style="background:'+C.grad+'" onclick="startTimer(90,\'&#x23F1; Repos entre les tours\')">&#x23F1; Repos 90s</button>'
++'<button class="round-rest-btn" style="background:'+C.grad+'" onclick="startTimer('+restSec+',\'&#x23F1; Repos entre les tours\')">&#x23F1; Repos '+restSec+'s</button>'
 +'</div>';
 }
 var offset=b*100;
