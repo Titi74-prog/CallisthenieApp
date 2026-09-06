@@ -29,14 +29,14 @@ public class ProgrammeWidget extends AppWidgetProvider {
         "7h15 · 30 min", "7h15 · 30 min", "7h15 · 30 min", "8h30 · 45 min"
     };
 
-    static final int[] BG = {
-        R.drawable.widget_bg_green,  // Dim
-        R.drawable.widget_bg_indigo, // Lun
-        R.drawable.widget_bg_teal,   // Mar
-        R.drawable.widget_bg_violet, // Mer
-        R.drawable.widget_bg_red,    // Jeu
-        R.drawable.widget_bg_violet, // Ven
-        R.drawable.widget_bg_yellow  // Sam
+    static final int[] COULEURS = {
+        0xFF66BB6A, // Dim — vert
+        0xFF5C6BC0, // Lun — indigo
+        0xFF26A69A, // Mar — teal
+        0xFF7E57C2, // Mer — violet
+        0xFFEF5350, // Jeu — rouge
+        0xFF7E57C2, // Ven — violet
+        0xFFF9A825  // Sam — jaune
     };
 
     @Override
@@ -51,7 +51,7 @@ public class ProgrammeWidget extends AppWidgetProvider {
 
         RemoteViews views = new RemoteViews(ctx.getPackageName(), R.layout.widget_layout);
 
-        views.setInt(R.id.widget_root, "setBackgroundResource", BG[jour]);
+        views.setInt(R.id.widget_bg, "setBackgroundColor", COULEURS[jour]);
         views.setTextViewText(R.id.widget_emoji, EMOJIS[jour]);
         views.setTextViewText(R.id.widget_seance, SEANCES[jour]);
         views.setTextViewText(R.id.widget_horaire, HORAIRES[jour]);
