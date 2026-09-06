@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#1a1a2e">
@@ -15,6 +15,7 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
 }
 #app{display:flex;flex-direction:column;height:100vh;max-width:430px;margin:0 auto;background:var(--bg)}
 #header{background:#1a1a22;padding:14px 16px 12px;flex-shrink:0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+#header{padding-top:calc(14px + env(safe-area-inset-top, 0px))}
 #header .header-left{display:flex;flex-direction:column;gap:4px}
 #header h1{font-size:18px;font-weight:800;color:var(--txt);letter-spacing:-.5px;line-height:1.1}
 #header h1 span{color:#0055A4}
@@ -462,19 +463,26 @@ function updateClock(){
 updateClock();
 setInterval(updateClock,10000);
 
-function buildTabs(){
+function todayTabIndex(){
+  var day=new Date().getDay(); /* 0=Dim,1=Lun,2=Mar,3=Mer,4=Jeu,5=Ven,6=Sam */
+  var map=[6,0,1,2,3,4,5]; /* index de l'onglet correspondant a chaque jour */
+  return map[day];
+}
+
+function buildTabs(activeIdx){
+  var active=activeIdx!==undefined?activeIdx:0;
   var bar=document.getElementById('tabs');
   bar.innerHTML='';
   DAYS.forEach(function(d,i){
     var el=document.createElement('div');
-    el.className='tab'+(i===0?' active':'');
+    el.className='tab'+(i===active?' active':'');
     el.style.cssText='';
     var C=COLORS[SESSIONS[SESSION_IDX[i]].col];
     el.innerHTML=d.tab+'<span class="tab-sub">'+d.sub+'</span>';
     el.onclick=(function(idx){return function(){showTab(idx);};})(i);
     bar.appendChild(el);
   });
-  updateTabColors(0);
+  updateTabColors(active);
 }
 
 function updateTabColors(activeIdx){
@@ -694,8 +702,9 @@ function stopTimer(){
   document.getElementById('timer-overlay').classList.remove('show');
 }
 
-buildTabs();
-renderSession(SESSIONS[0]);
+currentTab=todayTabIndex();
+buildTabs(currentTab);
+renderSession(SESSIONS[SESSION_IDX[currentTab]]);
 </script>
 </body>
 </html>
