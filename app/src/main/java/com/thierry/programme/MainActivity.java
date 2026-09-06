@@ -28,7 +28,7 @@ public class MainActivity extends Activity {
         setContentView(R.layout.activity_main);
         webView = findViewById(R.id.webview);
         webView.setOverScrollMode(View.OVER_SCROLL_NEVER);
-        webView.setBackgroundColor(Color.parseColor("#F8F9FA"));
+        webView.setBackgroundColor(Color.parseColor("#0f0f13"));
         webView.setLongClickable(false);
         webView.setOnLongClickListener(new View.OnLongClickListener() { public boolean onLongClick(View v) { return true; } });
         webView.addJavascriptInterface(new AndroidBridge(), "AndroidBridge");
