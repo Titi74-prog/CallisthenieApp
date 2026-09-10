@@ -37,12 +37,6 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
 .session-title{font-size:15px;font-weight:700;color:var(--txt);margin-bottom:3px}
 .session-meta{font-size:11px;color:var(--txt2)}
 .session-tag{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;margin-right:4px}
-.progress-wrap{padding:10px 16px;background:#1a1a22;border-bottom:1px solid var(--border)}
-.progress-row{display:flex;justify-content:space-between;margin-bottom:6px}
-.progress-lbl{font-size:12px;font-weight:600;color:var(--txt2)}
-.progress-pct{font-size:13px;font-weight:700}
-.progress-track{background:var(--border);border-radius:8px;height:7px;overflow:hidden}
-.progress-fill{height:7px;border-radius:8px;transition:width .5s}
 .round-bar{display:flex;align-items:center;gap:8px;padding:10px 14px;background:#1a1a22;border-bottom:1px solid var(--border);flex-wrap:wrap}
 .round-lbl{font-size:12px;font-weight:700;color:var(--txt2)}
 .round-btn{width:36px;height:36px;border-radius:50%;border:2px solid;font-size:14px;font-weight:700;cursor:pointer;-webkit-appearance:none;transition:all .2s}
@@ -83,8 +77,6 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
 .btn-timer{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;border:none;font-size:14px;font-weight:700;padding:12px 10px;border-radius:12px;cursor:pointer;-webkit-appearance:none}
 .btn-hold{background:linear-gradient(135deg,#7FCDBB,#4ECDC4);color:#fff}
 .btn-rest{background:rgba(255,255,255,.08);color:#b0aeb8;border:1.5px solid #3a3a45}
-.btn-done{display:flex;align-items:center;gap:8px;width:100%;background:#1a1a22;border:1.5px solid var(--border);color:var(--txt2);font-size:14px;font-weight:600;padding:11px 16px;border-radius:12px;cursor:pointer;margin-top:8px;-webkit-appearance:none;justify-content:center}
-.btn-done.is-done{border-color:#4ECDC4;color:#3db8b0;background:#f0fffe}
 .conseil{margin:0 12px 80px;border-radius:16px;padding:13px 14px;font-size:14px;line-height:1.75;border:1px solid}
 .conseil-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
 .repos-wrap{padding:16px}
@@ -550,7 +542,6 @@ function makeCard(ex,i,s,dk,C,displayNum){
     +(ex.hold>0?'<button class="btn-timer btn-hold" onclick="event.stopPropagation();startTimer('+ex.hold+',\'&#x1F3CB; Exercice\')">&#x1F3CB; Exercice '+ex.hold+'s</button>':'')
     +(ex.rest>0?'<button class="btn-timer btn-rest" onclick="event.stopPropagation();startTimer('+ex.rest+',\'&#x23F1; Repos\')">&#x23F1; Repos '+ex.rest+'s</button>':'')
     +'</div>'
-    +'<button class="btn-done'+(done?' is-done':'')+'" onclick="event.stopPropagation();markDone(\''+s.id+'\','+i+')">'+(done?'&#x21A9; Marquer non fait':'&#x2713; Exercice termin&#233;')+'</button>'
     +'</div></div></div>';
 }
 
@@ -571,13 +562,6 @@ function renderSession(s){
     +'<div><div class="session-title">'+s.name+'</div>'
     +'<div class="session-meta"><span class="session-tag" style="background:'+C.light+';color:'+C.badge+'">'+(s.time||s.day)+'</span>'+s.desc+'</div>'
     +'</div></div>';
-
-  if(!s.repos){
-    html+='<div class="progress-wrap">'
-      +'<div class="progress-row"><span class="progress-lbl">Progression</span><span class="progress-pct" style="color:'+C.bg+'">'+pct+'%</span></div>'
-      +'<div class="progress-track"><div class="progress-fill" style="background:'+C.grad+';width:'+pct+'%"></div></div>'
-      +'</div>';
-  }
 
   if(s.warmup&&s.warmup.length>0){
     html+='<div class="warm-section"><div class="warm-title">&#x1F525; Echauffement</div>';
