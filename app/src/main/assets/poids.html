@@ -122,8 +122,8 @@ function parseKey(k){ var p=k.split('-'); return new Date(parseInt(p[0]),parseIn
 
 // Historique reconstitué à partir de la courbe de suivi partagée par Thierry (points "Poids mesuré"),
 // complété par la pesée du lundi 14/09 (90,2 kg) qu'il a communiquée directement.
-// Ne sert qu'à amorcer le tout premier lancement : si des données existent déjà, on ne touche à rien.
-var SEED_HISTORY = {
+// v1 = première extraction (calibrage d'axe légèrement décalé, valeurs ~1kg trop basses -> corrigé en v2).
+var SEED_HISTORY_V1 = {
   '2026-06-22': 97.0,
   '2026-06-25': 93.8,
   '2026-06-29': 93.0,
@@ -146,14 +146,49 @@ var SEED_HISTORY = {
   '2026-09-12': 89.9,
   '2026-09-14': 90.2
 };
+// v2 = valeurs corrigées (+1kg, recalibrage) : Thierry confirme ne pas être descendu sous 90kg.
+var SEED_HISTORY = {
+  '2026-06-22': 98.0,
+  '2026-06-25': 94.8,
+  '2026-06-29': 94.0,
+  '2026-07-02': 93.3,
+  '2026-07-07': 93.6,
+  '2026-07-08': 93.4,
+  '2026-07-10': 92.6,
+  '2026-07-13': 91.9,
+  '2026-07-19': 91.1,
+  '2026-07-23': 90.8,
+  '2026-08-02': 91.8,
+  '2026-08-09': 92.4,
+  '2026-08-12': 91.7,
+  '2026-08-17': 91.6,
+  '2026-08-23': 91.4,
+  '2026-08-29': 90.5,
+  '2026-09-02': 90.6,
+  '2026-09-05': 90.7,
+  '2026-09-08': 90.8,
+  '2026-09-12': 90.9,
+  '2026-09-14': 90.2
+};
+var SEED_VERSION = 2;
 
 function loadAllData(){
   try{
     var saved = localStorage.getItem('poids_data');
+    var seedVersion = parseInt(localStorage.getItem('poids_seed_version')||'0',10);
     if(saved){
       allData = JSON.parse(saved);
+      if(seedVersion < SEED_VERSION){
+        // Corrige uniquement les dates encore égales à l'ancien seed (jamais une valeur saisie/modifiée par l'utilisateur)
+        Object.keys(SEED_HISTORY_V1).forEach(function(k){
+          if(allData[k] === SEED_HISTORY_V1[k]){ allData[k] = SEED_HISTORY[k]; }
+        });
+        localStorage.setItem('poids_seed_version', String(SEED_VERSION));
+        saveAllData();
+      }
     } else {
       allData = Object.assign({}, SEED_HISTORY);
+      localStorage.setItem('poids_seed_version', String(SEED_VERSION));
       saveAllData();
     }
   }catch(e){}
