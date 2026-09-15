@@ -120,10 +120,42 @@ function dateKey(d){ return d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.
 function todayKey(){ var t=new Date(); t.setHours(0,0,0,0); return dateKey(t); }
 function parseKey(k){ var p=k.split('-'); return new Date(parseInt(p[0]),parseInt(p[1])-1,parseInt(p[2])); }
 
+// Historique reconstitué à partir de la courbe de suivi partagée par Thierry (points "Poids mesuré"),
+// complété par la pesée du lundi 14/09 (90,2 kg) qu'il a communiquée directement.
+// Ne sert qu'à amorcer le tout premier lancement : si des données existent déjà, on ne touche à rien.
+var SEED_HISTORY = {
+  '2026-06-22': 97.0,
+  '2026-06-25': 93.8,
+  '2026-06-29': 93.0,
+  '2026-07-02': 92.3,
+  '2026-07-07': 92.6,
+  '2026-07-08': 92.4,
+  '2026-07-10': 91.6,
+  '2026-07-13': 90.9,
+  '2026-07-19': 90.1,
+  '2026-07-23': 89.8,
+  '2026-08-02': 90.8,
+  '2026-08-09': 91.4,
+  '2026-08-12': 90.7,
+  '2026-08-17': 90.6,
+  '2026-08-23': 90.4,
+  '2026-08-29': 89.5,
+  '2026-09-02': 89.6,
+  '2026-09-05': 89.7,
+  '2026-09-08': 89.8,
+  '2026-09-12': 89.9,
+  '2026-09-14': 90.2
+};
+
 function loadAllData(){
   try{
     var saved = localStorage.getItem('poids_data');
-    if(saved){ allData = JSON.parse(saved); }
+    if(saved){
+      allData = JSON.parse(saved);
+    } else {
+      allData = Object.assign({}, SEED_HISTORY);
+      saveAllData();
+    }
   }catch(e){}
 }
 function saveAllData(){
