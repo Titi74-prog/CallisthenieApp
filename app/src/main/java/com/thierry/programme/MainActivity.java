@@ -21,7 +21,8 @@ public class MainActivity extends Activity {
     private WebView webView;
     private TextView btnProgramme;
     private TextView btnNutrition;
-    private boolean showingNutrition = false;
+    private TextView btnPoids;
+    private String currentPage = "programme";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -44,16 +45,17 @@ public class MainActivity extends Activity {
         navBar.setBackgroundColor(Color.parseColor("#1a1a22"));
         navBar.setPadding(0, 8, 0, 8);
 
+        LinearLayout.LayoutParams lpBtn = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
+
         btnProgramme = new TextView(this);
         btnProgramme.setText("🏋️ Programme");
         btnProgramme.setTextSize(14);
         btnProgramme.setTextColor(Color.parseColor("#5C6BC0"));
         btnProgramme.setGravity(Gravity.CENTER);
         btnProgramme.setPadding(16, 12, 16, 12);
-        LinearLayout.LayoutParams lpBtn = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
         btnProgramme.setLayoutParams(lpBtn);
         btnProgramme.setOnClickListener(new View.OnClickListener() {
-            public void onClick(View v) { showPage(false); }
+            public void onClick(View v) { showPage("programme"); }
         });
 
         btnNutrition = new TextView(this);
@@ -64,11 +66,23 @@ public class MainActivity extends Activity {
         btnNutrition.setPadding(16, 12, 16, 12);
         btnNutrition.setLayoutParams(lpBtn);
         btnNutrition.setOnClickListener(new View.OnClickListener() {
-            public void onClick(View v) { showPage(true); }
+            public void onClick(View v) { showPage("nutrition"); }
+        });
+
+        btnPoids = new TextView(this);
+        btnPoids.setText("⚖️ Poids");
+        btnPoids.setTextSize(14);
+        btnPoids.setTextColor(Color.parseColor("#6b6a75"));
+        btnPoids.setGravity(Gravity.CENTER);
+        btnPoids.setPadding(16, 12, 16, 12);
+        btnPoids.setLayoutParams(lpBtn);
+        btnPoids.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) { showPage("poids"); }
         });
 
         navBar.addView(btnProgramme);
         navBar.addView(btnNutrition);
+        navBar.addView(btnPoids);
 
         // WebView
         webView = new WebView(this);
@@ -92,17 +106,18 @@ public class MainActivity extends Activity {
         setContentView(root);
     }
 
-    private void showPage(boolean nutrition) {
-        showingNutrition = nutrition;
-        btnProgramme.setTextColor(Color.parseColor(nutrition ? "#6b6a75" : "#5C6BC0"));
-        btnNutrition.setTextColor(Color.parseColor(nutrition ? "#4ECDC4" : "#6b6a75"));
-        webView.loadUrl("file:///android_asset/" + (nutrition ? "nutrition.html" : "programme.html"));
+    private void showPage(String page) {
+        currentPage = page;
+        btnProgramme.setTextColor(Color.parseColor(page.equals("programme") ? "#5C6BC0" : "#6b6a75"));
+        btnNutrition.setTextColor(Color.parseColor(page.equals("nutrition") ? "#4ECDC4" : "#6b6a75"));
+        btnPoids.setTextColor(Color.parseColor(page.equals("poids") ? "#F9A825" : "#6b6a75"));
+        webView.loadUrl("file:///android_asset/" + page + ".html");
     }
 
     @Override
     public void onBackPressed() {
-        if (showingNutrition) {
-            showPage(false);
+        if (!currentPage.equals("programme")) {
+            showPage("programme");
         } else if (webView.canGoBack()) {
             webView.goBack();
         } else {
