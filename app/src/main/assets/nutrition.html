@@ -33,10 +33,10 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
 #padel-bar{background:#1a1a22;border-bottom:1px solid #2a2a35;padding:8px 12px;display:flex;gap:8px;align-items:center;flex-shrink:0}
 .padel-btn{flex:1;padding:7px;border-radius:8px;border:1px solid #2a2a35;background:transparent;color:#b0aeb8;font-size:12px;font-weight:600;cursor:pointer}
 .padel-btn.active{background:#1a1a35;border-color:#5C6BC0;color:#7986CB}
-#modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:100;flex-direction:column;justify-content:flex-end}
-#modal.show{display:flex}
-#modal-inner{background:#1a1a22;border-radius:20px 20px 0 0;padding:16px;max-height:90vh;display:flex;flex-direction:column}
-#modal-title{font-size:16px;font-weight:700;margin-bottom:12px;color:#f0efec}
+#modal,#recap-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:100;flex-direction:column;justify-content:flex-end}
+#modal.show,#recap-modal.show{display:flex}
+#modal-inner,#recap-modal-inner{background:#1a1a22;border-radius:20px 20px 0 0;padding:16px;max-height:90vh;display:flex;flex-direction:column;overflow-y:auto}
+#modal-title,#recap-modal-title{font-size:16px;font-weight:700;margin-bottom:12px;color:#f0efec}
 #modal-search{width:100%;font-size:14px;padding:10px 12px;border-radius:10px;border:1px solid #2a2a35;background:#0f0f13;color:#f0efec;margin-bottom:8px}
 #modal-search:focus{outline:none;border-color:#5C6BC0}
 #modal-repas-sel{width:100%;font-size:14px;padding:10px 12px;border-radius:10px;border:1px solid #2a2a35;background:#0f0f13;color:#f0efec;margin-bottom:8px}
@@ -56,6 +56,28 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
 #btn-reset{width:100%;margin-top:8px;padding:10px;border-radius:12px;border:1px solid #2a2a35;background:transparent;color:#6b6a75;font-size:13px;cursor:pointer}
 #progress-bar{height:4px;background:#2a2a35;border-radius:2px;margin-top:6px;overflow:hidden}
 #progress-fill{height:100%;border-radius:2px;background:linear-gradient(90deg,#5C6BC0,#4ECDC4);transition:width .4s}
+#date-bar{background:#1a1a22;border-bottom:1px solid #2a2a35;padding:8px 10px;display:flex;gap:6px;align-items:center;flex-shrink:0}
+.date-nav-btn{width:32px;height:32px;border-radius:8px;border:1px solid #2a2a35;background:transparent;color:#b0aeb8;font-size:15px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+.date-nav-btn:disabled{opacity:.3}
+#date-label{flex:1;text-align:center;font-size:13px;font-weight:700;color:#f0efec;cursor:pointer;padding:6px 4px;border-radius:8px}
+#date-label .date-sub{display:block;font-size:10px;font-weight:500;color:#6b6a75;margin-top:1px}
+#btn-recap{padding:0 10px;height:32px;border-radius:8px;border:1px solid #2a2a35;background:transparent;color:#7986CB;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0}
+.recap-toggle{display:flex;gap:8px;margin-bottom:12px}
+.recap-toggle-btn{flex:1;padding:9px;border-radius:10px;border:1px solid #2a2a35;background:transparent;color:#b0aeb8;font-size:13px;font-weight:700;cursor:pointer}
+.recap-toggle-btn.active{background:#1a1a35;border-color:#5C6BC0;color:#7986CB}
+.recap-stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+.recap-stat-card{background:#0f0f13;border-radius:10px;padding:10px;text-align:center}
+.recap-stat-label{font-size:10px;color:#6b6a75;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px}
+.recap-stat-val{font-size:18px;font-weight:700;color:#f0efec}
+.recap-list-title{font-size:11px;font-weight:700;color:#6b6a75;text-transform:uppercase;letter-spacing:.6px;margin:4px 0 8px}
+.recap-list{max-height:220px;overflow-y:auto;border-radius:10px;background:#0f0f13}
+.recap-day-row{display:flex;align-items:center;gap:8px;padding:9px 10px;border-bottom:1px solid #2a2a35;font-size:12px}
+.recap-day-row:last-child{border-bottom:none}
+.recap-day-date{flex:1;color:#f0efec;font-weight:600}
+.recap-day-empty{color:#6b6a75;font-style:italic}
+.recap-day-prot{min-width:42px;text-align:right;color:#4ECDC4}
+.recap-day-kcal{min-width:52px;text-align:right;color:#b0aeb8}
+.recap-day-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
 </style>
 </head>
 <body>
@@ -63,6 +85,12 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
 <div id="header">
   <h1>Nutrition · <span>Thierry</span></h1>
   <div id="header-time"></div>
+</div>
+<div id="date-bar">
+  <button class="date-nav-btn" id="btn-prev-day" onclick="changeDay(-1)">‹</button>
+  <div id="date-label" onclick="goToday()"></div>
+  <button class="date-nav-btn" id="btn-next-day" onclick="changeDay(1)">›</button>
+  <button id="btn-recap" onclick="openRecap()">📊 Récap</button>
 </div>
 <div id="padel-bar">
   <span style="font-size:12px;color:#6b6a75">Padel :</span>
@@ -120,6 +148,25 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
   <div id="err-msg" style="font-size:13px;color:#FF6B6B;margin-top:8px;display:none">Sélectionne un repas et un aliment.</div>
   <button id="btn-add-food" onclick="addFood()">Ajouter</button>
   <button id="btn-reset" onclick="resetDay()">Réinitialiser la journée</button>
+</div>
+</div>
+
+<div id="recap-modal" onclick="closeRecapOnBg(event)">
+<div id="recap-modal-inner">
+  <div id="recap-modal-title">Récapitulatif</div>
+  <div class="recap-toggle">
+    <button class="recap-toggle-btn active" id="btn-recap-7" onclick="setRecapPeriod(7)">7 jours</button>
+    <button class="recap-toggle-btn" id="btn-recap-30" onclick="setRecapPeriod(30)">30 jours</button>
+  </div>
+  <div class="recap-stats">
+    <div class="recap-stat-card"><div class="recap-stat-label">Jours suivis</div><div class="recap-stat-val" id="recap-jours">—</div></div>
+    <div class="recap-stat-card"><div class="recap-stat-label">Objectif prot. atteint</div><div class="recap-stat-val" id="recap-objectif">—</div></div>
+    <div class="recap-stat-card"><div class="recap-stat-label">Moy. protéines</div><div class="recap-stat-val" id="recap-prot" style="color:#4ECDC4">—</div></div>
+    <div class="recap-stat-card"><div class="recap-stat-label">Moy. calories</div><div class="recap-stat-val" id="recap-kcal">—</div></div>
+    <div class="recap-stat-card" style="grid-column:span 2"><div class="recap-stat-label">Déficit moyen (jours suivis)</div><div class="recap-stat-val" id="recap-deficit" style="color:#6b6a75">—</div></div>
+  </div>
+  <div class="recap-list-title">Détail par jour</div>
+  <div class="recap-list" id="recap-list"></div>
 </div>
 </div>
 
@@ -288,6 +335,86 @@ var objectif = 2300;
 var selected = null;
 var selectedIdx = -1;
 
+// ── Données par date ──
+var JOURS_LABEL = ['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];
+var MOIS_LABEL = ['jan','fév','mar','avr','mai','juin','juil','août','sep','oct','nov','déc'];
+var allData = {}; // { 'YYYY-MM-DD': { repas:[...], objectif:2300 } }
+var currentDate = new Date();
+currentDate.setHours(0,0,0,0);
+var recapPeriod = 7;
+
+function pad2(n){ return String(n).padStart(2,'0'); }
+function dateKey(d){ return d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate()); }
+function todayKey(){ var t=new Date(); t.setHours(0,0,0,0); return dateKey(t); }
+
+function loadAllData(){
+  try{
+    var saved = localStorage.getItem('nutrition_data');
+    if(saved){ allData = JSON.parse(saved); return; }
+  }catch(e){}
+  // Migration depuis l'ancienne version (une seule journée, clé 'repas')
+  try{
+    var old = localStorage.getItem('repas');
+    if(old){
+      var oldRepas = JSON.parse(old);
+      if(oldRepas && oldRepas.length){
+        allData[todayKey()] = {repas:oldRepas, objectif:2300};
+        localStorage.setItem('nutrition_data', JSON.stringify(allData));
+        localStorage.removeItem('repas');
+      }
+    }
+  }catch(e){}
+}
+
+function saveAllData(){
+  try{ localStorage.setItem('nutrition_data', JSON.stringify(allData)); }catch(e){}
+}
+
+function loadCurrentDay(){
+  var key = dateKey(currentDate);
+  var entry = allData[key];
+  repas = entry ? (entry.repas||[]) : [];
+  objectif = entry ? (entry.objectif||2300) : 2300;
+  document.getElementById('btn-padel').classList.toggle('active', objectif===2800);
+  document.getElementById('btn-no-padel').classList.toggle('active', objectif!==2800);
+  document.getElementById('lbl-obj').textContent = '/ '+objectif+' kcal';
+  updateDateLabel();
+  render();
+}
+
+function saveCurrentDay(){
+  var key = dateKey(currentDate);
+  if(repas.length===0){
+    delete allData[key];
+  } else {
+    allData[key] = {repas:repas, objectif:objectif};
+  }
+  saveAllData();
+}
+
+function updateDateLabel(){
+  var key = dateKey(currentDate);
+  var isToday = key===todayKey();
+  var lbl = document.getElementById('date-label');
+  var jourTxt = JOURS_LABEL[currentDate.getDay()]+' '+currentDate.getDate()+' '+MOIS_LABEL[currentDate.getMonth()];
+  lbl.innerHTML = (isToday?'Aujourd\'hui':jourTxt) + (isToday?'<span class="date-sub">'+jourTxt+'</span>':'<span class="date-sub">Retour à aujourd\'hui</span>');
+  document.getElementById('btn-next-day').disabled = isToday;
+}
+
+function changeDay(delta){
+  currentDate.setDate(currentDate.getDate()+delta);
+  var todayD = new Date(); todayD.setHours(0,0,0,0);
+  if(currentDate.getTime() > todayD.getTime()){ currentDate = todayD; }
+  loadCurrentDay();
+}
+
+function goToday(){
+  var key = dateKey(currentDate);
+  if(key===todayKey()) return;
+  currentDate = new Date(); currentDate.setHours(0,0,0,0);
+  loadCurrentDay();
+}
+
 // Clock
 function updateClock(){
   var now=new Date();
@@ -303,6 +430,7 @@ function setPadel(v) {
   document.getElementById('btn-no-padel').classList.toggle('active', !v);
   document.getElementById('lbl-obj').textContent = '/ '+objectif+' kcal';
   render();
+  saveCurrentDay();
 }
 
 function openModal() {
@@ -389,21 +517,20 @@ function addFood() {
   });
   closeModal();
   render();
-  // Save
-  try{localStorage.setItem('repas',JSON.stringify(repas));}catch(e){}
+  saveCurrentDay();
 }
 
 function removeFood(i) {
   repas.splice(i,1);
   render();
-  try{localStorage.setItem('repas',JSON.stringify(repas));}catch(e){}
+  saveCurrentDay();
 }
 
 function resetDay() {
   repas=[];
   closeModal();
   render();
-  try{localStorage.removeItem('repas');}catch(e){}
+  saveCurrentDay();
 }
 
 function render() {
@@ -446,12 +573,83 @@ function render() {
   document.getElementById('liste-repas').innerHTML=html;
 }
 
-// Load saved data
-try{
-  var saved=localStorage.getItem('repas');
-  if(saved){repas=JSON.parse(saved);}
-}catch(e){}
-render();
+// ── Récapitulatif (semaine / mois) ──
+function openRecap(){
+  renderRecap();
+  document.getElementById('recap-modal').classList.add('show');
+}
+function closeRecap(){
+  document.getElementById('recap-modal').classList.remove('show');
+}
+function closeRecapOnBg(e){
+  if(e.target === document.getElementById('recap-modal')) closeRecap();
+}
+function setRecapPeriod(n){
+  recapPeriod = n;
+  document.getElementById('btn-recap-7').classList.toggle('active', n===7);
+  document.getElementById('btn-recap-30').classList.toggle('active', n===30);
+  renderRecap();
+}
+
+function computeRecap(period){
+  var today=new Date(); today.setHours(0,0,0,0);
+  var days=[];
+  for(var i=0;i<period;i++){
+    var d=new Date(today);
+    d.setDate(d.getDate()-i);
+    var key=dateKey(d);
+    var entry=allData[key];
+    var logged=!!(entry && entry.repas && entry.repas.length);
+    var totP=0,totK=0,obj=2300;
+    if(logged){
+      entry.repas.forEach(function(r){totP+=r.p;totK+=r.k;});
+      obj=entry.objectif||2300;
+    }
+    days.push({key:key,date:d,logged:logged,totP:totP,totK:totK,obj:obj});
+  }
+  var loggedDays=days.filter(function(d){return d.logged;});
+  var n=loggedDays.length;
+  var avgP=n?Math.round(loggedDays.reduce(function(s,d){return s+d.totP;},0)/n):0;
+  var avgK=n?Math.round(loggedDays.reduce(function(s,d){return s+d.totK;},0)/n):0;
+  var avgDeficit=n?Math.round(loggedDays.reduce(function(s,d){return s+(d.obj-d.totK);},0)/n):0;
+  var objAtteint=loggedDays.filter(function(d){return d.totP>=140;}).length;
+  return {days:days, joursSuivis:n, total:period, avgP:avgP, avgK:avgK, avgDeficit:avgDeficit, objAtteint:objAtteint};
+}
+
+function renderRecap(){
+  var r=computeRecap(recapPeriod);
+  document.getElementById('recap-jours').textContent=r.joursSuivis+' / '+r.total;
+  document.getElementById('recap-objectif').textContent=r.objAtteint+' / '+r.joursSuivis;
+  document.getElementById('recap-prot').textContent=r.joursSuivis?r.avgP+'g':'—';
+  document.getElementById('recap-kcal').textContent=r.joursSuivis?r.avgK:'—';
+  var defEl=document.getElementById('recap-deficit');
+  if(!r.joursSuivis){
+    defEl.textContent='—'; defEl.style.color='#6b6a75';
+  } else {
+    defEl.textContent=(r.avgDeficit>0?'-':'+')+Math.abs(r.avgDeficit)+' kcal/j';
+    defEl.style.color=(r.avgDeficit>=300&&r.avgDeficit<=600)?'#4ECDC4':(r.avgDeficit>600?'#F9A825':'#EF5350');
+  }
+  var todayK=todayKey();
+  var html=r.days.map(function(d){
+    var isToday=d.key===todayK;
+    var lbl=(isToday?'Aujourd\'hui':JOURS_LABEL[d.date.getDay()]+' '+pad2(d.date.getDate())+'/'+pad2(d.date.getMonth()+1));
+    if(!d.logged){
+      return '<div class="recap-day-row"><span class="recap-day-date recap-day-empty">'+lbl+'</span><span class="recap-day-empty">non suivi</span></div>';
+    }
+    var dotColor=d.totP>=140?'#4ECDC4':d.totP>=100?'#F9A825':'#EF5350';
+    return '<div class="recap-day-row">'
+      +'<span class="recap-day-dot" style="background:'+dotColor+'"></span>'
+      +'<span class="recap-day-date">'+lbl+'</span>'
+      +'<span class="recap-day-prot">'+Math.round(d.totP)+'g</span>'
+      +'<span class="recap-day-kcal">'+Math.round(d.totK)+' kc</span>'
+      +'</div>';
+  }).join('');
+  document.getElementById('recap-list').innerHTML=html;
+}
+
+// Init
+loadAllData();
+loadCurrentDay();
 </script>
 </body>
 </html>

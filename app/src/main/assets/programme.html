@@ -153,10 +153,15 @@ var DAYS=[
   {tab:'Ven',sub:'Séance C'},
   {tab:'Sam',sub:'Séance E'},
   {tab:'Dim',sub:'Gainage'},
-  {tab:'Dim',sub:'Repos'},
 ];
 
-var SESSION_IDX=[0,1,2,3,4,5,6,7];
+// DAYS[i] correspond directement à SESSIONS[i] (Lun→Dim, 7 jours, pas de doublon).
+var SESSION_IDX=[0,1,2,3,4,5,6];
+
+// JS: getDay() renvoie 0=Dimanche..6=Samedi. On veut un index 0=Lundi..6=Dimanche.
+function todayTabIndex(){
+  return (new Date().getDay() + 6) % 7;
+}
 
 var SESSIONS=[
 /* ─── A — LUNDI : Dos & Gainage avec haltères ─── */
@@ -486,19 +491,19 @@ function updateClock(){
 updateClock();
 setInterval(updateClock,10000);
 
-function buildTabs(){
+function buildTabs(activeIdx){
+  activeIdx=activeIdx||0;
   var bar=document.getElementById('tabs');
   bar.innerHTML='';
   DAYS.forEach(function(d,i){
     var el=document.createElement('div');
-    el.className='tab'+(i===0?' active':'');
+    el.className='tab'+(i===activeIdx?' active':'');
     el.style.cssText='';
-    var C=COLORS[SESSIONS[SESSION_IDX[i]].col];
     el.innerHTML=d.tab+'<span class="tab-sub">'+d.sub+'</span>';
     el.onclick=(function(idx){return function(){showTab(idx);};})(i);
     bar.appendChild(el);
   });
-  updateTabColors(0);
+  updateTabColors(activeIdx);
 }
 
 function updateTabColors(activeIdx){
@@ -516,9 +521,11 @@ function updateTabColors(activeIdx){
 
 function showTab(i){
   currentTab=i;
-  document.querySelectorAll('.tab').forEach(function(t,j){t.classList.toggle('active',j===i);});
+  var tabs=document.querySelectorAll('.tab');
+  tabs.forEach(function(t,j){t.classList.toggle('active',j===i);});
   updateTabColors(i);
   renderSession(SESSIONS[SESSION_IDX[i]]);
+  if(tabs[i]&&tabs[i].scrollIntoView){tabs[i].scrollIntoView({block:'nearest',inline:'center'});}
 }
 
 function makeCard(ex,i,s,dk,C,displayNum){
@@ -693,8 +700,9 @@ function stopTimer(){
   document.getElementById('timer-overlay').classList.remove('show');
 }
 
-buildTabs();
-renderSession(SESSIONS[0]);
+var startIdx=todayTabIndex();
+buildTabs(startIdx);
+showTab(startIdx);
 </script>
 </body>
 </html>
