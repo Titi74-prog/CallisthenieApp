@@ -51,7 +51,7 @@ public class ProgrammeWidget extends AppWidgetProvider {
 
         RemoteViews views = new RemoteViews(ctx.getPackageName(), R.layout.widget_layout);
 
-        views.setInt(R.id.widget_bg, "setBackgroundColor", COULEURS[jour]);
+        views.setInt(R.id.widget_root, "setBackgroundColor", COULEURS[jour]);
         views.setTextViewText(R.id.widget_emoji, EMOJIS[jour]);
         views.setTextViewText(R.id.widget_seance, SEANCES[jour]);
         views.setTextViewText(R.id.widget_horaire, HORAIRES[jour]);
