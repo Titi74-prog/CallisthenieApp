@@ -669,18 +669,18 @@ function markDone(sid,i){
 
 var wakeLock=null;
 async function requestWakeLock(){try{if('wakeLock' in navigator){wakeLock=await navigator.wakeLock.request('screen');}}catch(e){}}
-function releaseWakeLock(){try{if(wakeLock){wakeLock.release();wakeLock=null;}}catch(e){}}
+function releaseWakeLock(){try{if(wakeLock){wakeLock.release();wakeLock=null;}}catch(e){}}var audioCtx=null;function initAudio(){try{if(!audioCtx){var AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;audioCtx=new AC();}if(audioCtx.state==='suspended'){audioCtx.resume();}}catch(e){}}function beep(freq,dur,vol){try{initAudio();if(!audioCtx)return;var t=audioCtx.currentTime;var o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type='sine';o.frequency.value=freq;g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(vol,t+0.012);g.gain.exponentialRampToValueAtTime(0.0001,t+dur);o.connect(g);g.connect(audioCtx.destination);o.start(t);o.stop(t+dur+0.03);}catch(e){}}function buzz(){try{if(window.AndroidBridge&&AndroidBridge.haptic)AndroidBridge.haptic();else if(navigator.vibrate)navigator.vibrate(12);}catch(e){}}
 
 function startTimer(sec,label){
   timerTotal=sec;timerLeft=sec;
   document.getElementById('timer-label').textContent=label||'Repos';
   document.getElementById('timer-overlay').classList.add('show');
   updateTimer();
-  requestWakeLock();
+  requestWakeLock();initAudio();
   clearInterval(timerInterval);
   timerInterval=setInterval(function(){
     timerLeft--;updateTimer();
-    if(timerLeft<=0){clearInterval(timerInterval);releaseWakeLock();setTimeout(stopTimer,900);}
+    if(timerLeft>0){beep(880,0.08,0.22);}else{beep(1320,0.35,0.4);buzz();clearInterval(timerInterval);releaseWakeLock();setTimeout(stopTimer,900);}
   },1000);
 }
 function adjustTimer(delta){
@@ -689,7 +689,7 @@ function adjustTimer(delta){
   updateTimer();
 }
 
-function updateTimer(){
+function updateTimer(){document.getElementById('timer-num').textContent=timerLeft;
   var fg=document.getElementById('ring-fg');
   fg.style.strokeDashoffset=534*(1-timerLeft/timerTotal);
   fg.style.stroke=timerLeft<=5?'#EF5350':timerLeft<=10?'#F9A825':'#5C6BC0';
