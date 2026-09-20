@@ -34,7 +34,7 @@ public class MainActivity extends Activity {
             public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
                 if (url != null) {
-                    if (url.endsWith("nutrition.html")) currentPage = "nutrition";
+                    if (url.endsWith("respiration.html")) currentPage = "respiration";
                     else if (url.endsWith("poids.html")) currentPage = "poids";
                     else currentPage = "programme";
                 }
