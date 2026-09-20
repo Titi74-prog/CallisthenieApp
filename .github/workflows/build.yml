@@ -15,8 +15,12 @@ jobs:
       with:
         java-version: '17'
         distribution: 'temurin'
-    - name: Setup Android SDK
-      uses: android-actions/setup-android@v3
+    - name: Accept Android SDK licenses
+      run: yes | sdkmanager --licenses > /dev/null || true
+    - name: Setup Gradle
+      uses: gradle/actions/setup-gradle@v4
+      with:
+        gradle-version: '8.4'
     - name: Cache Gradle
       uses: actions/cache@v4
       with:
@@ -24,10 +28,8 @@ jobs:
           ~/.gradle/caches
           ~/.gradle/wrapper
         key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*') }}
-    - name: Make gradlew executable
-      run: chmod +x gradlew
     - name: Build Debug APK
-      run: ./gradlew assembleDebug
+      run: gradle assembleDebug
     - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
