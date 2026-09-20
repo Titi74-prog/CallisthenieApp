@@ -492,7 +492,7 @@ setInterval(updateClock,10000);
 
 
 function navTo(page){
-  var pages={'programme':'programme.html','nutrition':'nutrition.html','poids':'poids.html'};
+  var pages={'programme':'programme.html','respiration':'respiration.html','poids':'poids.html'};
   if(pages[page]) window.location.href='file:///android_asset/'+pages[page];
 }
 
@@ -712,7 +712,7 @@ showTab(startTab);
 
 <div id="bottom-nav">
   <button class="nav-btn active" onclick="navTo('programme')"><span>🏋️</span>Programme</button>
-  <button class="nav-btn" onclick="navTo('nutrition')"><span>🥗</span>Nutrition</button>
+  <button class="nav-btn" onclick="navTo('respiration')"><span>🫁</span>Respiration</button>
   <button class="nav-btn" onclick="navTo('poids')"><span>⚖️</span>Poids</button>
 </div>
 </body>

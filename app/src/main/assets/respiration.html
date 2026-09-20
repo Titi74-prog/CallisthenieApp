@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<meta name="theme-color" content="#0a0f2e">
+<title>Cohérence Cardiaque</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0a0f2e;color:#f0efec;overflow:hidden}
+#app{display:flex;flex-direction:column;height:100vh;max-width:430px;margin:0 auto}
+#header{background:rgba(255,255,255,.05);padding:16px;border-bottom:1px solid rgba(255,255,255,.08);display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
+#header h1{font-size:18px;font-weight:800}
+#header h1 span{color:#4ECDC4}
+#header-time{font-size:16px;font-weight:700;color:rgba(255,255,255,.35);font-variant-numeric:tabular-nums}
+#content{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:space-around;padding:20px;padding-bottom:80px}
+#label-phase{font-size:22px;font-weight:700;color:#fff;text-align:center;letter-spacing:.5px;min-height:32px;transition:opacity .3s}
+#label-sub{font-size:14px;color:rgba(255,255,255,.4);text-align:center;margin-top:6px;min-height:20px}
+#track{width:80px;height:300px;background:rgba(255,255,255,.07);border-radius:40px;position:relative;display:flex;align-items:flex-end;justify-content:center;padding-bottom:8px}
+#bubble{width:64px;height:64px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#7eb8f7,#2a5fcf);box-shadow:0 0 30px rgba(78,140,255,.5),0 0 60px rgba(78,140,255,.2);position:absolute;bottom:8px;transition:bottom linear;will-change:bottom}
+#bubble.inspiring{background:radial-gradient(circle at 35% 35%,#7ef7e8,#2acfb0);box-shadow:0 0 30px rgba(78,210,200,.6),0 0 60px rgba(78,210,200,.25)}
+#countdown{font-size:52px;font-weight:800;color:#fff;font-variant-numeric:tabular-nums;line-height:1}
+#rounds-info{font-size:13px;color:rgba(255,255,255,.35);text-align:center}
+#duration-row{display:flex;gap:12px;align-items:center}
+.dur-btn{padding:8px 18px;border-radius:20px;border:1px solid rgba(255,255,255,.2);background:transparent;color:rgba(255,255,255,.5);font-size:13px;font-weight:600;cursor:pointer}
+.dur-btn.active{background:rgba(78,205,196,.15);border-color:#4ECDC4;color:#4ECDC4}
+#btn-start{width:100%;max-width:280px;padding:16px;border-radius:16px;border:none;background:linear-gradient(135deg,#4ECDC4,#2a9d8f);color:#fff;font-size:17px;font-weight:700;cursor:pointer;letter-spacing:.3px}
+#btn-stop{width:100%;max-width:280px;padding:14px;border-radius:16px;border:1px solid rgba(255,255,255,.2);background:transparent;color:rgba(255,255,255,.6);font-size:15px;cursor:pointer;display:none}
+#progress-ring{position:absolute;top:-6px;left:-6px;right:-6px;bottom:-6px;pointer-events:none}
+#track-wrap{position:relative}
+#session-progress{font-size:12px;color:rgba(255,255,255,.3);text-align:center}
+#bottom-nav{display:flex;background:#1a1a22;border-top:1px solid #2a2a35;padding:3px 0;position:fixed;bottom:0;left:0;right:0;max-width:430px;margin:0 auto;z-index:50}
+.nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:1px;padding:3px 2px;cursor:pointer;border:none;background:none;color:#6b6a75;font-size:9px;font-weight:600}
+.nav-btn.active{color:#4ECDC4}
+.nav-btn span{font-size:15px}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="header">
+    <h1>Cohérence <span>Cardiaque</span></h1>
+    <div id="header-time"></div>
+  </div>
+  <div id="content">
+    <div id="label-phase">Prêt</div>
+    <div id="label-sub">6 respirations / minute</div>
+
+    <div id="track-wrap">
+      <div id="track">
+        <div id="bubble"></div>
+      </div>
+    </div>
+
+    <div id="countdown">5:00</div>
+    <div id="rounds-info">—</div>
+
+    <div id="duration-row">
+      <button class="dur-btn" onclick="setDuration(4)">4 mn</button>
+      <button class="dur-btn active" onclick="setDuration(5)">5 mn</button>
+      <button class="dur-btn" onclick="setDuration(6)">6 mn</button>
+    </div>
+
+    <button id="btn-start" onclick="startSession()">▶ Lancer la séance</button>
+    <button id="btn-stop" onclick="stopSession()">Arrêter</button>
+    <div id="session-progress"></div>
+  </div>
+</div>
+
+<div id="bottom-nav">
+  <button class="nav-btn" onclick="navTo('programme')"><span>🏋️</span>Programme</button>
+  <button class="nav-btn active" onclick="navTo('respiration')"><span>🫁</span>Respiration</button>
+  <button class="nav-btn" onclick="navTo('poids')"><span>⚖️</span>Poids</button>
+</div>
+
+<script>
+var duration = 5; // minutes
+var totalSeconds, elapsed, phase, phaseTime, running = false;
+var animFrame, audioCtx;
+var totalCycles;
+
+function updateClock(){
+  var now=new Date();
+  document.getElementById('header-time').textContent=
+    String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+}
+updateClock(); setInterval(updateClock,10000);
+
+function navTo(p){
+  var m={'programme':'programme.html','respiration':'respiration.html','poids':'poids.html'};
+  if(m[p]) window.location.href='file:///android_asset/'+m[p];
+}
+
+function setDuration(d){
+  if(running) return;
+  duration=d;
+  document.querySelectorAll('.dur-btn').forEach(function(b){
+    b.classList.toggle('active', parseInt(b.textContent)===d);
+  });
+  updateCountdown(d*60);
+}
+
+function updateCountdown(s){
+  var m=Math.floor(s/60), sec=s%60;
+  document.getElementById('countdown').textContent=m+':'+(sec<10?'0':'')+sec;
+}
+
+// Web Audio — sons doux
+function getAudioCtx(){
+  if(!audioCtx) audioCtx=new (window.AudioContext||window.webkitAudioContext)();
+  return audioCtx;
+}
+
+function playBreathSound(isInspire, durationSec){
+  try{
+    var ctx=getAudioCtx();
+    var bufSize=ctx.sampleRate*durationSec;
+    var buf=ctx.createBuffer(1,bufSize,ctx.sampleRate);
+    var data=buf.getChannelData(0);
+    // Bruit blanc filtré pour simuler le vent
+    for(var i=0;i<bufSize;i++) data[i]=(Math.random()*2-1)*0.15;
+
+    var src=ctx.createBufferSource();
+    src.buffer=buf;
+
+    // Filtre passe-bas différent selon inspire/expire
+    var filter=ctx.createBiquadFilter();
+    filter.type='lowpass';
+    filter.frequency.value=isInspire?800:400;
+    filter.Q.value=0.5;
+
+    // Gain avec envelope (fade in/out)
+    var gain=ctx.createGain();
+    gain.gain.setValueAtTime(0,ctx.currentTime);
+    gain.gain.linearRampToValueAtTime(0.3,ctx.currentTime+0.5);
+    gain.gain.linearRampToValueAtTime(0.3,ctx.currentTime+durationSec-0.5);
+    gain.gain.linearRampToValueAtTime(0,ctx.currentTime+durationSec);
+
+    src.connect(filter);
+    filter.connect(gain);
+    gain.connect(ctx.destination);
+    src.start();
+    src.stop(ctx.currentTime+durationSec);
+  }catch(e){}
+}
+
+var PHASE_DUR = 5; // secondes par phase
+var phaseStart, sessionStart, sessionDur;
+var phaseTimer, sessionTimer;
+var currentPhase = 'inspire'; // inspire | expire
+var phaseSeconds = 0;
+
+function startSession(){
+  running=true;
+  document.getElementById('btn-start').style.display='none';
+  document.getElementById('btn-stop').style.display='block';
+  document.getElementById('duration-row').style.opacity='.3';
+
+  sessionDur=duration*60;
+  var sessionEnd=Date.now()+sessionDur*1000;
+  totalCycles=0;
+  currentPhase='inspire';
+  phaseSeconds=0;
+
+  startPhase('inspire');
+
+  // Timer session global
+  sessionTimer=setInterval(function(){
+    var remaining=Math.round((sessionEnd-Date.now())/1000);
+    if(remaining<=0){remaining=0;}
+    updateCountdown(remaining);
+    var elapsed=sessionDur-remaining;
+    var cycles=Math.floor(elapsed/10);
+    document.getElementById('rounds-info').textContent=
+      cycles+' cycle'+(cycles>1?'s':'')+' · '+(duration-Math.floor(remaining/60)-1>=0?Math.floor(remaining/60):0)+' mn restante'+(Math.floor(remaining/60)>1?'s':'');
+    if(remaining<=0) finishSession();
+  },500);
+}
+
+function startPhase(p){
+  currentPhase=p;
+  phaseSeconds=0;
+  var bubble=document.getElementById('bubble');
+  var label=document.getElementById('label-phase');
+  var trackH=document.getElementById('track').offsetHeight;
+  var bubbleH=64;
+  var maxBottom=trackH-bubbleH-8;
+
+  if(p==='inspire'){
+    label.textContent='Inspirez';
+    bubble.classList.add('inspiring');
+    bubble.style.transition='bottom '+PHASE_DUR+'s linear';
+    bubble.style.bottom=maxBottom+'px';
+    playBreathSound(true, PHASE_DUR);
+  } else {
+    label.textContent='Expirez';
+    bubble.classList.remove('inspiring');
+    bubble.style.transition='bottom '+PHASE_DUR+'s linear';
+    bubble.style.bottom='8px';
+    playBreathSound(false, PHASE_DUR);
+    totalCycles++;
+  }
+
+  phaseTimer=setTimeout(function(){
+    if(!running) return;
+    startPhase(p==='inspire'?'expire':'inspire');
+  }, PHASE_DUR*1000);
+}
+
+function stopSession(){
+  running=false;
+  clearTimeout(phaseTimer);
+  clearInterval(sessionTimer);
+  var bubble=document.getElementById('bubble');
+  bubble.style.transition='none';
+  bubble.style.bottom='8px';
+  bubble.classList.remove('inspiring');
+  document.getElementById('label-phase').textContent='Prêt';
+  document.getElementById('label-sub').textContent='6 respirations / minute';
+  document.getElementById('rounds-info').textContent='—';
+  document.getElementById('btn-start').style.display='block';
+  document.getElementById('btn-stop').style.display='none';
+  document.getElementById('duration-row').style.opacity='1';
+  updateCountdown(duration*60);
+}
+
+function finishSession(){
+  stopSession();
+  document.getElementById('label-phase').textContent='Terminé ✓';
+  document.getElementById('label-sub').textContent='Bravo — cortisol en baisse 🌿';
+  document.getElementById('btn-start').style.display='block';
+}
+
+updateCountdown(duration*60);
+</script>
+</body>
+</html>

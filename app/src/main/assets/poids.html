@@ -131,7 +131,7 @@ function updateClock(){
   document.getElementById('header-time').textContent=
     String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
 }
-function navTo(p){var m={'programme':'programme.html','nutrition':'nutrition.html','poids':'poids.html'};if(m[p])window.location.href='file:///android_asset/'+m[p];}
+function navTo(p){var m={'programme':'programme.html','respiration':'respiration.html','poids':'poids.html'};if(m[p])window.location.href='file:///android_asset/'+m[p];}
 updateClock(); setInterval(updateClock,10000);
 
 function fmtDate(d){
@@ -272,7 +272,7 @@ window.addEventListener('resize',drawChart);
 </script>
 <div id="bottom-nav">
   <button class="nav-btn" onclick="navTo('programme')"><span>🏋️</span>Programme</button>
-  <button class="nav-btn" onclick="navTo('nutrition')"><span>🥗</span>Nutrition</button>
+  <button class="nav-btn" onclick="navTo('respiration')"><span>🫁</span>Respiration</button>
   <button class="nav-btn active" onclick="navTo('poids')"><span>⚖️</span>Poids</button>
 </div>
 </body>
