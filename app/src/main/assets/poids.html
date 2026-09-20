@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<meta name="theme-color" content="#1a1a2e">
+<title>Suivi Poids — Thierry</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0f0f13;color:#f0efec;overflow:hidden}
+#app{display:flex;flex-direction:column;height:100vh;max-width:430px;margin:0 auto}
+#header{background:#1a1a22;padding:16px;border-bottom:1px solid #2a2a35;display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
+#header h1{font-size:18px;font-weight:800}
+#header h1 span{color:#F9A825}
+#header-time{font-size:16px;font-weight:700;color:#6b6a75;font-variant-numeric:tabular-nums}
+#stats{display:flex;gap:8px;padding:12px;background:#1a1a22;border-bottom:1px solid #2a2a35;flex-shrink:0}
+.stat-card{flex:1;background:#0f0f13;border-radius:10px;padding:10px;text-align:center}
+.stat-label{font-size:10px;color:#6b6a75;margin-bottom:3px;text-transform:uppercase;letter-spacing:.5px}
+.stat-val{font-size:20px;font-weight:700}
+.stat-sub{font-size:10px;color:#6b6a75;margin-top:2px}
+#progress-wrap{padding:8px 12px;background:#1a1a22;border-bottom:1px solid #2a2a35;flex-shrink:0}
+#progress-track{background:#2a2a35;border-radius:6px;height:8px;overflow:hidden}
+#progress-fill{height:8px;border-radius:6px;background:linear-gradient(90deg,#5C6BC0,#F9A825);transition:width .5s}
+#progress-labels{display:flex;justify-content:space-between;margin-top:4px;font-size:10px;color:#6b6a75}
+#content{flex:1;overflow-y:auto;padding:12px;padding-bottom:90px}
+#chart-wrap{background:#1a1a22;border-radius:14px;padding:12px;margin-bottom:12px}
+#chart-title{font-size:12px;font-weight:700;color:#b0aeb8;margin-bottom:8px}
+canvas{width:100%;height:180px}
+#historique-title{font-size:11px;font-weight:700;color:#6b6a75;text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px}
+.pesee-row{background:#1a1a22;border-radius:10px;padding:10px 12px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center}
+.pesee-date{font-size:13px;color:#b0aeb8}
+.pesee-poids{font-size:16px;font-weight:700}
+.pesee-delta{font-size:12px;margin-left:8px}
+.btn-del-p{border:none;background:none;color:#6b6a75;font-size:18px;cursor:pointer;padding:0 4px}
+#fab{position:fixed;bottom:20px;right:20px;width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,#F9A825,#FFB300);border:none;color:#fff;font-size:28px;cursor:pointer;box-shadow:0 4px 16px rgba(249,168,37,.4);z-index:10}
+#modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:100;flex-direction:column;justify-content:flex-end}
+#modal.show{display:flex}
+#modal-inner{background:#1a1a22;border-radius:20px 20px 0 0;padding:20px;display:flex;flex-direction:column;gap:12px}
+#modal-title{font-size:16px;font-weight:700;color:#f0efec}
+.inp-row{display:flex;flex-direction:column;gap:4px}
+.inp-label{font-size:12px;color:#b0aeb8}
+.inp-field{font-size:16px;padding:10px 12px;border-radius:10px;border:1px solid #2a2a35;background:#0f0f13;color:#f0efec}
+.inp-field:focus{outline:none;border-color:#F9A825}
+#btn-save{padding:13px;border-radius:12px;border:none;background:linear-gradient(135deg,#F9A825,#FFB300);color:#fff;font-size:15px;font-weight:700;cursor:pointer}
+#btn-cancel{padding:10px;border-radius:12px;border:1px solid #2a2a35;background:transparent;color:#6b6a75;font-size:13px;cursor:pointer}
+
+#bottom-nav{display:flex;background:#1a1a22;border-top:1px solid #2a2a35;padding:8px 0;position:fixed;bottom:0;left:0;right:0;max-width:430px;margin:0 auto;z-index:50}
+.nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px;cursor:pointer;border:none;background:none;color:#6b6a75;font-size:11px;font-weight:600}
+.nav-btn.active{color:#F9A825}
+.nav-btn span{font-size:20px}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="header">
+    <h1>Poids · <span>Thierry</span></h1>
+    <div id="header-time"></div>
+  </div>
+  <div id="stats">
+    <div class="stat-card">
+      <div class="stat-label">Départ</div>
+      <div class="stat-val" id="st-depart" style="color:#EF5350">—</div>
+      <div class="stat-sub">20/06/2026</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Actuel</div>
+      <div class="stat-val" id="st-actuel" style="color:#f0efec">—</div>
+      <div class="stat-sub" id="st-date">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Objectif</div>
+      <div class="stat-val" id="st-objectif" style="color:#F9A825">87 kg</div>
+      <div class="stat-sub" id="st-restant">—</div>
+    </div>
+  </div>
+  <div id="progress-wrap">
+    <div id="progress-track"><div id="progress-fill" style="width:0%"></div></div>
+    <div id="progress-labels"><span id="pl-left">98 kg</span><span id="pl-pct">0%</span><span>87 kg</span></div>
+  </div>
+  <div id="content">
+    <div id="chart-wrap">
+      <div id="chart-title">Courbe de progression</div>
+      <canvas id="chart"></canvas>
+    </div>
+    <div id="historique-title">Historique</div>
+    <div id="historique"></div>
+  </div>
+</div>
+<button id="fab" onclick="openModal()">+</button>
+<div id="modal" onclick="closeOnBg(event)">
+  <div id="modal-inner">
+    <div id="modal-title">Ajouter une pesée</div>
+    <div class="inp-row">
+      <label class="inp-label">Date</label>
+      <input type="date" id="inp-date" class="inp-field">
+    </div>
+    <div class="inp-row">
+      <label class="inp-label">Poids (kg)</label>
+      <input type="number" id="inp-poids" class="inp-field" step="0.1" min="50" max="200" placeholder="ex: 90.5">
+    </div>
+    <button id="btn-save" onclick="savePesee()">Enregistrer</button>
+    <button id="btn-cancel" onclick="closeModal()">Annuler</button>
+  </div>
+</div>
+<script>
+var DEPART = {date:'2026-06-20', poids:98.0};
+var OBJECTIF = 87.0;
+
+var pesees = [
+  {date:'2026-06-20',poids:98.0},
+  {date:'2026-06-25',poids:94.8},
+  {date:'2026-06-29',poids:94.0},
+  {date:'2026-07-02',poids:93.3},
+  {date:'2026-07-08',poids:93.4},
+  {date:'2026-07-10',poids:92.6},
+  {date:'2026-07-13',poids:91.9},
+  {date:'2026-07-23',poids:90.8},
+  {date:'2026-08-02',poids:91.8},
+  {date:'2026-08-09',poids:92.4},
+  {date:'2026-08-12',poids:91.7},
+  {date:'2026-08-23',poids:91.4},
+  {date:'2026-08-29',poids:90.5},
+  {date:'2026-09-05',poids:90.7},
+  {date:'2026-09-12',poids:90.9},
+  {date:'2026-09-14',poids:90.2},
+  {date:'2026-09-19',poids:91.5},
+];
+
+function updateClock(){
+  var now=new Date();
+  document.getElementById('header-time').textContent=
+    String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+}
+function navTo(p){var m={'programme':'programme.html','nutrition':'nutrition.html','poids':'poids.html'};if(m[p])window.location.href='file:///android_asset/'+m[p];}
+updateClock(); setInterval(updateClock,10000);
+
+function fmtDate(d){
+  var p=d.split('-');
+  return p[2]+'/'+p[1]+'/'+p[0];
+}
+
+function loadSaved(){
+  try{var s=localStorage.getItem('pesees_v2');if(s){var saved=JSON.parse(s);
+    saved.forEach(function(p){if(!pesees.find(function(x){return x.date===p.date;}))pesees.push(p);});
+  }}catch(e){}
+  pesees.sort(function(a,b){return a.date.localeCompare(b.date);});
+}
+
+function save(){
+  var extras=pesees.filter(function(p){return p.date>='2026-09-20';});
+  try{localStorage.setItem('pesees_v2',JSON.stringify(pesees));}catch(e){}
+}
+
+function render(){
+  pesees.sort(function(a,b){return a.date.localeCompare(b.date);});
+  var dernier=pesees[pesees.length-1];
+  var perdu=DEPART.poids-dernier.poids;
+  var restant=dernier.poids-OBJECTIF;
+  var pct=Math.round(perdu/(DEPART.poids-OBJECTIF)*100);
+
+  document.getElementById('st-depart').textContent=DEPART.poids+' kg';
+  document.getElementById('st-actuel').textContent=dernier.poids.toFixed(1)+' kg';
+  document.getElementById('st-date').textContent=fmtDate(dernier.date);
+  document.getElementById('st-restant').textContent='−'+restant.toFixed(1)+' kg restant';
+  document.getElementById('progress-fill').style.width=Math.min(100,pct)+'%';
+  document.getElementById('pl-pct').textContent=pct+'%';
+
+  drawChart();
+  renderHistorique();
+}
+
+function drawChart(){
+  var canvas=document.getElementById('chart');
+  var dpr=window.devicePixelRatio||1;
+  var W=canvas.offsetWidth||350, H=180;
+  canvas.width=W*dpr; canvas.height=H*dpr;
+  canvas.style.width=W+'px'; canvas.style.height=H+'px';
+  var ctx=canvas.getContext('2d');
+  ctx.scale(dpr,dpr);
+
+  var pad={t:10,r:10,b:30,l:42};
+  var w=W-pad.l-pad.r, h=H-pad.t-pad.b;
+
+  var min=85, max=99;
+  var dates=pesees.map(function(p){return new Date(p.date).getTime();});
+  var minD=dates[0], maxD=dates[dates.length-1];
+  var rangeD=maxD-minD||1;
+
+  function xp(d){return pad.l+(new Date(d).getTime()-minD)/rangeD*w;}
+  function yp(v){return pad.t+(max-v)/(max-min)*h;}
+
+  // Grille
+  ctx.strokeStyle='#2a2a35';
+  ctx.lineWidth=1;
+  for(var y=86;y<=98;y+=2){
+    ctx.beginPath();ctx.moveTo(pad.l,yp(y));ctx.lineTo(pad.l+w,yp(y));ctx.stroke();
+    ctx.fillStyle='#6b6a75';ctx.font='9px sans-serif';ctx.textAlign='right';
+    ctx.fillText(y+'kg',pad.l-4,yp(y)+3);
+  }
+
+  // Ligne objectif
+  ctx.strokeStyle='#F9A825';ctx.lineWidth=1;ctx.setLineDash([4,4]);
+  ctx.beginPath();ctx.moveTo(pad.l,yp(OBJECTIF));ctx.lineTo(pad.l+w,yp(OBJECTIF));ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Courbe mesurée
+  ctx.strokeStyle='#5C6BC0';ctx.lineWidth=2.5;
+  ctx.beginPath();
+  pesees.forEach(function(p,i){
+    var x=xp(p.date),y=yp(p.poids);
+    if(i===0)ctx.moveTo(x,y); else ctx.lineTo(x,y);
+  });
+  ctx.stroke();
+
+  // Points
+  pesees.forEach(function(p,i){
+    var x=xp(p.date),y=yp(p.poids);
+    var isLast=i===pesees.length-1;
+    ctx.beginPath();ctx.arc(x,y,isLast?6:3.5,0,Math.PI*2);
+    ctx.fillStyle=isLast?'#F9A825':'#5C6BC0';ctx.fill();
+    if(isLast){
+      ctx.fillStyle='#f0efec';ctx.font='bold 11px sans-serif';ctx.textAlign='center';
+      ctx.fillText(p.poids.toFixed(1),x,y-10);
+    }
+  });
+}
+
+function renderHistorique(){
+  var list=pesees.slice().reverse();
+  var html='';
+  list.forEach(function(p,i){
+    var prev=list[i+1];
+    var delta=prev?p.poids-prev.poids:0;
+    var deltaStr=prev?(delta>0?'+':'')+delta.toFixed(1)+' kg':'départ';
+    var deltaColor=delta>0?'#EF5350':delta<0?'#4ECDC4':'#6b6a75';
+    var poidsColor=p.poids<=OBJECTIF?'#4ECDC4':p.poids<=90?'#F9A825':'#f0efec';
+    html+='<div class="pesee-row">';
+    html+='<span class="pesee-date">'+fmtDate(p.date)+'</span>';
+    html+='<div style="display:flex;align-items:center">';
+    html+='<span class="pesee-poids" style="color:'+poidsColor+'">'+p.poids.toFixed(1)+' kg</span>';
+    html+='<span class="pesee-delta" style="color:'+deltaColor+'">'+deltaStr+'</span>';
+    html+='</div>';
+    html+='</div>';
+  });
+  document.getElementById('historique').innerHTML=html;
+}
+
+function openModal(){
+  var now=new Date();
+  document.getElementById('inp-date').value=now.toISOString().slice(0,10);
+  document.getElementById('inp-poids').value='';
+  document.getElementById('modal').classList.add('show');
+  setTimeout(function(){document.getElementById('inp-poids').focus();},300);
+}
+
+function closeModal(){document.getElementById('modal').classList.remove('show');}
+function closeOnBg(e){if(e.target===document.getElementById('modal'))closeModal();}
+
+function savePesee(){
+  var date=document.getElementById('inp-date').value;
+  var poids=parseFloat(document.getElementById('inp-poids').value);
+  if(!date||isNaN(poids)||poids<50||poids>200)return;
+  var existing=pesees.findIndex(function(p){return p.date===date;});
+  if(existing>=0)pesees[existing].poids=poids;
+  else pesees.push({date:date,poids:poids});
+  save();closeModal();render();
+}
+
+loadSaved();
+render();
+window.addEventListener('resize',drawChart);
+</script>
+<div id="bottom-nav">
+  <button class="nav-btn" onclick="navTo('programme')"><span>🏋️</span>Programme</button>
+  <button class="nav-btn" onclick="navTo('nutrition')"><span>🥗</span>Nutrition</button>
+  <button class="nav-btn active" onclick="navTo('poids')"><span>⚖️</span>Poids</button>
+</div>
+</body>
+</html>
