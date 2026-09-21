@@ -711,10 +711,10 @@ function startTimer(sec,label){
     timerLeft--;updateTimer();
     if(timerLeft<=0){
       clearInterval(timerInterval);releaseWakeLock();
-      beep(880,0.35,0.3);
+      beep(880,0.5,0.4);
       setTimeout(stopTimer,900);
-    }else if(timerLeft<=3){
-      beep(660,0.15,0.25);
+    }else{
+      beep(660,0.12,0.2);
     }
   },1000);
 }
