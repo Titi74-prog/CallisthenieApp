@@ -477,6 +477,31 @@ var SESSIONS=[
 
 var currentTab=0,doneExos={},timerInterval=null,timerTotal=0,timerLeft=0;
 
+var audioCtx=null;
+function getAudioCtx(){
+  if(!audioCtx){
+    try{audioCtx=new (window.AudioContext||window.webkitAudioContext)();}catch(e){}
+  }
+  if(audioCtx&&audioCtx.state==='suspended'){try{audioCtx.resume();}catch(e){}}
+  return audioCtx;
+}
+function beep(freq,duration,vol){
+  var ctx=getAudioCtx();
+  if(!ctx)return;
+  try{
+    var osc=ctx.createOscillator();
+    var gain=ctx.createGain();
+    osc.type='sine';
+    osc.frequency.value=freq;
+    gain.gain.setValueAtTime(vol||0.25,ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+duration);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime+duration);
+  }catch(e){}
+}
+
 function updateClock(){
   var now=new Date();
   var h=String(now.getHours()).padStart(2,'0');
@@ -678,12 +703,19 @@ function startTimer(sec,label){
   timerTotal=sec;timerLeft=sec;
   document.getElementById('timer-label').textContent=label||'Repos';
   document.getElementById('timer-overlay').classList.add('show');
+  getAudioCtx();
   updateTimer();
   requestWakeLock();
   clearInterval(timerInterval);
   timerInterval=setInterval(function(){
     timerLeft--;updateTimer();
-    if(timerLeft<=0){clearInterval(timerInterval);releaseWakeLock();setTimeout(stopTimer,900);}
+    if(timerLeft<=0){
+      clearInterval(timerInterval);releaseWakeLock();
+      beep(880,0.35,0.3);
+      setTimeout(stopTimer,900);
+    }else if(timerLeft<=3){
+      beep(660,0.15,0.25);
+    }
   },1000);
 }
 function adjustTimer(delta){
@@ -696,6 +728,8 @@ function updateTimer(){
   var fg=document.getElementById('ring-fg');
   fg.style.strokeDashoffset=534*(1-timerLeft/timerTotal);
   fg.style.stroke=timerLeft<=5?'#EF5350':timerLeft<=10?'#F9A825':'#5C6BC0';
+  var num=document.getElementById('timer-num');
+  if(num)num.textContent=timerLeft;
 }
 function stopTimer(){
   clearInterval(timerInterval);
