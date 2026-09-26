@@ -54,19 +54,19 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
 .warm-item-txt{flex:1;font-size:14px;color:var(--txt);font-weight:500}
 .warm-item-sub{font-size:11px;color:var(--txt3)}
 .warm-badge{color:#fff;font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;white-space:nowrap}
-.bloc-titre{margin:8px 0 4px;padding:8px 14px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;border-radius:10px}
+.bloc-titre{margin:10px 0 6px;padding:10px 14px;font-size:15px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;border-radius:10px}
 .exo-list{padding:12px 12px 24px}
 .exo-card{background:#1a1a22;border:1.5px solid var(--border);border-radius:16px;margin-bottom:10px;overflow:hidden;cursor:pointer;transition:all .2s;box-shadow:0 2px 8px rgba(0,0,0,.04)}
 .exo-card.open{box-shadow:0 4px 18px rgba(0,0,0,.1)}
 .exo-card.done{opacity:.55}
 .exo-card-header{display:flex;align-items:center;padding:13px 14px;gap:12px}
-.exo-num{width:32px;height:32px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0}
+.exo-num{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;flex-shrink:0}
 .exo-num.is-done{background:linear-gradient(135deg,#4ECDC4,#95E1D3)!important;color:#fff!important}
 .exo-info{flex:1;min-width:0}
-.exo-name{font-size:16px;font-weight:700;color:var(--txt);margin-bottom:3px}
-.badge-row{display:flex;gap:5px;flex-wrap:wrap}
-.badge{font-size:11px;font-weight:600;padding:2px 7px;border-radius:20px}
-.badge-kg{background:#fff8e0;color:#b8860b}
+.exo-name{font-size:21px;font-weight:800;color:var(--txt);margin-bottom:6px;line-height:1.2}
+.badge-row{display:flex;gap:8px;flex-wrap:wrap}
+.badge{font-size:18px;font-weight:800;padding:4px 12px;border-radius:10px;line-height:1.2}
+.badge-kg{background:#FFD54F;color:#1a1a22}
 .exo-chevron{font-size:20px;color:var(--txt3);transition:transform .25s;line-height:1;flex-shrink:0}
 .exo-card.open .exo-chevron{transform:rotate(180deg)}
 .exo-detail{display:none;border-top:1px solid var(--border)}
@@ -147,6 +147,7 @@ var COLORS={
   C:{bg:'#7E57C2',light:'#f3f0fb',badge:'#7E57C2',grad:'linear-gradient(135deg,#7E57C2,#9575CD)'},
   D:{bg:'#EF5350',light:'#fef0f0',badge:'#EF5350',grad:'linear-gradient(135deg,#EF5350,#E57373)'},
   E:{bg:'#F9A825',light:'#fffbec',badge:'#F57F17',grad:'linear-gradient(135deg,#FDD835,#F9A825)'},
+  F:{bg:'#FF7043',light:'#fff0eb',badge:'#F4511E',grad:'linear-gradient(135deg,#FF7043,#FF8A65)'},
   REC:{bg:'#66BB6A',light:'#edf7ee',badge:'#43A047',grad:'linear-gradient(135deg,#66BB6A,#81C784)'},
 };
 
@@ -528,7 +529,7 @@ function buildTabs(){
     var el=document.createElement('div');
     el.className='tab'+(i===0?' active':'');
     el.style.cssText='';
-    var C=COLORS[SESSIONS[SESSION_IDX[i]].col];
+    var C=COLORS[SESSIONS[SESSION_IDX[i]].col]||COLORS.A;
     el.innerHTML=d.tab+'<span class="tab-sub">'+d.sub+'</span>';
     el.onclick=(function(idx){return function(){showTab(idx);};})(i);
     bar.appendChild(el);
@@ -538,7 +539,7 @@ function buildTabs(){
 
 function updateTabColors(activeIdx){
   document.querySelectorAll('.tab').forEach(function(t,i){
-    var C=COLORS[SESSIONS[SESSION_IDX[i]].col];
+    var C=COLORS[SESSIONS[SESSION_IDX[i]].col]||COLORS.A;
     if(i===activeIdx){
       t.style.color=C.bg;
       t.style.borderBottomColor=C.bg;
@@ -564,10 +565,10 @@ function makeCard(ex,i,s,dk,C,displayNum){
     +'<div class="exo-num'+(done?' is-done':'')+'" style="background:'+(done?'linear-gradient(135deg,#4ECDC4,#95E1D3)':C.light)+';color:'+(done?'#fff':C.badge)+'">'+(done?'&#x2713;':(num+1))+'</div>'
     +'<div class="exo-info"><div class="exo-name">'+ex.name+'</div>'
     +'<div class="badge-row">'
-    +'<span class="badge" style="background:'+C.light+';color:'+C.badge+'">'+ex.reps+'</span>'
+    +'<span class="badge" style="background:'+C.bg+';color:#fff">'+ex.reps+'</span>'
     +(ex.kg?'<span class="badge badge-kg">&#x1F3CB; '+ex.kg+'</span>':'')
-    +(ex.hold>0?'<span class="badge" style="background:#f0fffe;color:#3db8b0">&#x23F1; '+ex.hold+'s</span>':'')
-    +(ex.note?'<span class="badge" style="background:#fff0eb;color:#e05500;font-weight:800">'+ex.note+'</span>':'')
+    +(ex.hold>0?'<span class="badge" style="background:#4ECDC4;color:#0f0f13">&#x23F1; '+ex.hold+'s</span>':'')
+    +(ex.note?'<span class="badge" style="background:#FF7043;color:#fff">'+ex.note+'</span>':'')
     +'</div></div>'
     +'<span class="exo-chevron">&#x2304;</span></div>'
     +'<div class="exo-detail"><div class="exo-body">'
@@ -584,7 +585,7 @@ function makeCard(ex,i,s,dk,C,displayNum){
 }
 
 function renderSession(s){
-  var C=COLORS[s.col];
+  var C=COLORS[s.col]||COLORS.A;
   var dk=doneExos[s.id]||{};
   var allExos=s.blocs?s.blocs.reduce(function(a,b){return a.concat(b.exos);},[]):s.exos;
   var doneCount=Object.keys(dk).filter(function(k){return k.indexOf('__')<0;}).length;
@@ -601,21 +602,7 @@ function renderSession(s){
     +'<div class="session-meta"><span class="session-tag" style="background:'+C.light+';color:'+C.badge+'">'+(s.time||s.day)+'</span>'+s.desc+'</div>'
     +'</div></div>';
 
-  if(!s.repos){
-    html+='<div class="progress-wrap">'
-      +'<div class="progress-row"><span class="progress-lbl">Progression</span><span class="progress-pct" style="color:'+C.bg+'">'+pct+'%</span></div>'
-      +'<div class="progress-track"><div class="progress-fill" style="background:'+C.grad+';width:'+pct+'%"></div></div>'
-      +'</div>';
-  }
 
-  if(s.warmup&&s.warmup.length>0){
-    html+='<div class="warm-section"><div class="warm-title">&#x1F525; Echauffement</div>';
-    s.warmup.forEach(function(w){
-      html+='<div class="warm-item"><div class="warm-item-txt">'+w.n+'<br><span class="warm-item-sub">'+w.d+'</span></div>'
-        +'<span class="warm-badge" style="background:'+C.bg+'">'+w.b+'</span></div>';
-    });
-    html+='</div>';
-  }
 
   if(s.repos){
     html+='<div class="repos-wrap"><div class="repos-card" style="border-color:'+C.bg+'33">'
