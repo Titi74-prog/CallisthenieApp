@@ -8,6 +8,7 @@ import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.webkit.WebChromeClient;
+import android.webkit.JavascriptInterface;
 import android.graphics.Color;
 
 public class MainActivity extends Activity {
@@ -42,6 +43,14 @@ public class MainActivity extends Activity {
             }
         });
         webView.setWebChromeClient(new WebChromeClient());
+        // Version de l'app lisible par les pages (affichée dans les en-têtes)
+        webView.addJavascriptInterface(new Object() {
+            @JavascriptInterface
+            public String version() {
+                try { return getPackageManager().getPackageInfo(getPackageName(), 0).versionName; }
+                catch (Exception e) { return ""; }
+            }
+        }, "App");
         webView.loadUrl("file:///android_asset/programme.html");
 
         setContentView(webView);
