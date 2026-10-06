@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
 <meta name="theme-color" content="#1a1a2e">
-<title>Suivi Poids — Thierry</title>
+<title>Suivi du poids</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0f0f13;color:#f0efec;overflow:hidden}
@@ -44,6 +44,11 @@ canvas{width:100%;height:180px}
 #btn-save{padding:13px;border-radius:12px;border:none;background:linear-gradient(135deg,#F9A825,#FFB300);color:#fff;font-size:15px;font-weight:700;cursor:pointer}
 #btn-cancel{padding:10px;border-radius:12px;border:1px solid #2a2a35;background:transparent;color:#6b6a75;font-size:13px;cursor:pointer}
 
+#btn-reset{display:block;width:100%;margin:18px 0 8px;padding:11px;border-radius:12px;border:1px solid #5a2a2a;background:transparent;color:#EF5350;font-size:13px;font-weight:600;cursor:pointer}
+#empty{background:#1a1a22;border-radius:10px;padding:16px;text-align:center;color:#6b6a75;font-size:13px}
+.modal-txt{font-size:13px;color:#b0aeb8;line-height:1.45}
+#btn-do-reset{padding:13px;border-radius:12px;border:none;background:#EF5350;color:#fff;font-size:15px;font-weight:700;cursor:pointer}
+#btn-restore{padding:10px;border-radius:12px;border:1px solid #4ECDC4;background:transparent;color:#4ECDC4;font-size:13px;font-weight:600;cursor:pointer}
 #bottom-nav{display:flex;background:#1a1a22;border-top:1px solid #2a2a35;padding:3px 0;position:fixed;bottom:0;left:0;right:0;max-width:430px;margin:0 auto;z-index:50}
 .nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:1px;padding:3px 2px;cursor:pointer;border:none;background:none;color:#6b6a75;font-size:9px;font-weight:600}
 .nav-btn.active{color:#F9A825}
@@ -53,14 +58,14 @@ canvas{width:100%;height:180px}
 <body>
 <div id="app">
   <div id="header">
-    <h1>Poids · <span>Thierry</span></h1>
+    <h1>Suivi du <span>poids</span></h1>
     <div id="header-time"></div>
   </div>
   <div id="stats">
     <div class="stat-card">
       <div class="stat-label">Départ</div>
       <div class="stat-val" id="st-depart" style="color:#EF5350">—</div>
-      <div class="stat-sub">20/06/2026</div>
+      <div class="stat-sub" id="st-depart-date">—</div>
     </div>
     <div class="stat-card">
       <div class="stat-label">Actuel</div>
@@ -75,7 +80,7 @@ canvas{width:100%;height:180px}
   </div>
   <div id="progress-wrap">
     <div id="progress-track"><div id="progress-fill" style="width:0%"></div></div>
-    <div id="progress-labels"><span id="pl-left">98,5 kg</span><span id="pl-pct">0%</span><span>87 kg</span></div>
+    <div id="progress-labels"><span id="pl-left">98,5 kg</span><span id="pl-pct">0%</span><span id="pl-right">87 kg</span></div>
   </div>
   <div id="content">
     <div id="chart-wrap">
@@ -84,6 +89,7 @@ canvas{width:100%;height:180px}
     </div>
     <div id="historique-title">Historique</div>
     <div id="historique"></div>
+    <button id="btn-reset" onclick="openReset()">↺ Remettre à zéro la courbe</button>
   </div>
 </div>
 <button id="fab" onclick="openModal()">+</button>
@@ -100,6 +106,19 @@ canvas{width:100%;height:180px}
     </div>
     <button id="btn-save" onclick="savePesee()">Enregistrer</button>
     <button id="btn-cancel" onclick="closeModal()">Annuler</button>
+  </div>
+</div>
+<div id="modal-reset" onclick="if(event.target===this)closeReset()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:100;flex-direction:column;justify-content:flex-end">
+  <div id="modal-inner" style="background:#1a1a22;border-radius:20px 20px 0 0;padding:20px;display:flex;flex-direction:column;gap:12px">
+    <div id="modal-title">Remettre la courbe à zéro ?</div>
+    <div class="modal-txt" id="reset-txt"></div>
+    <div class="inp-row">
+      <label class="inp-label">Objectif (kg)</label>
+      <input type="number" id="inp-objectif" class="inp-field" step="0.5" min="40" max="200">
+    </div>
+    <button id="btn-do-reset" onclick="doReset()">Effacer et repartir à zéro</button>
+    <button id="btn-restore" onclick="doRestore()" style="display:none">Restaurer la courbe précédente</button>
+    <button id="btn-cancel" onclick="closeReset()">Annuler</button>
   </div>
 </div>
 <script>
@@ -148,7 +167,19 @@ function fmtDate(d){
 
 function pKey(p){return p.date+'|'+(p.lbl||'');}
 function sortP(){pesees.sort(function(a,b){return a.date.localeCompare(b.date);});}
+// Remise à zéro : quand 'poids_reset_v1' existe, les pesées intégrées à l'app
+// sont ignorées et seule la liste enregistrée sur le téléphone est utilisée.
+var RESET=null;
+function lsGet(k){try{return JSON.parse(localStorage.getItem(k));}catch(e){return null;}}
+function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
 function loadSaved(){
+  RESET=lsGet('poids_reset_v1');
+  if(RESET){
+    pesees=lsGet('pesees_v3')||[];
+    if(RESET.objectif)OBJECTIF=RESET.objectif;
+    sortP();
+    return;
+  }
   try{var s=localStorage.getItem('pesees_v3');if(s){var saved=JSON.parse(s);
     saved.forEach(function(p){
       var ex=pesees.find(function(x){return pKey(x)===pKey(p);});
@@ -164,19 +195,33 @@ function save(){
 
 function render(){
   sortP();
+  document.getElementById('st-objectif').textContent=fmtKg(OBJECTIF);
+  document.getElementById('pl-right').textContent=fmtKg(OBJECTIF);
+  if(!pesees.length){
+    ['st-depart','st-actuel','st-depart-date','st-date','st-restant'].forEach(function(id){document.getElementById(id).textContent='—';});
+    document.getElementById('pl-left').textContent='—';
+    document.getElementById('pl-pct').textContent='0%';
+    document.getElementById('progress-fill').style.width='0%';
+    document.getElementById('chart-wrap').style.display='none';
+    document.getElementById('historique').innerHTML='<div id="empty">Courbe remise à zéro.<br>Ajoute ta première pesée avec le bouton +</div>';
+    return;
+  }
+  document.getElementById('chart-wrap').style.display='';
+  DEPART=pesees[0];
+  document.getElementById('st-depart-date').textContent=fmtDate(DEPART.date);
   var dernier=pesees[pesees.length-1];
   var perdu=DEPART.poids-dernier.poids;
   var restant=dernier.poids-OBJECTIF;
-  var pct=Math.round(perdu/(DEPART.poids-OBJECTIF)*100);
+  var pct=DEPART.poids>OBJECTIF?Math.max(0,Math.round(perdu/(DEPART.poids-OBJECTIF)*100)):0;
 
   document.getElementById('st-depart').textContent=DEPART.poids+' kg';
   document.getElementById('st-actuel').textContent=dernier.poids.toFixed(1)+' kg';
   document.getElementById('st-date').textContent=fmtDate(dernier.date)+(dernier.lbl?' '+dernier.lbl:'');
   document.getElementById('pl-left').textContent=DEPART.poids.toFixed(1).replace('.',',')+' kg';
   document.getElementById('pl-pct').title='−'+perdu.toFixed(1)+' kg';
-  document.getElementById('st-restant').textContent='−'+restant.toFixed(1)+' kg restant';
+  document.getElementById('st-restant').textContent=restant>0?'−'+restant.toFixed(1)+' kg restant':'Objectif atteint';
   document.getElementById('progress-fill').style.width=Math.min(100,pct)+'%';
-  document.getElementById('pl-pct').textContent='−'+perdu.toFixed(1)+' kg · '+pct+'%';
+  document.getElementById('pl-pct').textContent=(perdu>=0?'−':'+')+Math.abs(perdu).toFixed(1)+' kg · '+pct+'%';
 
   drawChart();
   renderHistorique();
@@ -194,7 +239,9 @@ function drawChart(){
   var pad={t:10,r:10,b:30,l:42};
   var w=W-pad.l-pad.r, h=H-pad.t-pad.b;
 
-  var min=85, max=99;
+  var vals=pesees.map(function(p){return p.poids;}).concat([OBJECTIF]);
+  var min=Math.floor(Math.min.apply(null,vals))-1, max=Math.ceil(Math.max.apply(null,vals))+1;
+  if(min%2)min--; if(max%2)max++;
   function tOf(p){return new Date(p.date).getTime()+(p.lbl?43200000:0);}
   var dates=pesees.map(tOf);
   var minD=dates[0], maxD=dates[dates.length-1];
@@ -206,7 +253,8 @@ function drawChart(){
   // Grille
   ctx.strokeStyle='#2a2a35';
   ctx.lineWidth=1;
-  for(var y=86;y<=98;y+=2){
+  var step=(max-min)>16?4:2;
+  for(var y=min+step;y<max;y+=step){
     ctx.beginPath();ctx.moveTo(pad.l,yp(y));ctx.lineTo(pad.l+w,yp(y));ctx.stroke();
     ctx.fillStyle='#6b6a75';ctx.font='9px sans-serif';ctx.textAlign='right';
     ctx.fillText(y+'kg',pad.l-4,yp(y)+3);
@@ -280,6 +328,39 @@ function savePesee(){
   save();closeModal();render();
 }
 
+function fmtKg(v){return (Math.round(v*10)/10).toString().replace('.',',')+' kg';}
+
+function openReset(){
+  document.getElementById('reset-txt').innerHTML=pesees.length
+    ?'Les <b>'+pesees.length+' pesées</b> seront effacées. La courbe repartira de ta prochaine pesée.<br>Une copie est gardée sur le téléphone : tu pourras la restaurer ici.'
+    :'La courbe est déjà vide.';
+  document.getElementById('inp-objectif').value=OBJECTIF;
+  document.getElementById('btn-do-reset').style.display=pesees.length?'':'none';
+  document.getElementById('btn-restore').style.display=lsGet('pesees_backup_v3')?'':'none';
+  document.getElementById('modal-reset').style.display='flex';
+}
+function closeReset(){document.getElementById('modal-reset').style.display='none';}
+function readObjectif(){
+  var o=parseFloat(document.getElementById('inp-objectif').value);
+  return (!isNaN(o)&&o>=40&&o<=200)?o:OBJECTIF;
+}
+function doReset(){
+  lsSet('pesees_backup_v3',{pesees:pesees,objectif:OBJECTIF,date:new Date().toISOString().slice(0,10)});
+  OBJECTIF=readObjectif();
+  RESET={date:new Date().toISOString().slice(0,10),objectif:OBJECTIF};
+  lsSet('poids_reset_v1',RESET);
+  pesees=[];save();closeReset();render();
+}
+function doRestore(){
+  var b=lsGet('pesees_backup_v3');if(!b)return;
+  pesees=b.pesees||[];OBJECTIF=b.objectif||OBJECTIF;
+  RESET={date:new Date().toISOString().slice(0,10),objectif:OBJECTIF,restored:true};
+  lsSet('poids_reset_v1',RESET);
+  save();
+  try{localStorage.removeItem('pesees_backup_v3');}catch(e){}
+  closeReset();render();
+}
+
 loadSaved();
 render();
 window.addEventListener('resize',drawChart);
@@ -288,7 +369,7 @@ window.addEventListener('resize',drawChart);
   <button class="nav-btn" onclick="navTo('programme')"><span>🏋️</span>Programme</button>
   <button class="nav-btn" onclick="navTo('respiration')"><span>🫁</span>Respiration</button>
   <button class="nav-btn active" onclick="navTo('poids')"><span>⚖️</span>Poids</button>
-  <button class="nav-btn" onclick="navTo('extra')"><span>🔥</span>Extra</button>
+  <button class="nav-btn" onclick="navTo('extra')"><span>💪</span>Extra</button>
 </div>
 </body>
 </html>
