@@ -36,6 +36,7 @@ public class MainActivity extends Activity {
                 if (url != null) {
                     if (url.endsWith("respiration.html")) currentPage = "respiration";
                     else if (url.endsWith("poids.html")) currentPage = "poids";
+                    else if (url.endsWith("seance_extra.html")) currentPage = "extra";
                     else currentPage = "programme";
                 }
             }
