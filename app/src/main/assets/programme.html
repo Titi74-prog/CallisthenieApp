@@ -6,7 +6,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#1a1a2e">
-<title>Callisthénie</title>
+<title>Callisthénie — Thierry</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0f0f13;color:#f0efec;overflow:hidden}
@@ -54,19 +54,19 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
 .warm-item-txt{flex:1;font-size:14px;color:var(--txt);font-weight:500}
 .warm-item-sub{font-size:11px;color:var(--txt3)}
 .warm-badge{color:#fff;font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;white-space:nowrap}
-.bloc-titre{margin:10px 0 6px;padding:10px 14px;font-size:15px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;border-radius:10px}
+.bloc-titre{margin:8px 0 4px;padding:8px 14px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;border-radius:10px}
 .exo-list{padding:12px 12px 24px}
 .exo-card{background:#1a1a22;border:1.5px solid var(--border);border-radius:16px;margin-bottom:10px;overflow:hidden;cursor:pointer;transition:all .2s;box-shadow:0 2px 8px rgba(0,0,0,.04)}
 .exo-card.open{box-shadow:0 4px 18px rgba(0,0,0,.1)}
 .exo-card.done{opacity:.55}
 .exo-card-header{display:flex;align-items:center;padding:13px 14px;gap:12px}
-.exo-num{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;flex-shrink:0}
+.exo-num{width:32px;height:32px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0}
 .exo-num.is-done{background:linear-gradient(135deg,#4ECDC4,#95E1D3)!important;color:#fff!important}
 .exo-info{flex:1;min-width:0}
-.exo-name{font-size:21px;font-weight:800;color:var(--txt);margin-bottom:6px;line-height:1.2}
-.badge-row{display:flex;gap:8px;flex-wrap:wrap}
-.badge{font-size:18px;font-weight:800;padding:4px 12px;border-radius:10px;line-height:1.2}
-.badge-kg{background:#FFD54F;color:#1a1a22}
+.exo-name{font-size:16px;font-weight:700;color:var(--txt);margin-bottom:3px}
+.badge-row{display:flex;gap:5px;flex-wrap:wrap}
+.badge{font-size:11px;font-weight:600;padding:2px 7px;border-radius:20px}
+.badge-kg{background:#fff8e0;color:#b8860b}
 .exo-chevron{font-size:20px;color:var(--txt3);transition:transform .25s;line-height:1;flex-shrink:0}
 .exo-card.open .exo-chevron{transform:rotate(180deg)}
 .exo-detail{display:none;border-top:1px solid var(--border)}
@@ -103,21 +103,20 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
 #timer-sec{font-size:14px;color:rgba(255,255,255,.5);margin-bottom:24px;margin-top:4px}
 #btn-stop{background:rgba(255,255,255,.12);border:1.5px solid rgba(255,255,255,.25);color:#fff;font-size:15px;font-weight:600;padding:13px 36px;border-radius:16px;cursor:pointer;-webkit-appearance:none}
 
-#bottom-nav{display:flex;background:#1a1a22;border-top:1px solid #2a2a35;padding:3px 0;position:fixed;bottom:0;left:0;right:0;max-width:430px;margin:0 auto;z-index:50}
-.nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:1px;padding:3px 2px;cursor:pointer;border:none;background:none;color:#6b6a75;font-size:9px;font-weight:600}
+#bottom-nav{display:flex;background:#1a1a22;border-top:1px solid #2a2a35;padding:8px 0;position:fixed;bottom:0;left:0;right:0;max-width:430px;margin:0 auto;z-index:50}
+.nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px;cursor:pointer;border:none;background:none;color:#6b6a75;font-size:11px;font-weight:600}
 .nav-btn.active{color:#5C6BC0}
-.nav-btn span{font-size:15px}
-.app-ver{font-size:10px;font-weight:600;color:#6b6a75;letter-spacing:.3px}
+.nav-btn span{font-size:20px}
 </style>
 </head>
 <body>
 <div id="app">
 <div id="header">
   <div class="header-left">
-    <h1>Callisthénie</h1>
+    <h1>Callisthénie · <span>Thierry</span></h1>
     <div class="header-sub">
       <div class="h-dot"></div>
-      <span class="h-tag">6 séances / semaine<span class="app-ver" data-pre=" · "></span></span>
+      <span class="h-tag">6 séances / semaine</span>
     </div>
   </div>
   <div class="header-right">
@@ -199,6 +198,10 @@ var SESSIONS=[
    steps:['Sur le côté, appui sur l\'avant-bras.','Lever les hanches — corps aligné tête-pied.','Tenir 25 secondes sans laisser les hanches descendre.','Alterner les côtés.'],
    tip:'💡 Progresser vers 40 sec en 6 semaines.',
    erreur:'⚠ Hanches qui s\'affaissent = obliques qui ne travaillent plus.'},
+  {name:'Écartés haltères au sol',reps:'12 rép.',rest:90,hold:0,kg:'8 kg',
+   steps:['Allongé au sol, haltères 8 kg, bras tendus au-dessus de la poitrine.','Descendre les bras en arc de cercle — coudes légèrement fléchis.','Sentir l\'étirement des pectoraux en bas.','Remonter lentement en expirant sur 4 sec.'],
+   tip:'💡 Le sol limite l\'amplitude et protège les épaules — idéal pour débuter.',
+   erreur:'⚠ Ne pas verrouiller les coudes — légère flexion permanente.'},
  ]},
 
 /* ─── B — MARDI : Abdos & Lombaires ─── */
@@ -251,7 +254,7 @@ var SESSIONS=[
    steps:['Debout, haltères de 1,5 kg, légère flexion des hanches.','Lever alternativement les bras au-dessus de la tête à rythme soutenu.','Bras actifs, épaules engagées — rythme continu.','2 minutes, respiration régulière.'],
    tip:'💡 Cardio d\'activation en ouverture — monte le rythme cardiaque progressivement.',
    erreur:'⚠ Ne bloquez pas la respiration — rythme respiratoire régulier.'},
-  {name:'Pompes complètes au sol',reps:'10 rép.',rest:60,hold:0,kg:'',
+  {name:'Pompes arquées — mains très écartées',reps:'12 rép.',rest:60,hold:0,kg:'',
    steps:['Mains au sol largeur épaules, corps aligné tête-pieds.','Descendre coudes à 45°, poitrine qui touche le sol.','Pousser en expirant, corps gainé.','Garder les hanches dans l\'axe du corps tout au long.'],
    tip:'💡 Progression vers les pompes au sol — baisser la hauteur chaque semaine.',
    erreur:'⚠ Corps comme une planche — hanches ne montent pas.'},
@@ -319,6 +322,10 @@ var SESSIONS=[
    steps:['Allongé sur le dos, genou droit fléchi, pied à plat, jambe gauche tendue.','Pousser sur le talon droit pour lever les hanches.','Tenir 3 sec en haut — fessier gauche contracté.','Redescendre lentement. Toute la série d\'un côté puis alterner.'],
    tip:'💡 Renforce le fessier moyen en charge réelle — plus proche des contraintes du padel que les exercices au sol.',
    erreur:'⚠ Le bassin ne penche pas d\'un côté — garder les hanches de niveau pendant les 3 sec.'},
+  {name:'Pompes déclinées — pieds sur chaise',reps:'12 rép.',rest:90,hold:0,kg:'',
+   steps:['Mains au sol, pieds posés sur la chaise.','Corps aligné, abdos gainés.','Descendre la poitrine vers le sol sur 3 sec, coudes à 45°.','Pousser en expirant — cible les pectoraux hauts.'],
+   tip:'💡 Plus les pieds sont hauts, plus les pectoraux hauts travaillent.',
+   erreur:'⚠ Ne pas laisser les hanches monter — corps gainé tout au long.'},
  ]},
 
 /* ─── C2 — VENDREDI : Circuit métabolique (variante) ─── */
@@ -479,31 +486,6 @@ var SESSIONS=[
 
 var currentTab=0,doneExos={},timerInterval=null,timerTotal=0,timerLeft=0;
 
-var audioCtx=null;
-function getAudioCtx(){
-  if(!audioCtx){
-    try{audioCtx=new (window.AudioContext||window.webkitAudioContext)();}catch(e){}
-  }
-  if(audioCtx&&audioCtx.state==='suspended'){try{audioCtx.resume();}catch(e){}}
-  return audioCtx;
-}
-function beep(freq,duration,vol){
-  var ctx=getAudioCtx();
-  if(!ctx)return;
-  try{
-    var osc=ctx.createOscillator();
-    var gain=ctx.createGain();
-    osc.type='sine';
-    osc.frequency.value=freq;
-    gain.gain.setValueAtTime(vol||0.25,ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+duration);
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.start();
-    osc.stop(ctx.currentTime+duration);
-  }catch(e){}
-}
-
 function updateClock(){
   var now=new Date();
   var h=String(now.getHours()).padStart(2,'0');
@@ -519,7 +501,7 @@ setInterval(updateClock,10000);
 
 
 function navTo(page){
-  var pages={'programme':'programme.html','respiration':'respiration.html','poids':'poids.html','extra':'seance_extra.html'};
+  var pages={'programme':'programme.html','nutrition':'nutrition.html','poids':'poids.html'};
   if(pages[page]) window.location.href='file:///android_asset/'+pages[page];
 }
 
@@ -530,7 +512,7 @@ function buildTabs(){
     var el=document.createElement('div');
     el.className='tab'+(i===0?' active':'');
     el.style.cssText='';
-    var C=COLORS[SESSIONS[SESSION_IDX[i]].col]||COLORS.A;
+    var C=COLORS[SESSIONS[SESSION_IDX[i]].col];
     el.innerHTML=d.tab+'<span class="tab-sub">'+d.sub+'</span>';
     el.onclick=(function(idx){return function(){showTab(idx);};})(i);
     bar.appendChild(el);
@@ -540,7 +522,7 @@ function buildTabs(){
 
 function updateTabColors(activeIdx){
   document.querySelectorAll('.tab').forEach(function(t,i){
-    var C=COLORS[SESSIONS[SESSION_IDX[i]].col]||COLORS.A;
+    var C=COLORS[SESSIONS[SESSION_IDX[i]].col];
     if(i===activeIdx){
       t.style.color=C.bg;
       t.style.borderBottomColor=C.bg;
@@ -566,10 +548,10 @@ function makeCard(ex,i,s,dk,C,displayNum){
     +'<div class="exo-num'+(done?' is-done':'')+'" style="background:'+(done?'linear-gradient(135deg,#4ECDC4,#95E1D3)':C.light)+';color:'+(done?'#fff':C.badge)+'">'+(done?'&#x2713;':(num+1))+'</div>'
     +'<div class="exo-info"><div class="exo-name">'+ex.name+'</div>'
     +'<div class="badge-row">'
-    +'<span class="badge" style="background:'+C.bg+';color:#fff">'+ex.reps+'</span>'
+    +'<span class="badge" style="background:'+C.light+';color:'+C.badge+'">'+ex.reps+'</span>'
     +(ex.kg?'<span class="badge badge-kg">&#x1F3CB; '+ex.kg+'</span>':'')
-    +(ex.hold>0?'<span class="badge" style="background:#4ECDC4;color:#0f0f13">&#x23F1; '+ex.hold+'s</span>':'')
-    +(ex.note?'<span class="badge" style="background:#FF7043;color:#fff">'+ex.note+'</span>':'')
+    +(ex.hold>0?'<span class="badge" style="background:#f0fffe;color:#3db8b0">&#x23F1; '+ex.hold+'s</span>':'')
+    +(ex.note?'<span class="badge" style="background:#fff0eb;color:#e05500;font-weight:800">'+ex.note+'</span>':'')
     +'</div></div>'
     +'<span class="exo-chevron">&#x2304;</span></div>'
     +'<div class="exo-detail"><div class="exo-body">'
@@ -586,7 +568,7 @@ function makeCard(ex,i,s,dk,C,displayNum){
 }
 
 function renderSession(s){
-  var C=COLORS[s.col]||COLORS.A;
+  var C=COLORS[s.col];
   var dk=doneExos[s.id]||{};
   var allExos=s.blocs?s.blocs.reduce(function(a,b){return a.concat(b.exos);},[]):s.exos;
   var doneCount=Object.keys(dk).filter(function(k){return k.indexOf('__')<0;}).length;
@@ -603,7 +585,21 @@ function renderSession(s){
     +'<div class="session-meta"><span class="session-tag" style="background:'+C.light+';color:'+C.badge+'">'+(s.time||s.day)+'</span>'+s.desc+'</div>'
     +'</div></div>';
 
+  if(!s.repos){
+    html+='<div class="progress-wrap">'
+      +'<div class="progress-row"><span class="progress-lbl">Progression</span><span class="progress-pct" style="color:'+C.bg+'">'+pct+'%</span></div>'
+      +'<div class="progress-track"><div class="progress-fill" style="background:'+C.grad+';width:'+pct+'%"></div></div>'
+      +'</div>';
+  }
 
+  if(s.warmup&&s.warmup.length>0){
+    html+='<div class="warm-section"><div class="warm-title">&#x1F525; Echauffement</div>';
+    s.warmup.forEach(function(w){
+      html+='<div class="warm-item"><div class="warm-item-txt">'+w.n+'<br><span class="warm-item-sub">'+w.d+'</span></div>'
+        +'<span class="warm-badge" style="background:'+C.bg+'">'+w.b+'</span></div>';
+    });
+    html+='</div>';
+  }
 
   if(s.repos){
     html+='<div class="repos-wrap"><div class="repos-card" style="border-color:'+C.bg+'33">'
@@ -691,19 +687,12 @@ function startTimer(sec,label){
   timerTotal=sec;timerLeft=sec;
   document.getElementById('timer-label').textContent=label||'Repos';
   document.getElementById('timer-overlay').classList.add('show');
-  getAudioCtx();
   updateTimer();
   requestWakeLock();
   clearInterval(timerInterval);
   timerInterval=setInterval(function(){
     timerLeft--;updateTimer();
-    if(timerLeft<=0){
-      clearInterval(timerInterval);releaseWakeLock();
-      beep(880,0.5,0.4);
-      setTimeout(stopTimer,900);
-    }else{
-      beep(660,0.12,0.2);
-    }
+    if(timerLeft<=0){clearInterval(timerInterval);releaseWakeLock();setTimeout(stopTimer,900);}
   },1000);
 }
 function adjustTimer(delta){
@@ -716,8 +705,6 @@ function updateTimer(){
   var fg=document.getElementById('ring-fg');
   fg.style.strokeDashoffset=534*(1-timerLeft/timerTotal);
   fg.style.stroke=timerLeft<=5?'#EF5350':timerLeft<=10?'#F9A825':'#5C6BC0';
-  var num=document.getElementById('timer-num');
-  if(num)num.textContent=timerLeft;
 }
 function stopTimer(){
   clearInterval(timerInterval);
@@ -736,8 +723,7 @@ showTab(startTab);
   <button class="nav-btn active" onclick="navTo('programme')"><span>🏋️</span>Programme</button>
   <button class="nav-btn" onclick="navTo('respiration')"><span>🫁</span>Respiration</button>
   <button class="nav-btn" onclick="navTo('poids')"><span>⚖️</span>Poids</button>
-  <button class="nav-btn" onclick="navTo('extra')"><span>💪</span>Extra</button>
+  <button class="nav-btn" onclick="navTo('seance_extra')"><span>💪</span>Extra</button>
 </div>
-<script>(function(){try{var v=window.App&&App.version();if(v)document.querySelectorAll('.app-ver').forEach(function(e){e.textContent=e.getAttribute('data-pre')+'v'+v;});}catch(e){}})();</script>
 </body>
 </html>
