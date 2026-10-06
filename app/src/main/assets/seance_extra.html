@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<meta name="theme-color" content="#1a1a22">
+<title>Séance Extra — Chaise Romaine</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0f0f13;color:#f0efec}
+#app{display:flex;flex-direction:column;height:100vh;max-width:430px;margin:0 auto;padding-bottom:46px}
+#header{background:#1a1a22;padding:16px;border-bottom:1px solid #2a2a35;display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
+#header h1{font-size:17px;font-weight:800}
+#header h1 span{color:#FF7043}
+#header-time{font-size:15px;font-weight:700;color:#6b6a75;font-variant-numeric:tabular-nums}
+#tour-bar{background:#1a1a22;border-bottom:1px solid #2a2a35;padding:8px 12px;display:flex;gap:8px;align-items:center;flex-shrink:0}
+.tour-btn{flex:1;padding:7px;border-radius:8px;border:1px solid #2a2a35;background:transparent;color:#6b6a75;font-size:12px;font-weight:700;cursor:pointer;text-align:center}
+.tour-btn.active{background:#1a1a35;border-color:#FF7043;color:#FF7043}
+#content{flex:1;overflow-y:auto;padding:12px;padding-bottom:20px}
+.exo-card{background:#1a1a22;border-radius:14px;padding:14px;margin-bottom:10px;border-left:4px solid #FF7043}
+.exo-card.done{border-left-color:#4ECDC4;opacity:.6}
+.exo-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px}
+.exo-nom{font-size:15px;font-weight:700;color:#f0efec;flex:1}
+.exo-badge{font-size:11px;font-weight:700;color:#FF7043;background:rgba(255,112,67,.12);padding:3px 8px;border-radius:6px;white-space:nowrap;margin-left:8px}
+.exo-reps{font-size:13px;color:#4ECDC4;font-weight:600;margin-bottom:6px}
+.exo-steps{list-style:none;padding:0}
+.exo-steps li{font-size:12px;color:#b0aeb8;padding:3px 0;padding-left:14px;position:relative}
+.exo-steps li::before{content:'›';position:absolute;left:0;color:#FF7043}
+.exo-tip{font-size:11px;color:#F9A825;margin-top:6px;font-style:italic}
+.exo-err{font-size:11px;color:#EF5350;margin-top:4px}
+.btn-done{width:100%;margin-top:10px;padding:8px;border-radius:8px;border:1px solid #FF7043;background:transparent;color:#FF7043;font-size:13px;font-weight:700;cursor:pointer}
+.btn-done.done{border-color:#4ECDC4;color:#4ECDC4;background:rgba(78,205,196,.08)}
+#footer{background:#1a1a22;border-top:1px solid #2a2a35;padding:12px;flex-shrink:0;text-align:center}
+#progress-text{font-size:12px;color:#6b6a75;margin-bottom:6px}
+#progress-track{background:#2a2a35;border-radius:4px;height:6px;overflow:hidden}
+#progress-fill{height:6px;border-radius:4px;background:linear-gradient(90deg,#FF7043,#FF8A65);transition:width .4s}
+#timer-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:100;flex-direction:column;align-items:center;justify-content:center;gap:20px}
+#timer-overlay.show{display:flex}
+#timer-label{font-size:18px;font-weight:700;color:#f0efec}
+#timer-ring-wrap{position:relative;width:160px;height:160px}
+#timer-ring-wrap svg{position:absolute;top:0;left:0;transform:rotate(-90deg)}
+#ring-bg{fill:none;stroke:#2a2a35;stroke-width:10}
+#ring-fg{fill:none;stroke:#FF7043;stroke-width:10;stroke-linecap:round;stroke-dasharray:440;stroke-dashoffset:0;transition:stroke-dashoffset .5s linear,stroke .3s}
+#timer-num{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:48px;font-weight:800;color:#f0efec;font-variant-numeric:tabular-nums}
+#timer-btns{display:flex;gap:12px}
+.t-btn{padding:10px 20px;border-radius:10px;border:1px solid #2a2a35;background:transparent;color:#f0efec;font-size:14px;cursor:pointer}
+#btn-stop-timer{background:#FF7043;border-color:#FF7043;color:#fff;font-weight:700}
+#bottom-nav{display:flex;background:#1a1a22;border-top:1px solid #2a2a35;padding:3px 0;position:fixed;bottom:0;left:0;right:0;max-width:430px;margin:0 auto;z-index:50}
+.nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:1px;padding:3px 2px;cursor:pointer;border:none;background:none;color:#6b6a75;font-size:9px;font-weight:600}
+.nav-btn.active{color:#FF7043}
+.nav-btn span{font-size:15px}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="header">
+    <h1>Séance Extra · <span>Chaise Romaine</span></h1>
+    <div id="header-time"></div>
+  </div>
+  <div id="tour-bar">
+    <span style="font-size:12px;color:#6b6a75">Tour :</span>
+    <button class="tour-btn active" onclick="setTour(1)">Tour 1</button>
+    <button class="tour-btn" onclick="setTour(2)">Tour 2</button>
+    <button class="tour-btn" onclick="setTour(3)">Tour 3</button>
+  </div>
+  <div id="content"></div>
+  <div id="footer">
+    <div id="progress-text">0 / 18 exercices</div>
+    <div id="progress-track"><div id="progress-fill" style="width:0%"></div></div>
+  </div>
+</div>
+
+<div id="bottom-nav">
+  <button class="nav-btn" onclick="navTo('programme')"><span>🏋️</span>Programme</button>
+  <button class="nav-btn" onclick="navTo('respiration')"><span>🫁</span>Respiration</button>
+  <button class="nav-btn" onclick="navTo('poids')"><span>⚖️</span>Poids</button>
+  <button class="nav-btn active" onclick="navTo('extra')"><span>🔥</span>Extra</button>
+</div>
+
+<div id="timer-overlay">
+  <div id="timer-label">Repos</div>
+  <div id="timer-ring-wrap">
+    <svg viewBox="0 0 160 160" width="160" height="160">
+      <circle id="ring-bg" cx="80" cy="80" r="70"/>
+      <circle id="ring-fg" cx="80" cy="80" r="70"/>
+    </svg>
+    <div id="timer-num">60</div>
+  </div>
+  <div id="timer-btns">
+    <button class="t-btn" onclick="adjustTimer(-5)">-5s</button>
+    <button class="t-btn" onclick="adjustTimer(5)">+5s</button>
+    <button class="t-btn" id="btn-stop-timer" onclick="stopTimer()">Terminer</button>
+  </div>
+</div>
+
+<script>
+var EXOS = [
+  {nom:'Tractions — prise large', reps:'15 rép.', kg:'Poids de corps',
+   steps:['Saisir la barre en prise large, paumes vers l\'avant.','Partir bras tendus, corps gainé.','Tirer jusqu\'à ce que le menton dépasse la barre.','Redescendre lentement sur 4 sec — bras bien tendus.'],
+   tip:'💡 Si 15 rép. impossibles : fais le max puis complète en négatifs (monter avec élan, descendre sur 4 sec).',
+   err:'⚠ Ne pas balancer le corps — mouvement strict.', rest:60},
+  {nom:'Tractions — prise serrée', reps:'15 rép.', kg:'Poids de corps',
+   steps:['Saisir la barre en prise serrée, paumes vers soi.','Partir bras tendus, coudes le long du corps.','Tirer en amenant les coudes vers les hanches.','Redescendre lentement sur 4 sec.'],
+   tip:'💡 Prise serrée cible davantage les biceps que la prise large.',
+   err:'⚠ Ne pas balancer — contrôle total.', rest:60},
+  {nom:'Dips — triceps', reps:'15 rép.', kg:'Poids de corps',
+   steps:['Saisir les barres parallèles, bras tendus.','Descendre lentement en fléchissant les coudes — 3 sec.','Buste légèrement penché en avant.','Remonter en soufflant — bras tendus sans verrouiller.'],
+   tip:'💡 Plus tu te penches en avant, plus les pectoraux travaillent. Buste droit = triceps.',
+   err:'⚠ Ne pas descendre trop bas — coudes à 90° maximum.', rest:60},
+  {nom:'Relevés de jambes — chaise romaine', reps:'15 rép.', kg:'—',
+   steps:['S\'installer dans la chaise romaine, bras sur les accoudoirs.','Dos plaqué au dossier.','Lever les genoux vers la poitrine en expirant.','Descendre lentement — pas d\'élan.'],
+   tip:'💡 Mouvement lent et contrôlé — pas de balancement.',
+   err:'⚠ Ne pas balancer les jambes pour prendre de l\'élan.', rest:60},
+  {nom:'Relevés de jambes tendues — chaise romaine', reps:'10 rép.', kg:'—',
+   steps:['Même position, jambes tendues cette fois.','Lever les jambes jusqu\'à l\'horizontale en expirant.','Tenir 1 sec en haut.','Descendre lentement — contrôle total.'],
+   tip:'💡 Plus difficile que les genoux fléchis — si trop dur, revenir aux genoux fléchis.',
+   err:'⚠ Ne pas laisser les jambes tomber — descente contrôlée.', rest:60},
+  {nom:'Crunchs — au sol', reps:'15 rép.', kg:'—',
+   steps:['Allongé au sol, genoux fléchis, pieds à plat.','Mains derrière la tête ou croisées sur la poitrine.','Contracter les abdos pour monter les épaules du sol.','Descendre lentement sur 3 sec — ne pas poser complètement.'],
+   tip:'💡 Amplitude courte et contrôlée — épaules décollent, pas le bas du dos.',
+   err:'⚠ Ne pas tirer sur le cou avec les mains.', rest:90},
+];
+
+function navTo(p){
+  var m={'programme':'programme.html','respiration':'respiration.html','poids':'poids.html','extra':'seance_extra.html'};
+  if(m[p]) window.location.href='file:///android_asset/'+m[p];
+}
+
+// Bips du décompte (identiques au programme principal)
+var audioCtx=null;
+function getAudioCtx(){
+  if(!audioCtx){try{audioCtx=new (window.AudioContext||window.webkitAudioContext)();}catch(e){}}
+  if(audioCtx&&audioCtx.state==='suspended'){try{audioCtx.resume();}catch(e){}}
+  return audioCtx;
+}
+function beep(freq,duration,vol){
+  var ctx=getAudioCtx();
+  if(!ctx)return;
+  try{
+    var osc=ctx.createOscillator(),gain=ctx.createGain();
+    osc.type='sine';osc.frequency.value=freq;
+    gain.gain.setValueAtTime(vol||0.25,ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+duration);
+    osc.connect(gain);gain.connect(ctx.destination);
+    osc.start();osc.stop(ctx.currentTime+duration);
+  }catch(e){}
+}
+
+var currentTour = 1;
+var done = {1:[], 2:[], 3:[]};
+var timerInterval, timerLeft, timerTotal;
+
+function updateClock(){
+  var now=new Date();
+  document.getElementById('header-time').textContent=
+    String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+}
+updateClock(); setInterval(updateClock,10000);
+
+function setTour(t){
+  currentTour=t;
+  document.querySelectorAll('.tour-btn').forEach(function(b,i){b.classList.toggle('active',i+1===t);});
+  render();
+}
+
+function toggleDone(i){
+  var d=done[currentTour];
+  var idx=d.indexOf(i);
+  if(idx>=0) d.splice(idx,1);
+  else{
+    d.push(i);
+    var rest=EXOS[i].rest;
+    startTimer(rest, i===EXOS.length-1?'Repos entre les tours ☕':'Repos');
+  }
+  render();
+}
+
+function render(){
+  var d=done[currentTour];
+  var html='';
+  EXOS.forEach(function(e,i){
+    var isDone=d.indexOf(i)>=0;
+    html+='<div class="exo-card'+(isDone?' done':'')+'">';
+    html+='<div class="exo-header">';
+    html+='<div class="exo-nom">'+e.nom+'</div>';
+    html+='<div class="exo-badge">'+e.kg+'</div>';
+    html+='</div>';
+    html+='<div class="exo-reps">'+e.reps+'</div>';
+    html+='<ul class="exo-steps">';
+    e.steps.forEach(function(s){html+='<li>'+s+'</li>';});
+    html+='</ul>';
+    html+='<div class="exo-tip">'+e.tip+'</div>';
+    html+='<div class="exo-err">'+e.err+'</div>';
+    html+='<button class="btn-done'+(isDone?' done':'')+'" onclick="toggleDone('+i+')">'+(isDone?'✓ Fait — annuler':'✓ Terminé — lancer le repos')+'</button>';
+    html+='</div>';
+  });
+  document.getElementById('content').innerHTML=html;
+  var total=EXOS.length*3;
+  var totalDone=done[1].length+done[2].length+done[3].length;
+  document.getElementById('progress-text').textContent=totalDone+' / '+total+' exercices';
+  document.getElementById('progress-fill').style.width=Math.round(totalDone/total*100)+'%';
+}
+
+function startTimer(sec, label){
+  getAudioCtx();
+  clearInterval(timerInterval);
+  timerLeft=sec; timerTotal=sec;
+  document.getElementById('timer-label').textContent=label||'Repos';
+  document.getElementById('timer-overlay').classList.add('show');
+  updateTimer();
+  timerInterval=setInterval(function(){
+    timerLeft--;
+    if(timerLeft<=0){
+      clearInterval(timerInterval);
+      document.getElementById('timer-num').textContent=0;
+      beep(880,0.5,0.4);
+      setTimeout(stopTimer,900);
+    }else{
+      beep(660,0.12,0.2);
+      updateTimer();
+    }
+  },1000);
+}
+
+function adjustTimer(d){
+  timerLeft=Math.max(1,timerLeft+d);
+  timerTotal=Math.max(timerTotal,timerLeft);
+  updateTimer();
+}
+
+function updateTimer(){
+  var fg=document.getElementById('ring-fg');
+  fg.style.strokeDashoffset=440*(1-timerLeft/timerTotal);
+  fg.style.stroke=timerLeft<=5?'#EF5350':timerLeft<=10?'#F9A825':'#FF7043';
+  document.getElementById('timer-num').textContent=timerLeft;
+}
+
+function stopTimer(){
+  clearInterval(timerInterval);
+  document.getElementById('timer-overlay').classList.remove('show');
+}
+
+render();
+</script>
+</body>
+</html>

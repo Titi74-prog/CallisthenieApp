@@ -128,6 +128,9 @@ var pesees = [
   {date:'2026-09-22',poids:90.9},
   {date:'2026-09-26',poids:90.5},
   {date:'2026-09-26',poids:90.3,lbl:'matin'},
+  {date:'2026-09-29',poids:89.8},
+  {date:'2026-09-30',poids:89.6},
+  {date:'2026-10-04',poids:89.9},
 ];
 
 function updateClock(){
@@ -135,7 +138,7 @@ function updateClock(){
   document.getElementById('header-time').textContent=
     String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
 }
-function navTo(p){var m={'programme':'programme.html','respiration':'respiration.html','poids':'poids.html'};if(m[p])window.location.href='file:///android_asset/'+m[p];}
+function navTo(p){var m={'programme':'programme.html','respiration':'respiration.html','poids':'poids.html','extra':'seance_extra.html'};if(m[p])window.location.href='file:///android_asset/'+m[p];}
 updateClock(); setInterval(updateClock,10000);
 
 function fmtDate(d){
@@ -285,6 +288,7 @@ window.addEventListener('resize',drawChart);
   <button class="nav-btn" onclick="navTo('programme')"><span>🏋️</span>Programme</button>
   <button class="nav-btn" onclick="navTo('respiration')"><span>🫁</span>Respiration</button>
   <button class="nav-btn active" onclick="navTo('poids')"><span>⚖️</span>Poids</button>
+  <button class="nav-btn" onclick="navTo('extra')"><span>🔥</span>Extra</button>
 </div>
 </body>
 </html>
