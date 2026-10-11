@@ -197,10 +197,15 @@ var MOIS=['Jan','Fév','Mar','Avr','Mai','Juin','Juil','Aoû','Sep','Oct','Nov',
 var PER_LBL={week:'cette semaine',month:'30 jours',year:String(new Date().getFullYear())};
 var PERIOD='week';try{PERIOD=localStorage.getItem('sante_period')||'week';}catch(e){}
 /* Type de jour choisi par l'utilisateur : padel (2 800 kcal) ou callisthénie par défaut (2 100 kcal) */
-function padelDays(){try{return JSON.parse(localStorage.getItem('sante_padel_days'))||{};}catch(e){return {};}}
+/* Stockage : préférences Android (fiable) + copie localStorage (secours / migration) */
+var PADEL_KEY='sante_padel_days';
+function prefGet(){var v=null;try{if(window.App&&App.getPref)v=App.getPref(PADEL_KEY);}catch(e){}
+  if(v==null){try{v=localStorage.getItem(PADEL_KEY);}catch(e){}}return v;}
+function prefSet(v){try{if(window.App&&App.setPref)App.setPref(PADEL_KEY,v);}catch(e){}try{localStorage.setItem(PADEL_KEY,v);}catch(e){}}
+function padelDays(){try{return JSON.parse(prefGet())||{};}catch(e){return {};}}
 function isPadel(date){return !!padelDays()[date];}
 function goalFor(date){return isPadel(date)?2800:2100;}
-function setPadel(date,on){var p=padelDays();if(on)p[date]=1;else delete p[date];try{localStorage.setItem('sante_padel_days',JSON.stringify(p));}catch(e){}}
+function setPadel(date,on){var p=padelDays();if(on)p[date]=1;else delete p[date];prefSet(JSON.stringify(p));}
 var LAST=null;
 function setDayType(padel){setPadel(ld(new Date()),padel);if(LAST)render(LAST);else paintDayType();}
 function paintDayType(){var p=isPadel(ld(new Date()));$('dt-pad').classList.toggle('on',p);$('dt-cal').classList.toggle('on',!p);
@@ -440,6 +445,8 @@ function render(d){
 (function(){
   try{var v=window.App&&App.version();if(v)document.querySelectorAll('.app-ver').forEach(function(e){e.textContent=' · v'+v;});}catch(e){}
   paintTabs();
+  try{var lp=localStorage.getItem(PADEL_KEY);if(lp&&window.App&&App.getPref&&App.getPref(PADEL_KEY)==null)App.setPref(PADEL_KEY,lp);}catch(e){}
+  paintDayType();
   try{var c=JSON.parse(localStorage.getItem('sante_cache_'+PERIOD));if(c)render(c);}catch(e){}
   refresh();
 })();
