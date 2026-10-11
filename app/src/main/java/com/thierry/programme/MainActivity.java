@@ -56,6 +56,15 @@ public class MainActivity extends ComponentActivity {
                 try { return getPackageManager().getPackageInfo(getPackageName(), 0).versionName; }
                 catch (Exception e) { return ""; }
             }
+            // Réglages persistants côté Android (écriture synchrone, survit à la fermeture de l'appli)
+            @JavascriptInterface
+            public String getPref(String key) {
+                return getSharedPreferences("callisthenie", MODE_PRIVATE).getString(key, null);
+            }
+            @JavascriptInterface
+            public void setPref(String key, String value) {
+                getSharedPreferences("callisthenie", MODE_PRIVATE).edit().putString(key, value).commit();
+            }
         }, "App");
 
         // Pont Health Connect → JS (calories, pas, poids, composition, sommeil)
