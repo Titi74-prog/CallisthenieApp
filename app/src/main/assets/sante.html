@@ -86,12 +86,28 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
       </div>
     </div>
 
-    <!-- Pas -->
+    <!-- Cardiaque -->
     <div class="card">
-      <div class="card-title">👟 Pas</div>
+      <div class="card-title">❤️ Cardiaque</div>
+      <div class="row">
+        <div class="mini"><div class="mini-l">FC repos</div><div class="mini-v" id="hr-rest">—</div><div class="mini-s" id="hr-rest-d">bpm</div></div>
+        <div class="mini"><div class="mini-l">FC max du jour</div><div class="mini-v" id="hr-max">—</div><div class="mini-s" id="hr-zone">bpm</div></div>
+        <div class="mini"><div class="mini-l">VO2 max</div><div class="mini-v" id="vo2">—</div><div class="mini-s" id="vo2-d">ml/kg/min</div></div>
+      </div>
+      <div class="bars" id="hr-bars" style="height:80px"></div>
+      <div class="note" id="hr-note">FC repos sur 7 jours : une baisse régulière signe une meilleure forme.</div>
+    </div>
+
+    <!-- Activité -->
+    <div class="card">
+      <div class="card-title">👟 Activité</div>
       <div class="row">
         <div class="mini"><div class="mini-l">Aujourd'hui</div><div class="mini-v" id="steps-today">—</div><div class="mini-s">pas</div></div>
         <div class="mini"><div class="mini-l">Moyenne 7 j</div><div class="mini-v" id="steps-avg">—</div><div class="mini-s">pas / jour</div></div>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <div class="mini"><div class="mini-l">Étages aujourd'hui</div><div class="mini-v" id="fl-today">—</div><div class="mini-s" id="fl-kcal">étages</div></div>
+        <div class="mini"><div class="mini-l">Étages moy. 7 j</div><div class="mini-v" id="fl-avg">—</div><div class="mini-s">étages / jour</div></div>
       </div>
       <div class="bars" id="steps-bars" style="height:90px"></div>
     </div>
@@ -109,18 +125,6 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
       </div>
     </div>
 
-    <!-- Cardiaque -->
-    <div class="card">
-      <div class="card-title">❤️ Cardiaque</div>
-      <div class="row">
-        <div class="mini"><div class="mini-l">FC repos</div><div class="mini-v" id="hr-rest">—</div><div class="mini-s" id="hr-rest-d">bpm</div></div>
-        <div class="mini"><div class="mini-l">FC max du jour</div><div class="mini-v" id="hr-max">—</div><div class="mini-s" id="hr-zone">bpm</div></div>
-        <div class="mini"><div class="mini-l">VO2 max</div><div class="mini-v" id="vo2">—</div><div class="mini-s" id="vo2-d">ml/kg/min</div></div>
-      </div>
-      <div class="bars" id="hr-bars" style="height:80px"></div>
-      <div class="note" id="hr-note">FC repos sur 7 jours : une baisse régulière signe une meilleure forme.</div>
-    </div>
-
     <!-- Sommeil -->
     <div class="card">
       <div class="card-title">🌙 Sommeil</div>
@@ -135,13 +139,9 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
     <!-- Bilan déficit -->
     <div class="card">
       <div class="card-title">📉 Bilan déficit <b>aujourd'hui</b></div>
-      <div class="line"><span>Dépense totale (montre)</span><span id="d-tdee">—</span></div>
-      <div class="line"><span>− Calories consommées</span><span><input id="d-conso" type="number" inputmode="numeric" min="0" step="10" placeholder="saisir" oninput="saveConso()" style="width:92px;text-align:right;font-size:15px;font-weight:700;padding:5px 8px;border-radius:8px;border:1px solid var(--bd);background:#0f0f13;color:#f0efec"> kcal</span></div>
-      <div style="margin-top:14px">
-        <div class="mini-l" style="text-align:left">Déficit du jour</div>
-        <div class="deficit-v" id="d-day">—</div>
-        <div class="note">La dépense de la montre s'accumule au fil de la journée : le chiffre est complet le soir.</div>
-      </div>
+      <div class="line"><span>Calories brûlées aujourd'hui (montre)</span><span id="d-tdee">—</span></div>
+      <div class="note">La dépense de la montre inclut déjà le métabolisme de base et s'accumule au fil de la journée : le chiffre est complet le soir.</div>
+      <div class="note" style="color:var(--t2)">💬 Pour le déficit du jour, donne tes calories consommées dans la conversation Claude avec ce total.</div>
       <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--bd)">
         <div class="mini-l" style="text-align:left">Contrôle : déficit moyen d'après la courbe de poids</div>
         <div class="deficit-v" id="d-def" style="font-size:22px">—</div>
@@ -172,17 +172,6 @@ function hm(min){if(min==null||isNaN(min))return '—';var h=Math.floor(min/60),
 function ld(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
 function ago(iso){if(!iso)return '';var d=new Date(iso),days=Math.floor((Date.now()-d.getTime())/864e5);return days<=0?"aujourd'hui":days===1?'hier':'il y a '+days+' j';}
 
-var TOTAL_TODAY=null;
-function consoKey(){return 'conso_'+ld(new Date());}
-function loadConso(){var el=$('d-conso');if(document.activeElement!==el){try{var v=localStorage.getItem(consoKey());el.value=v!=null?v:'';}catch(e){}}showDay();}
-function saveConso(){var v=$('d-conso').value;try{if(v==='')localStorage.removeItem(consoKey());else localStorage.setItem(consoKey(),v);}catch(e){}showDay();}
-function showDay(){
-  var c=parseFloat($('d-conso').value),el=$('d-day');
-  if(TOTAL_TODAY==null||isNaN(c)){el.textContent='—';el.style.color='';return;}
-  var def=TOTAL_TODAY-c;
-  el.textContent=(def>=0?'−':'+')+fmt(Math.abs(def))+' kcal';
-  el.style.color=def>=0?'var(--ok)':'var(--warn)';
-}
 function hasBridge(){return typeof window.HealthBridge!=='undefined';}
 function refresh(){
   if(!hasBridge()){showBanner("Le pont Health Connect n'est disponible que dans l'appli Android.",null,null);return;}
@@ -255,7 +244,7 @@ function render(d){
 
   /* ── Calories & pas ── */
   var days=d.days||[],todayKey=ld(new Date());
-  var items=days.map(function(x){var dt=new Date(x.date+'T12:00:00');return {key:x.date,lbl:JOURS[dt.getDay()],kcal:x.kcal,steps:x.steps};});
+  var items=days.map(function(x){var dt=new Date(x.date+'T12:00:00');return {key:x.date,lbl:JOURS[dt.getDay()],kcal:x.kcal,steps:x.steps,floors:x.floors};});
   var t=items.filter(function(i){return i.key===todayKey;})[0]||{};
   var kT=t.kcal||0;
   $('kcal-today').innerHTML=fmt(t.kcal!=null?t.kcal:null)+'<small>kcal</small>';
@@ -272,6 +261,10 @@ function render(d){
 
   var sv=items.filter(function(i){return i.steps!=null;});
   $('steps-today').textContent=fmt(t.steps!=null?t.steps:null);
+  var fv=items.filter(function(i){return i.floors!=null;});
+  $('fl-today').textContent=t.floors!=null?fmt(t.floors):'—';
+  $('fl-kcal').textContent=t.floors!=null?'étages · ~'+Math.round(t.floors*4)+' kcal':'étages';
+  $('fl-avg').textContent=fv.length?fmt1(fv.reduce(function(s,i){return s+i.floors;},0)/fv.length):'—';
   $('steps-avg').textContent=sv.length?fmt(sv.reduce(function(s,i){return s+i.steps;},0)/sv.length):'—';
   bars($('steps-bars'),items.map(function(i){return {key:i.key,lbl:i.lbl,v:i.steps};}),'linear-gradient(180deg,#64B5F6,#42A5F5)',0,
     function(v){return v>=1000?(Math.round(v/100)/10).toLocaleString('fr-FR')+'k':v;});
@@ -293,16 +286,17 @@ function render(d){
   var rDays=[];for(var j=6;j>=0;j--){var dj=new Date();dj.setDate(dj.getDate()-j);var kj=ld(dj);rDays.push({key:kj,lbl:JOURS[dj.getDay()],v:rByDay[kj]||0});}
   var lastR=rh.length?rh[rh.length-1]:null;
   $('hr-rest').textContent=lastR?lastR.bpm:'—';
+  var rStat=lastR?(lastR.bpm<60?['En baisse ✅','var(--ok)']:lastR.bpm<=70?['Normal','var(--t2)']:['Élevée ⚠️','var(--warn)']):null;
   var rv=rDays.filter(function(x){return x.v>0;});
   if(rv.length>=2){
     var delta=rv[rv.length-1].v-rv[0].v;
-    $('hr-rest-d').innerHTML='bpm · <span style="color:'+(delta<0?'var(--ok)':delta>0?'var(--warn)':'var(--t3)')+'">'+(delta<0?'▼ −':delta>0?'▲ +':'= ')+Math.abs(delta)+' sur 7 j</span>';
+    $('hr-rest-d').innerHTML='<span style="color:'+rStat[1]+';font-weight:700">'+rStat[0]+'</span><br>'+(delta<0?'▼ −':delta>0?'▲ +':'= ')+Math.abs(delta)+' bpm sur 7 j';
     $('hr-note').textContent=delta<0?'FC repos en baisse sur 7 jours : bonne adaptation à l\'entraînement.':delta>0?'FC repos en hausse sur 7 jours : fatigue, manque de sommeil ou récupération à surveiller.':'FC repos stable sur 7 jours.';
-  }else $('hr-rest-d').textContent=lastR?'bpm · '+ago(lastR.t.toISOString()):'bpm';
+  }else $('hr-rest-d').innerHTML=lastR?'<span style="color:'+rStat[1]+';font-weight:700">'+rStat[0]+'</span>':'bpm';
   bars($('hr-bars'),rDays,'linear-gradient(180deg,#EF9A9A,#E57373)',0,function(v){return v;});
   var mx=d.hrMaxToday;
   $('hr-max').textContent=mx!=null?mx:'—';
-  if(mx!=null){var z=mx>170?['max','#EF5350']:mx>=140?['intense','#FF7043']:['modéré','var(--ok)'];$('hr-zone').innerHTML='bpm · <span style="color:'+z[1]+';font-weight:700">'+z[0]+'</span>';}
+  if(mx!=null){var z=mx>170?['🔴 Maximum','#EF5350']:mx>=140?['🟠 Intense','#FF7043']:mx>=120?['🟡 Modéré','#F9A825']:['🟢 Léger','var(--ok)'];$('hr-zone').innerHTML='bpm · <span style="color:'+z[1]+';font-weight:700">'+z[0]+'</span>';}
   else $('hr-zone').textContent='bpm';
   $('vo2').textContent=d.vo2max?fmt1(d.vo2max.v):'—';
   $('vo2-d').textContent=d.vo2max?'ml/kg/min · '+ago(d.vo2max.t):'ml/kg/min';
@@ -326,9 +320,7 @@ function render(d){
   bars($('sl-bars'),nights,'linear-gradient(180deg,#B39DDB,#9575CD)',0,hm);
 
   /* ── Déficit ── */
-  TOTAL_TODAY=t.kcal!=null?t.kcal:null;
-  $('d-tdee').textContent=TOTAL_TODAY!=null?fmt(TOTAL_TODAY)+' kcal':'—';
-  loadConso();
+  $('d-tdee').textContent=t.kcal!=null?fmt(t.kcal)+' kcal':'—';
   var src='Health Connect',pts=ws;
   if(!slopePerDay(pts)){pts=localWeights();src='onglet Poids';}
   var r=slopePerDay(pts);
