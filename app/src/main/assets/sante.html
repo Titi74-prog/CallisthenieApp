@@ -36,7 +36,7 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
 .bar-d{font-size:10px;color:var(--t3);margin-top:5px;font-weight:600}
 .bar-d.today{color:var(--t2)}
 .goal-line{position:absolute;left:0;right:0;border-top:1.5px dashed rgba(255,255,255,.35);pointer-events:none}
-.goal-lbl{position:absolute;right:0;font-size:9px;color:var(--t2);background:var(--card);padding:0 3px;transform:translateY(-110%)}
+.goal-lbl{position:absolute;left:0;font-size:9px;color:var(--t2);background:var(--card);padding:0 3px;transform:translateY(-110%)}
 .na{color:var(--t3);font-size:13px}
 .deficit-v{font-size:28px;font-weight:800;font-variant-numeric:tabular-nums}
 .note{font-size:11px;color:var(--t3);line-height:1.45;margin-top:8px}
@@ -72,17 +72,17 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
       <button class="btn btn-sec" id="banner-btn2" onclick="openHC()">Réglages Health Connect</button>
     </div>
 
-    <!-- Calories actives -->
+    <!-- Calories brûlées (total) -->
     <div class="card">
-      <div class="card-title">🔥 Calories actives <b id="kcal-upd"></b></div>
+      <div class="card-title">🔥 Calories brûlées <b id="kcal-upd"></b></div>
       <div class="big" id="kcal-today">—<small>kcal</small></div>
       <div class="track"><div class="fill" id="kcal-fill" style="width:0;background:linear-gradient(90deg,#FF7043,#FFB74D)"></div></div>
-      <div class="track-l"><span id="kcal-pct">Aujourd'hui</span><span>Objectif 800 kcal</span></div>
+      <div class="track-l"><span id="kcal-pct">Aujourd'hui</span><span>Objectif 2 600 kcal · métabolisme + activité</span></div>
       <div class="bars" id="kcal-bars"></div>
       <div class="row" style="margin-top:12px">
         <div class="mini"><div class="mini-l">Semaine</div><div class="mini-v" id="kcal-week">—</div><div class="mini-s">kcal · 7 jours</div></div>
         <div class="mini"><div class="mini-l">Moyenne</div><div class="mini-v" id="kcal-avg">—</div><div class="mini-s">kcal / jour</div></div>
-        <div class="mini"><div class="mini-l">Objectif</div><div class="mini-v" id="kcal-hit">—</div><div class="mini-s">jours ≥ 800</div></div>
+        <div class="mini"><div class="mini-l">Objectif</div><div class="mini-v" id="kcal-hit">—</div><div class="mini-s">jours ≥ 2 600</div></div>
       </div>
     </div>
 
@@ -119,18 +119,22 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
       <div class="bars" id="sl-bars" style="height:90px"></div>
     </div>
 
-    <!-- Déficit -->
+    <!-- Bilan déficit -->
     <div class="card">
-      <div class="card-title">📉 Estimation du déficit</div>
-      <div class="line"><span>Métabolisme de base</span><span id="d-bmr">—</span></div>
-      <div class="line"><span>+ Calories actives (moy. 7 j)</span><span id="d-act">—</span></div>
-      <div class="line"><span>= Dépense totale estimée</span><span id="d-tdee">—</span></div>
+      <div class="card-title">📉 Bilan déficit <b>aujourd'hui</b></div>
+      <div class="line"><span>Dépense totale (montre)</span><span id="d-tdee">—</span></div>
+      <div class="line"><span>− Calories consommées</span><span><input id="d-conso" type="number" inputmode="numeric" min="0" step="10" placeholder="saisir" oninput="saveConso()" style="width:92px;text-align:right;font-size:15px;font-weight:700;padding:5px 8px;border-radius:8px;border:1px solid var(--bd);background:#0f0f13;color:#f0efec"> kcal</span></div>
       <div style="margin-top:14px">
-        <div class="mini-l" style="text-align:left">Déficit moyen d'après la courbe de poids</div>
-        <div class="deficit-v" id="d-def">—</div>
+        <div class="mini-l" style="text-align:left">Déficit du jour</div>
+        <div class="deficit-v" id="d-day">—</div>
+        <div class="note">La dépense de la montre s'accumule au fil de la journée : le chiffre est complet le soir.</div>
+      </div>
+      <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--bd)">
+        <div class="mini-l" style="text-align:left">Contrôle : déficit moyen d'après la courbe de poids</div>
+        <div class="deficit-v" id="d-def" style="font-size:22px">—</div>
         <div class="note" id="d-note">Il faut au moins 2 pesées espacées de 7 jours sur les 30 derniers jours.</div>
       </div>
-      <div class="note">Repère : 1 kg de graisse ≈ 7 700 kcal. Un déficit de 500 kcal/jour ≈ −0,5 kg/semaine. Pour l'apport conseillé, retranche le déficit visé de la dépense totale.</div>
+      <div class="note">Repère : 1 kg de graisse ≈ 7 700 kcal. Un déficit de 500 kcal/jour ≈ −0,5 kg/semaine.</div>
     </div>
   </div>
 </div>
@@ -144,7 +148,7 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
 </div>
 
 <script>
-var GOAL_KCAL=800, KCAL_PER_KG=7700;
+var GOAL_KCAL=2600, KCAL_PER_KG=7700;
 var JOURS=['Di','Lu','Ma','Me','Je','Ve','Sa'];
 
 function navTo(p){var m={'programme':'programme.html','respiration':'respiration.html','poids':'poids.html','extra':'seance_extra.html','seance_extra':'seance_extra.html','sante':'sante.html'};if(m[p])window.location.href='file:///android_asset/'+m[p];}
@@ -155,6 +159,17 @@ function hm(min){if(min==null||isNaN(min))return '—';var h=Math.floor(min/60),
 function ld(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
 function ago(iso){if(!iso)return '';var d=new Date(iso),days=Math.floor((Date.now()-d.getTime())/864e5);return days<=0?"aujourd'hui":days===1?'hier':'il y a '+days+' j';}
 
+var TOTAL_TODAY=null;
+function consoKey(){return 'conso_'+ld(new Date());}
+function loadConso(){var el=$('d-conso');if(document.activeElement!==el){try{var v=localStorage.getItem(consoKey());el.value=v!=null?v:'';}catch(e){}}showDay();}
+function saveConso(){var v=$('d-conso').value;try{if(v==='')localStorage.removeItem(consoKey());else localStorage.setItem(consoKey(),v);}catch(e){}showDay();}
+function showDay(){
+  var c=parseFloat($('d-conso').value),el=$('d-day');
+  if(TOTAL_TODAY==null||isNaN(c)){el.textContent='—';el.style.color='';return;}
+  var def=TOTAL_TODAY-c;
+  el.textContent=(def>=0?'−':'+')+fmt(Math.abs(def))+' kcal';
+  el.style.color=def>=0?'var(--ok)':'var(--warn)';
+}
 function hasBridge(){return typeof window.HealthBridge!=='undefined';}
 function refresh(){
   if(!hasBridge()){showBanner("Le pont Health Connect n'est disponible que dans l'appli Android.",null,null);return;}
@@ -269,10 +284,9 @@ function render(d){
   bars($('sl-bars'),nights,'linear-gradient(180deg,#B39DDB,#9575CD)',0,hm);
 
   /* ── Déficit ── */
-  var bmr=d.bmr?d.bmr.kcal:null;
-  $('d-bmr').textContent=bmr?fmt(bmr)+' kcal':'—';
-  $('d-act').textContent=avgK!=null?fmt(avgK)+' kcal':'—';
-  $('d-tdee').textContent=(bmr&&avgK!=null)?fmt(bmr+avgK)+' kcal':'—';
+  TOTAL_TODAY=t.kcal!=null?t.kcal:null;
+  $('d-tdee').textContent=TOTAL_TODAY!=null?fmt(TOTAL_TODAY)+' kcal':'—';
+  loadConso();
   var src='Health Connect',pts=ws;
   if(!slopePerDay(pts)){pts=localWeights();src='onglet Poids';}
   var r=slopePerDay(pts);
