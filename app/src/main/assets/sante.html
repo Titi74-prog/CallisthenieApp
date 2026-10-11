@@ -109,12 +109,25 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
       </div>
     </div>
 
+    <!-- Cardiaque -->
+    <div class="card">
+      <div class="card-title">❤️ Cardiaque</div>
+      <div class="row">
+        <div class="mini"><div class="mini-l">FC repos</div><div class="mini-v" id="hr-rest">—</div><div class="mini-s" id="hr-rest-d">bpm</div></div>
+        <div class="mini"><div class="mini-l">FC max du jour</div><div class="mini-v" id="hr-max">—</div><div class="mini-s" id="hr-zone">bpm</div></div>
+        <div class="mini"><div class="mini-l">VO2 max</div><div class="mini-v" id="vo2">—</div><div class="mini-s" id="vo2-d">ml/kg/min</div></div>
+      </div>
+      <div class="bars" id="hr-bars" style="height:80px"></div>
+      <div class="note" id="hr-note">FC repos sur 7 jours : une baisse régulière signe une meilleure forme.</div>
+    </div>
+
     <!-- Sommeil -->
     <div class="card">
       <div class="card-title">🌙 Sommeil</div>
       <div class="row">
         <div class="mini"><div class="mini-l">Dernière nuit</div><div class="mini-v" id="sl-last">—</div><div class="mini-s" id="sl-last-d"></div></div>
         <div class="mini"><div class="mini-l">Moyenne 7 nuits</div><div class="mini-v" id="sl-avg">—</div><div class="mini-s">par nuit</div></div>
+        <div class="mini" id="spo2-box" style="display:none"><div class="mini-l">SpO2 nuit</div><div class="mini-v" id="spo2">—</div><div class="mini-s" id="spo2-d">%</div></div>
       </div>
       <div class="bars" id="sl-bars" style="height:90px"></div>
     </div>
@@ -234,8 +247,9 @@ function render(d){
   if(d.status==='unavailable'){showBanner("Health Connect n'est pas disponible sur ce téléphone. Installe l'appli Health Connect depuis le Play Store, puis reviens ici.",'Réessayer',refresh);return;}
   if(d.status==='update_required'){showBanner("Health Connect doit être mis à jour depuis le Play Store.",'Réessayer',refresh);return;}
   if(d.status==='error'){showBanner('Erreur de lecture Health Connect : '+(d.message||''),'Réessayer',refresh);return;}
-  if(d.status==='denied'){showBanner("Autorise Callisthénie à lire tes données (calories, pas, poids, composition, sommeil) dans Health Connect.",'Autoriser',function(){try{HealthBridge.askPermissions();}catch(e){}});return;}
-  if(d.granted&&d.granted.length<7)showBanner('Certaines données ne sont pas autorisées ('+d.granted.length+'/7). Tu peux les activer dans Health Connect.','Autoriser le reste',function(){try{HealthBridge.askPermissions();}catch(e){}});
+  if(d.status==='denied'){showBanner("Autorise Callisthénie à lire tes données (calories, pas, poids, composition, cœur, sommeil) dans Health Connect.",'Autoriser',function(){try{HealthBridge.askPermissions();}catch(e){}});return;}
+  var nReq=d.requested||11,nOk=d.grantedCount!=null?d.grantedCount:(d.granted||[]).length;
+  if(nOk<nReq)showBanner('Certaines données ne sont pas autorisées ('+nOk+'/'+nReq+'). Tu peux les activer dans Health Connect.','Autoriser le reste',function(){try{HealthBridge.askPermissions();}catch(e){}});
   else hideBanner();
   if(d.updated){var u=new Date(d.updated);$('kcal-upd').textContent='màj '+String(u.getHours()).padStart(2,'0')+':'+String(u.getMinutes()).padStart(2,'0');}
 
@@ -272,6 +286,34 @@ function render(d){
   $('c-lean').textContent=d.leanMass?fmt1(d.leanMass.kg):'—';
   $('c-lean-d').textContent=d.leanMass?'kg · '+ago(d.leanMass.t):'kg';
   $('c-bmr').textContent=d.bmr?fmt(d.bmr.kcal):'—';
+
+  /* ── Cardiaque ── */
+  var rh=(d.restingHr||[]).map(function(r){return {t:new Date(r.t),bpm:r.bpm};});
+  var rByDay={};rh.forEach(function(r){rByDay[ld(r.t)]=r.bpm;}); // dernière valeur du jour
+  var rDays=[];for(var j=6;j>=0;j--){var dj=new Date();dj.setDate(dj.getDate()-j);var kj=ld(dj);rDays.push({key:kj,lbl:JOURS[dj.getDay()],v:rByDay[kj]||0});}
+  var lastR=rh.length?rh[rh.length-1]:null;
+  $('hr-rest').textContent=lastR?lastR.bpm:'—';
+  var rv=rDays.filter(function(x){return x.v>0;});
+  if(rv.length>=2){
+    var delta=rv[rv.length-1].v-rv[0].v;
+    $('hr-rest-d').innerHTML='bpm · <span style="color:'+(delta<0?'var(--ok)':delta>0?'var(--warn)':'var(--t3)')+'">'+(delta<0?'▼ −':delta>0?'▲ +':'= ')+Math.abs(delta)+' sur 7 j</span>';
+    $('hr-note').textContent=delta<0?'FC repos en baisse sur 7 jours : bonne adaptation à l\'entraînement.':delta>0?'FC repos en hausse sur 7 jours : fatigue, manque de sommeil ou récupération à surveiller.':'FC repos stable sur 7 jours.';
+  }else $('hr-rest-d').textContent=lastR?'bpm · '+ago(lastR.t.toISOString()):'bpm';
+  bars($('hr-bars'),rDays,'linear-gradient(180deg,#EF9A9A,#E57373)',0,function(v){return v;});
+  var mx=d.hrMaxToday;
+  $('hr-max').textContent=mx!=null?mx:'—';
+  if(mx!=null){var z=mx>170?['max','#EF5350']:mx>=140?['intense','#FF7043']:['modéré','var(--ok)'];$('hr-zone').innerHTML='bpm · <span style="color:'+z[1]+';font-weight:700">'+z[0]+'</span>';}
+  else $('hr-zone').textContent='bpm';
+  $('vo2').textContent=d.vo2max?fmt1(d.vo2max.v):'—';
+  $('vo2-d').textContent=d.vo2max?'ml/kg/min · '+ago(d.vo2max.t):'ml/kg/min';
+
+  /* ── SpO2 : moyenne des mesures de la dernière nuit (21h → 11h) ── */
+  var sp=(d.spo2||[]).filter(function(x){var h=new Date(x.t).getHours();return h>=21||h<11;});
+  if(sp.length){
+    var lastNight=ld(new Date(sp[sp.length-1].t));
+    var avg=sp.reduce(function(s,x){return s+x.pct;},0)/sp.length,mn=Math.min.apply(null,sp.map(function(x){return x.pct;}));
+    $('spo2-box').style.display='block';$('spo2').textContent=fmt1(avg);$('spo2-d').textContent='% · min '+fmt1(mn);
+  }else $('spo2-box').style.display='none';
 
   /* ── Sommeil : regroupé par date de réveil ── */
   var sl={};(d.sleep||[]).forEach(function(s){var k=ld(new Date(s.end));sl[k]=(sl[k]||0)+s.min;});
