@@ -16,6 +16,7 @@ import androidx.health.connect.client.records.SleepSessionRecord
 import androidx.health.connect.client.records.HeartRateRecord
 import androidx.health.connect.client.records.RestingHeartRateRecord
 import androidx.health.connect.client.records.Vo2MaxRecord
+import androidx.health.connect.client.records.FloorsClimbedRecord
 import androidx.health.connect.client.records.OxygenSaturationRecord
 import androidx.health.connect.client.records.StepsRecord
 import androidx.health.connect.client.records.WeightRecord
@@ -60,7 +61,8 @@ class HealthBridge(private val activity: ComponentActivity, private val webView:
         HealthPermission.getReadPermission(HeartRateRecord::class),
         HealthPermission.getReadPermission(RestingHeartRateRecord::class),
         HealthPermission.getReadPermission(Vo2MaxRecord::class),
-        HealthPermission.getReadPermission(OxygenSaturationRecord::class)
+        HealthPermission.getReadPermission(OxygenSaturationRecord::class),
+        HealthPermission.getReadPermission(FloorsClimbedRecord::class)
     )
 
     private val permissionLauncher: ActivityResultLauncher<Set<String>> =
@@ -179,6 +181,19 @@ class HealthBridge(private val activity: ComponentActivity, private val webView:
             ).forEach { g ->
                 val steps = g.result[StepsRecord.COUNT_TOTAL]
                 if (steps != null) byDay[g.startTime.toLocalDate()]?.put("steps", steps)
+            }
+        }
+        // Étages montés : total par jour sur 7 jours
+        if (has(granted, "READ_FLOORS_CLIMBED")) safe {
+            client.aggregateGroupByPeriod(
+                AggregateGroupByPeriodRequest(
+                    metrics = setOf(FloorsClimbedRecord.FLOORS_CLIMBED_TOTAL),
+                    timeRangeFilter = TimeRangeFilter.between(weekStart, nowLdt),
+                    timeRangeSlicer = Period.ofDays(1)
+                )
+            ).forEach { g ->
+                val f = g.result[FloorsClimbedRecord.FLOORS_CLIMBED_TOTAL]
+                if (f != null) byDay[g.startTime.toLocalDate()]?.put("floors", Math.round(f))
             }
         }
         out.put("days", days)
