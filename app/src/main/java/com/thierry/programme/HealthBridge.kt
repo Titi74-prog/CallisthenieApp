@@ -8,7 +8,7 @@ import androidx.activity.result.ActivityResultLauncher
 import androidx.health.connect.client.HealthConnectClient
 import androidx.health.connect.client.PermissionController
 import androidx.health.connect.client.permission.HealthPermission
-import androidx.health.connect.client.records.ActiveCaloriesBurnedRecord
+import androidx.health.connect.client.records.TotalCaloriesBurnedRecord
 import androidx.health.connect.client.records.BasalMetabolicRateRecord
 import androidx.health.connect.client.records.BodyFatRecord
 import androidx.health.connect.client.records.LeanBodyMassRecord
@@ -45,7 +45,7 @@ class HealthBridge(private val activity: ComponentActivity, private val webView:
     private var askedThisSession = false
 
     private val permissions: Set<String> = setOf(
-        HealthPermission.getReadPermission(ActiveCaloriesBurnedRecord::class),
+        HealthPermission.getReadPermission(TotalCaloriesBurnedRecord::class),
         HealthPermission.getReadPermission(StepsRecord::class),
         HealthPermission.getReadPermission(WeightRecord::class),
         HealthPermission.getReadPermission(BodyFatRecord::class),
@@ -137,7 +137,7 @@ class HealthBridge(private val activity: ComponentActivity, private val webView:
         val nowLdt = LocalDateTime.now(zone)
         val now = Instant.now()
 
-        // Calories actives + pas : total par jour sur 7 jours (aujourd'hui inclus)
+        // Calories brûlées totales (métabolisme + activité) + pas : total par jour sur 7 jours (aujourd'hui inclus)
         val days = JSONArray()
         val byDay = linkedMapOf<LocalDate, JSONObject>()
         for (i in 6 downTo 0) {
@@ -146,15 +146,15 @@ class HealthBridge(private val activity: ComponentActivity, private val webView:
             byDay[d] = o
             days.put(o)
         }
-        if (has(granted, "READ_ACTIVE_CALORIES_BURNED")) safe {
+        if (has(granted, "READ_TOTAL_CALORIES_BURNED")) safe {
             client.aggregateGroupByPeriod(
                 AggregateGroupByPeriodRequest(
-                    metrics = setOf(ActiveCaloriesBurnedRecord.ACTIVE_CALORIES_TOTAL),
+                    metrics = setOf(TotalCaloriesBurnedRecord.ENERGY_TOTAL),
                     timeRangeFilter = TimeRangeFilter.between(weekStart, nowLdt),
                     timeRangeSlicer = Period.ofDays(1)
                 )
             ).forEach { g ->
-                val kcal = g.result[ActiveCaloriesBurnedRecord.ACTIVE_CALORIES_TOTAL]?.inKilocalories
+                val kcal = g.result[TotalCaloriesBurnedRecord.ENERGY_TOTAL]?.inKilocalories
                 if (kcal != null) byDay[g.startTime.toLocalDate()]?.put("kcal", Math.round(kcal))
             }
         }
