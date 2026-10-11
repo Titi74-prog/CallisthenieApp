@@ -48,6 +48,10 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
 .ptab{flex:1;padding:8px 4px;border-radius:10px;border:1px solid var(--bd);background:transparent;color:var(--t3);font-size:12px;font-weight:700;cursor:pointer}
 .ptab.active{background:linear-gradient(135deg,rgba(38,198,160,.18),rgba(66,165,245,.18));border-color:var(--acc);color:var(--txt,#f0efec)}
 .goal-tag{display:inline-block;margin-top:6px;font-size:12px;font-weight:700;padding:3px 10px;border-radius:20px;background:#0f0f13;color:var(--t2)}
+.dtype{display:flex;gap:6px;margin-top:10px}
+.dbtn{flex:1;padding:8px 4px;border-radius:10px;border:1px solid var(--bd);background:transparent;color:var(--t3);font-size:12px;font-weight:700;cursor:pointer}
+.dbtn.on{background:#0f0f13;color:var(--t1,#fff);border-color:#4ECDC4}
+.bar-p{font-size:9px;line-height:1;height:10px;text-align:center}
 .bars.dense{gap:2px}
 .bars.dense .bar{border-radius:3px 3px 1px 1px}
 .wchart{width:100%;height:90px;display:block;margin-top:12px}
@@ -90,19 +94,23 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
       <div class="big" id="kcal-today">—<small>kcal</small></div>
       <div class="track"><div class="fill" id="kcal-fill" style="width:0;background:linear-gradient(90deg,#FF7043,#FFB74D)"></div></div>
       <div class="track-l"><span id="kcal-pct">Aujourd'hui</span><span id="kcal-goal">Objectif — · métabolisme + activité</span></div>
+      <div class="dtype">
+        <button class="dbtn" id="dt-cal" onclick="setDayType(false)">🏋️ Callisthénie · 2 100</button>
+        <button class="dbtn" id="dt-pad" onclick="setDayType(true)">🎾 Padel · 2 800</button>
+      </div>
       <span class="goal-tag" id="kcal-daytype">—</span>
       <div class="bars" id="kcal-bars"></div>
       <div class="row" style="margin-top:12px">
-        <div class="mini"><div class="mini-l">Total</div><div class="mini-v" id="kcal-week">—</div><div class="mini-s" id="kcal-week-s">kcal · 7 jours</div></div>
+        <div class="mini"><div class="mini-l">Total</div><div class="mini-v" id="kcal-week">—</div><div class="mini-s" id="kcal-week-s">kcal · cette semaine</div></div>
         <div class="mini"><div class="mini-l">Moyenne</div><div class="mini-v" id="kcal-avg">—</div><div class="mini-s">kcal / jour</div></div>
         <div class="mini"><div class="mini-l">Objectif</div><div class="mini-v" id="kcal-hit">—</div><div class="mini-s">jours atteints</div></div>
       </div>
-      <div class="note">Objectif du jour : 2 800 kcal si la dépense dépasse 2 400 (jour padel), sinon 2 100 (jour callisthénie).</div>
+      <div class="note">Objectif : 2 100 kcal par défaut (jour callisthénie), 2 800 kcal si tu sélectionnes Padel. En vue Semaine, touche la barre d'un jour passé pour le marquer padel 🎾 ou non.</div>
     </div>
 
     <!-- Cardiaque -->
     <div class="card">
-      <div class="card-title">❤️ Cardiaque <b class="per-lbl">7 jours</b></div>
+      <div class="card-title">❤️ Cardiaque <b class="per-lbl">cette semaine</b></div>
       <div class="row">
         <div class="mini"><div class="mini-l">FC repos</div><div class="mini-v" id="hr-rest">—</div><div class="mini-s" id="hr-rest-d">bpm</div></div>
         <div class="mini"><div class="mini-l">FC max du jour</div><div class="mini-v" id="hr-max">—</div><div class="mini-s" id="hr-zone">bpm</div></div>
@@ -119,7 +127,7 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
 
     <!-- Activité -->
     <div class="card">
-      <div class="card-title">👟 Activité <b class="per-lbl">7 jours</b></div>
+      <div class="card-title">👟 Activité <b class="per-lbl">cette semaine</b></div>
       <div class="row">
         <div class="mini"><div class="mini-l">Pas aujourd'hui</div><div class="mini-v" id="steps-today">—</div><div class="mini-s">pas</div></div>
         <div class="mini"><div class="mini-l">Total</div><div class="mini-v" id="steps-tot">—</div><div class="mini-s">pas</div></div>
@@ -186,10 +194,18 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
 <script>
 var KCAL_PER_KG=7700;
 var MOIS=['Jan','Fév','Mar','Avr','Mai','Juin','Juil','Aoû','Sep','Oct','Nov','Déc'];
-var PER_LBL={week:'7 jours',month:'30 jours',year:'12 mois'};
+var PER_LBL={week:'cette semaine',month:'30 jours',year:String(new Date().getFullYear())};
 var PERIOD='week';try{PERIOD=localStorage.getItem('sante_period')||'week';}catch(e){}
-/* Objectif dynamique : > 2 400 kcal brûlées = jour padel */
-function goalFor(k){return k>2400?2800:2100;}
+/* Type de jour choisi par l'utilisateur : padel (2 800 kcal) ou callisthénie par défaut (2 100 kcal) */
+function padelDays(){try{return JSON.parse(localStorage.getItem('sante_padel_days'))||{};}catch(e){return {};}}
+function isPadel(date){return !!padelDays()[date];}
+function goalFor(date){return isPadel(date)?2800:2100;}
+function setPadel(date,on){var p=padelDays();if(on)p[date]=1;else delete p[date];try{localStorage.setItem('sante_padel_days',JSON.stringify(p));}catch(e){}}
+var LAST=null;
+function setDayType(padel){setPadel(ld(new Date()),padel);if(LAST)render(LAST);else paintDayType();}
+function paintDayType(){var p=isPadel(ld(new Date()));$('dt-pad').classList.toggle('on',p);$('dt-cal').classList.toggle('on',!p);
+  $('kcal-daytype').textContent=p?'Jour padel 🎾':'Jour callisthénie 🏋️';}
+function toggleDay(date){if(PERIOD!=='week'||date>ld(new Date()))return;setPadel(date,!isPadel(date));if(LAST)render(LAST);}
 function setPeriod(p){
   PERIOD=p;try{localStorage.setItem('sante_period',p);}catch(e){}
   paintTabs();
@@ -207,9 +223,9 @@ function buckets(days,period){
       out.push({key:x.date,lbl:period==='week'?JOURS[dt.getDay()]:((days.length-1-i)%5===0?String(dt.getDate()):''),days:[x]});});
     return out;
   }
-  var now=new Date(),map={};
-  for(var m=11;m>=0;m--){var d=new Date(now.getFullYear(),now.getMonth()-m,1),k=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
-    var b={key:k,lbl:MOIS[d.getMonth()],days:[]};map[k]=b;out.push(b);}
+  var y=days.length?+days[0].date.slice(0,4):new Date().getFullYear(),map={};
+  for(var m=0;m<12;m++){var k=y+'-'+String(m+1).padStart(2,'0');
+    var b={key:k,lbl:MOIS[m],days:[]};map[k]=b;out.push(b);}
   days.forEach(function(x){var b=map[x.date.slice(0,7)];if(b)b.days.push(x);});
   return out;
 }
@@ -250,8 +266,8 @@ function bars(el,items,color,goal,fmtV,base){
   el.classList.toggle('dense',dense);
   items.forEach(function(it){
     var pct=it.v?Math.max(2,(it.v-base)/(max-base)*100):0;
-    var col=typeof color==='function'?color(it.v):color;
-    h+='<div class="bar-col"><div class="bar-v">'+(it.v&&!dense?fmtV(it.v):'')+'</div>'
+    var col=typeof color==='function'?color(it.v,it):color;
+    h+='<div class="bar-col"'+(it.tap?' onclick="toggleDay(\''+it.key+'\')"':'')+'>'+(it.mark!=null?'<div class="bar-p">'+it.mark+'</div>':'')+'<div class="bar-v">'+(it.v&&!dense?fmtV(it.v):'')+'</div>'
       +'<div class="bar" style="height:'+pct+'%;background:'+col+'"></div>'
       +'<div class="bar-d'+(it.key===todayKey?' today':'')+'">'+it.lbl+'</div></div>';
   });
@@ -310,6 +326,7 @@ window.onHealthData=function(d){
 
 function render(d){
   if(!d)return;
+  LAST=d;
   if(d.status==='unavailable'){showBanner("Health Connect n'est pas disponible sur ce téléphone. Installe l'appli Health Connect depuis le Play Store, puis reviens ici.",'Réessayer',refresh);return;}
   if(d.status==='update_required'){showBanner("Health Connect doit être mis à jour depuis le Play Store.",'Réessayer',refresh);return;}
   if(d.status==='error'){showBanner('Erreur de lecture Health Connect : '+(d.message||''),'Réessayer',refresh);return;}
@@ -322,20 +339,24 @@ function render(d){
   /* ── Calories, pas, étages sur la période ── */
   var days=d.days||[],todayKey=ld(new Date()),per=d.period||'week';
   var t=days.filter(function(x){return x.date===todayKey;})[0]||{};
-  var kT=t.kcal||0,G=goalFor(kT);
+  var kT=t.kcal||0,G=goalFor(todayKey);
   $('kcal-today').innerHTML=fmt(t.kcal!=null?t.kcal:null)+'<small>kcal</small>';
   $('kcal-fill').style.width=Math.min(100,kT/G*100)+'%';
   $('kcal-pct').textContent="Aujourd'hui · "+Math.round(kT/G*100)+' %';
   $('kcal-goal').textContent='Objectif '+fmt(G)+' kcal · métabolisme + activité';
-  $('kcal-daytype').textContent=kT>2400?'Jour padel 🎾':'Jour callisthénie 🏋️';
+  paintDayType();
   var kv=vals(days,'kcal');
   $('kcal-week').textContent=kv.length?fmt(sum(kv)):'—';
   $('kcal-week-s').textContent='kcal · '+PER_LBL[per];
   $('kcal-avg').textContent=fmt(avg(kv));
-  $('kcal-hit').textContent=kv.length?kv.filter(function(k){return k>=goalFor(k);}).length+'/'+kv.length:'—';
+  var kd=days.filter(function(x){return x.kcal!=null;});
+  $('kcal-hit').textContent=kd.length?kd.filter(function(x){return x.kcal>=goalFor(x.date);}).length+'/'+kd.length:'—';
   var B=buckets(days,per);
-  bars($('kcal-bars'),B.map(function(b){var k=vals(b.days,'kcal');return {key:b.key,lbl:b.lbl,v:avg(k),hit:per!=='year'&&k.length&&k[0]>=goalFor(k[0])};}),
-    per==='year'?'linear-gradient(180deg,#FF8A65,#FF7043)':function(v){return v>=goalFor(v)?'linear-gradient(180deg,#4ECDC4,#26A69A)':'linear-gradient(180deg,#FF8A65,#FF7043)';},0,fmt);
+  var OK='linear-gradient(180deg,#4ECDC4,#26A69A)',KO='linear-gradient(180deg,#FF8A65,#FF7043)';
+  bars($('kcal-bars'),B.map(function(b){var k=vals(b.days,'kcal'),day=per!=='year';
+      return {key:b.key,lbl:b.lbl,v:avg(k),col:day&&k.length&&k[0]>=goalFor(b.key)?OK:KO,
+        mark:per==='week'?(isPadel(b.key)?'🎾':''):null,tap:per==='week'&&b.key<=todayKey};}),
+    function(v,it){return it.col;},0,fmt);
 
   var sv=vals(days,'steps'),fv=vals(days,'floors');
   $('steps-today').textContent=fmt(t.steps!=null?t.steps:null);
