@@ -33,6 +33,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
+import java.time.DayOfWeek
 import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
@@ -50,7 +51,7 @@ class HealthBridge(private val activity: ComponentActivity, private val webView:
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private var askedThisSession = false
-    /** Fenêtre demandée par la page : "week" (7 j), "month" (30 j), "year" (365 j) */
+    /** Fenêtre demandée par la page : "week" (lun → dim), "month" (30 j), "year" (année civile) */
     @Volatile private var period = "week"
 
     private val permissions: Set<String> = setOf(
@@ -158,19 +159,28 @@ class HealthBridge(private val activity: ComponentActivity, private val webView:
         val today = LocalDate.now(zone)
         val nowLdt = LocalDateTime.now(zone)
         val now = Instant.now()
-        val nDays = when (period) { "month" -> 30; "year" -> 365; else -> 7 }
-        val firstDay = today.minusDays((nDays - 1).toLong())
+        // Fenêtres : semaine fixe (lundi → dimanche), 30 derniers jours, année civile (1er janv. → 31 déc.)
+        val firstDay: LocalDate
+        val lastDay: LocalDate
+        when (period) {
+            "year" -> { firstDay = today.withDayOfYear(1); lastDay = today.withDayOfYear(today.lengthOfYear()) }
+            "month" -> { firstDay = today.minusDays(29); lastDay = today }
+            else -> { firstDay = today.with(DayOfWeek.MONDAY); lastDay = firstDay.plusDays(6) }
+        }
         out.put("period", period)
+        out.put("from", firstDay.toString())
+        out.put("to", lastDay.toString())
 
-        // Série quotidienne sur la fenêtre (aujourd'hui inclus) :
+        // Série quotidienne sur toute la fenêtre (jours futurs vides) :
         // calories brûlées totales (métabolisme + activité), pas, étages, FC repos
         val days = JSONArray()
         val byDay = linkedMapOf<LocalDate, JSONObject>()
-        for (i in nDays - 1 downTo 0) {
-            val d = today.minusDays(i.toLong())
+        var d = firstDay
+        while (!d.isAfter(lastDay)) {
             val o = JSONObject().put("date", d.toString())
             byDay[d] = o
             days.put(o)
+            d = d.plusDays(1)
         }
         if (has(granted, "READ_TOTAL_CALORIES_BURNED")) safe {
             daily(client, byDay, firstDay, today, nowLdt, TotalCaloriesBurnedRecord.ENERGY_TOTAL) { o, v ->
