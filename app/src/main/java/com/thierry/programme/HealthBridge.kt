@@ -8,6 +8,7 @@ import androidx.activity.result.ActivityResultLauncher
 import androidx.health.connect.client.HealthConnectClient
 import androidx.health.connect.client.PermissionController
 import androidx.health.connect.client.permission.HealthPermission
+import androidx.health.connect.client.aggregate.AggregateMetric
 import androidx.health.connect.client.records.TotalCaloriesBurnedRecord
 import androidx.health.connect.client.records.BasalMetabolicRateRecord
 import androidx.health.connect.client.records.BodyFatRecord
@@ -49,6 +50,8 @@ class HealthBridge(private val activity: ComponentActivity, private val webView:
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private var askedThisSession = false
+    /** Fenêtre demandée par la page : "week" (7 j), "month" (30 j), "year" (365 j) */
+    @Volatile private var period = "week"
 
     private val permissions: Set<String> = setOf(
         HealthPermission.getReadPermission(TotalCaloriesBurnedRecord::class),
@@ -100,6 +103,13 @@ class HealthBridge(private val activity: ComponentActivity, private val webView:
         }
     }
 
+    /** Comme requestData(), avec la période d'historique : "week", "month" ou "year". */
+    @JavascriptInterface
+    fun requestDataForPeriod(p: String?) {
+        period = when (p) { "month", "year" -> p; else -> "week" }
+        requestData()
+    }
+
     /** Force une nouvelle demande d'autorisation (bouton « Autoriser »). */
     @JavascriptInterface
     fun askPermissions() {
@@ -146,55 +156,49 @@ class HealthBridge(private val activity: ComponentActivity, private val webView:
 
         val zone = ZoneId.systemDefault()
         val today = LocalDate.now(zone)
-        val weekStart = today.minusDays(6).atStartOfDay()
         val nowLdt = LocalDateTime.now(zone)
         val now = Instant.now()
+        val nDays = when (period) { "month" -> 30; "year" -> 365; else -> 7 }
+        val firstDay = today.minusDays((nDays - 1).toLong())
+        out.put("period", period)
 
-        // Calories brûlées totales (métabolisme + activité) + pas : total par jour sur 7 jours (aujourd'hui inclus)
+        // Série quotidienne sur la fenêtre (aujourd'hui inclus) :
+        // calories brûlées totales (métabolisme + activité), pas, étages, FC repos
         val days = JSONArray()
         val byDay = linkedMapOf<LocalDate, JSONObject>()
-        for (i in 6 downTo 0) {
+        for (i in nDays - 1 downTo 0) {
             val d = today.minusDays(i.toLong())
             val o = JSONObject().put("date", d.toString())
             byDay[d] = o
             days.put(o)
         }
         if (has(granted, "READ_TOTAL_CALORIES_BURNED")) safe {
-            client.aggregateGroupByPeriod(
-                AggregateGroupByPeriodRequest(
-                    metrics = setOf(TotalCaloriesBurnedRecord.ENERGY_TOTAL),
-                    timeRangeFilter = TimeRangeFilter.between(weekStart, nowLdt),
-                    timeRangeSlicer = Period.ofDays(1)
-                )
-            ).forEach { g ->
-                val kcal = g.result[TotalCaloriesBurnedRecord.ENERGY_TOTAL]?.inKilocalories
-                if (kcal != null) byDay[g.startTime.toLocalDate()]?.put("kcal", Math.round(kcal))
+            daily(client, byDay, firstDay, today, nowLdt, TotalCaloriesBurnedRecord.ENERGY_TOTAL) { o, v ->
+                o.put("kcal", Math.round(v.inKilocalories))
             }
         }
         if (has(granted, "READ_STEPS")) safe {
-            client.aggregateGroupByPeriod(
-                AggregateGroupByPeriodRequest(
-                    metrics = setOf(StepsRecord.COUNT_TOTAL),
-                    timeRangeFilter = TimeRangeFilter.between(weekStart, nowLdt),
-                    timeRangeSlicer = Period.ofDays(1)
-                )
-            ).forEach { g ->
-                val steps = g.result[StepsRecord.COUNT_TOTAL]
-                if (steps != null) byDay[g.startTime.toLocalDate()]?.put("steps", steps)
-            }
+            daily(client, byDay, firstDay, today, nowLdt, StepsRecord.COUNT_TOTAL) { o, v -> o.put("steps", v) }
         }
-        // Étages montés : total par jour sur 7 jours
         if (has(granted, "READ_FLOORS_CLIMBED")) safe {
-            client.aggregateGroupByPeriod(
-                AggregateGroupByPeriodRequest(
-                    metrics = setOf(FloorsClimbedRecord.FLOORS_CLIMBED_TOTAL),
-                    timeRangeFilter = TimeRangeFilter.between(weekStart, nowLdt),
-                    timeRangeSlicer = Period.ofDays(1)
+            daily(client, byDay, firstDay, today, nowLdt, FloorsClimbedRecord.FLOORS_CLIMBED_TOTAL) { o, v -> o.put("floors", Math.round(v)) }
+        }
+        // FC repos : dernière valeur de chaque jour sur la fenêtre
+        if (has(granted, "READ_RESTING_HEART_RATE")) safe {
+            var token: String? = null
+            do {
+                val resp = client.readRecords(
+                    ReadRecordsRequest(
+                        RestingHeartRateRecord::class,
+                        TimeRangeFilter.between(firstDay.atStartOfDay(zone).toInstant(), now),
+                        ascendingOrder = true, pageSize = 1000, pageToken = token
+                    )
                 )
-            ).forEach { g ->
-                val f = g.result[FloorsClimbedRecord.FLOORS_CLIMBED_TOTAL]
-                if (f != null) byDay[g.startTime.toLocalDate()]?.put("floors", Math.round(f))
-            }
+                resp.records.forEach {
+                    byDay[it.time.atZone(zone).toLocalDate()]?.put("rhr", it.beatsPerMinute)
+                }
+                token = resp.pageToken
+            } while (token != null)
         }
         out.put("days", days)
 
@@ -254,19 +258,6 @@ class HealthBridge(private val activity: ComponentActivity, private val webView:
             }
             out.put("sleep", arr)
         }
-        // FC repos : mesures des 7 derniers jours (tendance)
-        if (has(granted, "READ_RESTING_HEART_RATE")) safe {
-            val recs = client.readRecords(
-                ReadRecordsRequest(
-                    RestingHeartRateRecord::class,
-                    TimeRangeFilter.between(now.minus(Duration.ofDays(7)), now),
-                    ascendingOrder = true, pageSize = 200
-                )
-            ).records
-            val arr = JSONArray()
-            recs.forEach { arr.put(JSONObject().put("t", it.time.toString()).put("bpm", it.beatsPerMinute)) }
-            out.put("restingHr", arr)
-        }
         // FC max du jour
         if (has(granted, "READ_HEART_RATE")) safe {
             val startOfDay = today.atStartOfDay(zone).toInstant()
@@ -302,6 +293,37 @@ class HealthBridge(private val activity: ComponentActivity, private val webView:
             out.put("spo2", arr)
         }
         return out
+    }
+
+    /** Agrégation jour par jour, par tranches de 31 jours (requêtes légères même sur 1 an). */
+    private suspend fun <T : Any> daily(
+        client: HealthConnectClient,
+        byDay: Map<LocalDate, JSONObject>,
+        firstDay: LocalDate,
+        today: LocalDate,
+        nowLdt: LocalDateTime,
+        metric: AggregateMetric<T>,
+        put: (JSONObject, T) -> Unit
+    ) {
+        var from = firstDay
+        while (!from.isAfter(today)) {
+            val next = from.plusDays(31)
+            val last = next.isAfter(today)
+            val end = if (last) nowLdt else next.atStartOfDay()
+            client.aggregateGroupByPeriod(
+                AggregateGroupByPeriodRequest(
+                    metrics = setOf(metric),
+                    timeRangeFilter = TimeRangeFilter.between(from.atStartOfDay(), end),
+                    timeRangeSlicer = Period.ofDays(1)
+                )
+            ).forEach { g ->
+                val v = g.result[metric]
+                val o = byDay[g.startTime.toLocalDate()]
+                if (v != null && o != null) put(o, v)
+            }
+            if (last) break
+            from = next
+        }
     }
 
     /** Les autorisations ont la forme android.permission.health.READ_XXX */
