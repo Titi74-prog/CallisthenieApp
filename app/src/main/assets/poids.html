@@ -157,7 +157,7 @@ function updateClock(){
   document.getElementById('header-time').textContent=
     String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
 }
-function navTo(p){var m={'programme':'programme.html','respiration':'respiration.html','poids':'poids.html','extra':'seance_extra.html'};if(m[p])window.location.href='file:///android_asset/'+m[p];}
+function navTo(p){var m={'programme':'programme.html','respiration':'respiration.html','poids':'poids.html','extra':'seance_extra.html','seance_extra':'seance_extra.html','sante':'sante.html'};if(m[p])window.location.href='file:///android_asset/'+m[p];}
 updateClock(); setInterval(updateClock,10000);
 
 function fmtDate(d){
@@ -370,6 +370,7 @@ window.addEventListener('resize',drawChart);
   <button class="nav-btn" onclick="navTo('respiration')"><span>🫁</span>Respiration</button>
   <button class="nav-btn active" onclick="navTo('poids')"><span>⚖️</span>Poids</button>
   <button class="nav-btn" onclick="navTo('extra')"><span>💪</span>Extra</button>
+  <button class="nav-btn" onclick="navTo('sante')"><span>📊</span>Santé</button>
 </div>
 </body>
 </html>

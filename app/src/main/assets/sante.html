@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<meta name="theme-color" content="#1a1a2e">
+<title>Santé</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0f0f13;color:#f0efec;overflow:hidden}
+:root{--acc:#26C6A0;--acc2:#42A5F5;--card:#1a1a22;--bd:#2a2a35;--t2:#b0aeb8;--t3:#6b6a75;--kcal:#FF7043;--steps:#42A5F5;--sleep:#9575CD;--ok:#4ECDC4;--warn:#F9A825}
+#app{display:flex;flex-direction:column;height:100vh;max-width:430px;margin:0 auto}
+#header{background:var(--card);padding:16px;border-bottom:1px solid var(--bd);display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
+#header h1{font-size:18px;font-weight:800}
+#header h1 span{background:linear-gradient(90deg,var(--acc),var(--acc2));-webkit-background-clip:text;background-clip:text;color:transparent}
+.h-sub{font-size:11px;font-weight:600;color:var(--t3);margin-top:3px}
+#btn-refresh{border:1px solid var(--bd);background:transparent;color:var(--t2);font-size:12px;font-weight:700;padding:7px 11px;border-radius:10px;cursor:pointer}
+#content{flex:1;overflow-y:auto;padding:12px;padding-bottom:90px}
+.card{background:var(--card);border-radius:14px;padding:14px;margin-bottom:12px}
+.card-title{font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center}
+.card-title b{color:var(--t2);font-weight:700;text-transform:none;letter-spacing:0}
+.big{font-size:34px;font-weight:800;line-height:1;font-variant-numeric:tabular-nums}
+.big small{font-size:14px;font-weight:600;color:var(--t3);margin-left:4px}
+.row{display:flex;gap:8px}
+.mini{flex:1;background:#0f0f13;border-radius:10px;padding:10px;text-align:center}
+.mini-l{font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+.mini-v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums}
+.mini-s{font-size:10px;color:var(--t3);margin-top:2px}
+.track{background:#2a2a35;border-radius:6px;height:10px;overflow:hidden;margin:12px 0 4px}
+.fill{height:10px;border-radius:6px;transition:width .5s}
+.track-l{display:flex;justify-content:space-between;font-size:10px;color:var(--t3)}
+.bars{position:relative;display:flex;align-items:flex-end;gap:6px;height:120px;margin-top:14px;padding-top:14px}
+.bar-col{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%}
+.bar{width:100%;border-radius:6px 6px 2px 2px;min-height:2px;transition:height .5s}
+.bar-v{font-size:9px;color:var(--t2);margin-bottom:3px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.bar-d{font-size:10px;color:var(--t3);margin-top:5px;font-weight:600}
+.bar-d.today{color:var(--t2)}
+.goal-line{position:absolute;left:0;right:0;border-top:1.5px dashed rgba(255,255,255,.35);pointer-events:none}
+.goal-lbl{position:absolute;right:0;font-size:9px;color:var(--t2);background:var(--card);padding:0 3px;transform:translateY(-110%)}
+.na{color:var(--t3);font-size:13px}
+.deficit-v{font-size:28px;font-weight:800;font-variant-numeric:tabular-nums}
+.note{font-size:11px;color:var(--t3);line-height:1.45;margin-top:8px}
+.line{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--bd);font-size:13px}
+.line:last-child{border-bottom:none}
+.line span:first-child{color:var(--t2)}
+.line span:last-child{font-weight:700;font-variant-numeric:tabular-nums}
+#banner{display:none}
+#banner .msg{font-size:13px;color:var(--t2);line-height:1.45;margin-bottom:12px}
+.btn{display:block;width:100%;padding:12px;border-radius:12px;border:none;font-size:14px;font-weight:700;cursor:pointer;margin-top:8px}
+.btn-main{background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff}
+.btn-sec{background:transparent;border:1px solid var(--bd);color:var(--t2)}
+#bottom-nav{display:flex;background:#1a1a22;border-top:1px solid #2a2a35;padding:3px 0;position:fixed;bottom:0;left:0;right:0;max-width:430px;margin:0 auto;z-index:50}
+.nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:1px;padding:3px 2px;cursor:pointer;border:none;background:none;color:#6b6a75;font-size:9px;font-weight:600}
+.nav-btn.active{color:var(--acc)}
+.nav-btn span{font-size:15px}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="header">
+    <div>
+      <h1>📊 <span>Santé</span></h1>
+      <div class="h-sub" id="h-sub">Health Connect<span class="app-ver"></span></div>
+    </div>
+    <button id="btn-refresh" onclick="refresh()">↻ Actualiser</button>
+  </div>
+
+  <div id="content">
+    <div class="card" id="banner">
+      <div class="msg" id="banner-msg"></div>
+      <button class="btn btn-main" id="banner-btn1"></button>
+      <button class="btn btn-sec" id="banner-btn2" onclick="openHC()">Réglages Health Connect</button>
+    </div>
+
+    <!-- Calories actives -->
+    <div class="card">
+      <div class="card-title">🔥 Calories actives <b id="kcal-upd"></b></div>
+      <div class="big" id="kcal-today">—<small>kcal</small></div>
+      <div class="track"><div class="fill" id="kcal-fill" style="width:0;background:linear-gradient(90deg,#FF7043,#FFB74D)"></div></div>
+      <div class="track-l"><span id="kcal-pct">Aujourd'hui</span><span>Objectif 800 kcal</span></div>
+      <div class="bars" id="kcal-bars"></div>
+      <div class="row" style="margin-top:12px">
+        <div class="mini"><div class="mini-l">Semaine</div><div class="mini-v" id="kcal-week">—</div><div class="mini-s">kcal · 7 jours</div></div>
+        <div class="mini"><div class="mini-l">Moyenne</div><div class="mini-v" id="kcal-avg">—</div><div class="mini-s">kcal / jour</div></div>
+        <div class="mini"><div class="mini-l">Objectif</div><div class="mini-v" id="kcal-hit">—</div><div class="mini-s">jours ≥ 800</div></div>
+      </div>
+    </div>
+
+    <!-- Pas -->
+    <div class="card">
+      <div class="card-title">👟 Pas</div>
+      <div class="row">
+        <div class="mini"><div class="mini-l">Aujourd'hui</div><div class="mini-v" id="steps-today">—</div><div class="mini-s">pas</div></div>
+        <div class="mini"><div class="mini-l">Moyenne 7 j</div><div class="mini-v" id="steps-avg">—</div><div class="mini-s">pas / jour</div></div>
+      </div>
+      <div class="bars" id="steps-bars" style="height:90px"></div>
+    </div>
+
+    <!-- Composition corporelle -->
+    <div class="card">
+      <div class="card-title">⚖️ Composition corporelle</div>
+      <div class="row">
+        <div class="mini"><div class="mini-l">Poids</div><div class="mini-v" id="c-weight">—</div><div class="mini-s" id="c-weight-d">kg</div></div>
+        <div class="mini"><div class="mini-l">Masse grasse</div><div class="mini-v" id="c-fat">—</div><div class="mini-s" id="c-fat-d">%</div></div>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <div class="mini"><div class="mini-l">Masse maigre</div><div class="mini-v" id="c-lean">—</div><div class="mini-s" id="c-lean-d">kg</div></div>
+        <div class="mini"><div class="mini-l">Métabolisme</div><div class="mini-v" id="c-bmr">—</div><div class="mini-s">kcal / jour</div></div>
+      </div>
+    </div>
+
+    <!-- Sommeil -->
+    <div class="card">
+      <div class="card-title">🌙 Sommeil</div>
+      <div class="row">
+        <div class="mini"><div class="mini-l">Dernière nuit</div><div class="mini-v" id="sl-last">—</div><div class="mini-s" id="sl-last-d"></div></div>
+        <div class="mini"><div class="mini-l">Moyenne 7 nuits</div><div class="mini-v" id="sl-avg">—</div><div class="mini-s">par nuit</div></div>
+      </div>
+      <div class="bars" id="sl-bars" style="height:90px"></div>
+    </div>
+
+    <!-- Déficit -->
+    <div class="card">
+      <div class="card-title">📉 Estimation du déficit</div>
+      <div class="line"><span>Métabolisme de base</span><span id="d-bmr">—</span></div>
+      <div class="line"><span>+ Calories actives (moy. 7 j)</span><span id="d-act">—</span></div>
+      <div class="line"><span>= Dépense totale estimée</span><span id="d-tdee">—</span></div>
+      <div style="margin-top:14px">
+        <div class="mini-l" style="text-align:left">Déficit moyen d'après la courbe de poids</div>
+        <div class="deficit-v" id="d-def">—</div>
+        <div class="note" id="d-note">Il faut au moins 2 pesées espacées de 7 jours sur les 30 derniers jours.</div>
+      </div>
+      <div class="note">Repère : 1 kg de graisse ≈ 7 700 kcal. Un déficit de 500 kcal/jour ≈ −0,5 kg/semaine. Pour l'apport conseillé, retranche le déficit visé de la dépense totale.</div>
+    </div>
+  </div>
+</div>
+
+<div id="bottom-nav">
+  <button class="nav-btn" onclick="navTo('programme')"><span>🏋️</span>Programme</button>
+  <button class="nav-btn" onclick="navTo('respiration')"><span>🫁</span>Respiration</button>
+  <button class="nav-btn" onclick="navTo('poids')"><span>⚖️</span>Poids</button>
+  <button class="nav-btn" onclick="navTo('extra')"><span>💪</span>Extra</button>
+  <button class="nav-btn active" onclick="navTo('sante')"><span>📊</span>Santé</button>
+</div>
+
+<script>
+var GOAL_KCAL=800, KCAL_PER_KG=7700;
+var JOURS=['Di','Lu','Ma','Me','Je','Ve','Sa'];
+
+function navTo(p){var m={'programme':'programme.html','respiration':'respiration.html','poids':'poids.html','extra':'seance_extra.html','seance_extra':'seance_extra.html','sante':'sante.html'};if(m[p])window.location.href='file:///android_asset/'+m[p];}
+function $(id){return document.getElementById(id);}
+function fmt(n){return n==null||isNaN(n)?'—':Math.round(n).toLocaleString('fr-FR');}
+function fmt1(n){return n==null||isNaN(n)?'—':(Math.round(n*10)/10).toLocaleString('fr-FR',{minimumFractionDigits:1,maximumFractionDigits:1});}
+function hm(min){if(min==null||isNaN(min))return '—';var h=Math.floor(min/60),m=Math.round(min%60);return h+'h'+String(m).padStart(2,'0');}
+function ld(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function ago(iso){if(!iso)return '';var d=new Date(iso),days=Math.floor((Date.now()-d.getTime())/864e5);return days<=0?"aujourd'hui":days===1?'hier':'il y a '+days+' j';}
+
+function hasBridge(){return typeof window.HealthBridge!=='undefined';}
+function refresh(){
+  if(!hasBridge()){showBanner("Le pont Health Connect n'est disponible que dans l'appli Android.",null,null);return;}
+  $('btn-refresh').textContent='… Lecture';
+  try{HealthBridge.requestData();}catch(e){}
+}
+function openHC(){try{HealthBridge.openSettings();}catch(e){}}
+
+function showBanner(msg,label,fn){
+  $('banner').style.display='block';$('banner-msg').textContent=msg;
+  var b=$('banner-btn1');
+  if(label){b.style.display='block';b.textContent=label;b.onclick=fn;}else b.style.display='none';
+  $('banner-btn2').style.display=hasBridge()?'block':'none';
+}
+function hideBanner(){$('banner').style.display='none';}
+
+/* Barres verticales ; goal = ligne pointillée optionnelle */
+function bars(el,items,color,goal,fmtV){
+  var max=Math.max.apply(null,items.map(function(i){return i.v||0;}).concat([goal||0,1]))*1.1;
+  var todayKey=ld(new Date()),h='';
+  items.forEach(function(it){
+    var pct=it.v?Math.max(2,it.v/max*100):0;
+    var col=typeof color==='function'?color(it.v):color;
+    h+='<div class="bar-col"><div class="bar-v">'+(it.v?fmtV(it.v):'')+'</div>'
+      +'<div class="bar" style="height:'+pct+'%;background:'+col+'"></div>'
+      +'<div class="bar-d'+(it.key===todayKey?' today':'')+'">'+it.lbl+'</div></div>';
+  });
+  if(goal){
+    // zone barres = hauteur - (libellé jour ~20px) ; approximation suffisante
+    h+='<div class="goal-line" style="bottom:calc(20px + (100% - 34px) * '+(goal/max)+')"><span class="goal-lbl">'+goal+'</span></div>';
+  }
+  el.innerHTML=h;
+}
+
+/* Régression linéaire : pente en kg/jour */
+function slopePerDay(pts){
+  if(pts.length<2)return null;
+  var span=(pts[pts.length-1].t-pts[0].t)/864e5;
+  if(span<7)return null;
+  var n=pts.length,sx=0,sy=0,sxx=0,sxy=0;
+  pts.forEach(function(p){var x=(p.t-pts[0].t)/864e5;sx+=x;sy+=p.kg;sxx+=x*x;sxy+=x*p.kg;});
+  var den=n*sxx-sx*sx;if(!den)return null;
+  return {slope:(n*sxy-sx*sy)/den,span:span,n:n};
+}
+function localWeights(){
+  try{
+    var a=JSON.parse(localStorage.getItem('pesees_v3'))||[],lim=Date.now()-30*864e5;
+    return a.map(function(p){return {t:new Date(p.date+'T08:00:00').getTime(),kg:+p.poids};})
+      .filter(function(p){return p.t>=lim&&p.kg>0;}).sort(function(a,b){return a.t-b.t;});
+  }catch(e){return [];}
+}
+
+window.onHealthData=function(d){
+  if(typeof d==='string'){try{d=JSON.parse(d);}catch(e){return;}}
+  $('btn-refresh').textContent='↻ Actualiser';
+  try{localStorage.setItem('sante_cache_v1',JSON.stringify(d));}catch(e){}
+  render(d);
+};
+
+function render(d){
+  if(!d)return;
+  if(d.status==='unavailable'){showBanner("Health Connect n'est pas disponible sur ce téléphone. Installe l'appli Health Connect depuis le Play Store, puis reviens ici.",'Réessayer',refresh);return;}
+  if(d.status==='update_required'){showBanner("Health Connect doit être mis à jour depuis le Play Store.",'Réessayer',refresh);return;}
+  if(d.status==='error'){showBanner('Erreur de lecture Health Connect : '+(d.message||''),'Réessayer',refresh);return;}
+  if(d.status==='denied'){showBanner("Autorise Callisthénie à lire tes données (calories, pas, poids, composition, sommeil) dans Health Connect.",'Autoriser',function(){try{HealthBridge.askPermissions();}catch(e){}});return;}
+  if(d.granted&&d.granted.length<7)showBanner('Certaines données ne sont pas autorisées ('+d.granted.length+'/7). Tu peux les activer dans Health Connect.','Autoriser le reste',function(){try{HealthBridge.askPermissions();}catch(e){}});
+  else hideBanner();
+  if(d.updated){var u=new Date(d.updated);$('kcal-upd').textContent='màj '+String(u.getHours()).padStart(2,'0')+':'+String(u.getMinutes()).padStart(2,'0');}
+
+  /* ── Calories & pas ── */
+  var days=d.days||[],todayKey=ld(new Date());
+  var items=days.map(function(x){var dt=new Date(x.date+'T12:00:00');return {key:x.date,lbl:JOURS[dt.getDay()],kcal:x.kcal,steps:x.steps};});
+  var t=items.filter(function(i){return i.key===todayKey;})[0]||{};
+  var kT=t.kcal||0;
+  $('kcal-today').innerHTML=fmt(t.kcal!=null?t.kcal:null)+'<small>kcal</small>';
+  $('kcal-fill').style.width=Math.min(100,kT/GOAL_KCAL*100)+'%';
+  $('kcal-pct').textContent="Aujourd'hui · "+Math.round(kT/GOAL_KCAL*100)+' %';
+  var kv=items.filter(function(i){return i.kcal!=null;});
+  var wk=kv.reduce(function(s,i){return s+i.kcal;},0);
+  $('kcal-week').textContent=kv.length?fmt(wk):'—';
+  var avgK=kv.length?wk/kv.length:null;
+  $('kcal-avg').textContent=fmt(avgK);
+  $('kcal-hit').textContent=kv.length?kv.filter(function(i){return i.kcal>=GOAL_KCAL;}).length+'/7':'—';
+  bars($('kcal-bars'),items.map(function(i){return {key:i.key,lbl:i.lbl,v:i.kcal};}),
+    function(v){return v>=GOAL_KCAL?'linear-gradient(180deg,#4ECDC4,#26A69A)':'linear-gradient(180deg,#FF8A65,#FF7043)';},GOAL_KCAL,fmt);
+
+  var sv=items.filter(function(i){return i.steps!=null;});
+  $('steps-today').textContent=fmt(t.steps!=null?t.steps:null);
+  $('steps-avg').textContent=sv.length?fmt(sv.reduce(function(s,i){return s+i.steps;},0)/sv.length):'—';
+  bars($('steps-bars'),items.map(function(i){return {key:i.key,lbl:i.lbl,v:i.steps};}),'linear-gradient(180deg,#64B5F6,#42A5F5)',0,
+    function(v){return v>=1000?(Math.round(v/100)/10).toLocaleString('fr-FR')+'k':v;});
+
+  /* ── Composition ── */
+  var ws=(d.weights||[]).map(function(w){return {t:new Date(w.t).getTime(),kg:w.kg};});
+  var lw=ws.length?ws[ws.length-1]:null;
+  $('c-weight').textContent=lw?fmt1(lw.kg):'—';
+  $('c-weight-d').textContent=lw?'kg · '+ago(new Date(lw.t).toISOString()):'kg';
+  $('c-fat').textContent=d.bodyFat?fmt1(d.bodyFat.pct):'—';
+  $('c-fat-d').textContent=d.bodyFat?'% · '+ago(d.bodyFat.t):'%';
+  $('c-lean').textContent=d.leanMass?fmt1(d.leanMass.kg):'—';
+  $('c-lean-d').textContent=d.leanMass?'kg · '+ago(d.leanMass.t):'kg';
+  $('c-bmr').textContent=d.bmr?fmt(d.bmr.kcal):'—';
+
+  /* ── Sommeil : regroupé par date de réveil ── */
+  var sl={};(d.sleep||[]).forEach(function(s){var k=ld(new Date(s.end));sl[k]=(sl[k]||0)+s.min;});
+  var nights=[];for(var i=6;i>=0;i--){var dt=new Date();dt.setDate(dt.getDate()-i);var k=ld(dt);nights.push({key:k,lbl:JOURS[dt.getDay()],v:sl[k]||0});}
+  var lastS=(d.sleep||[]).slice(-1)[0];
+  $('sl-last').textContent=lastS?hm(sl[ld(new Date(lastS.end))]):'—';
+  $('sl-last-d').textContent=lastS?ago(lastS.end):'';
+  var nv=nights.filter(function(n){return n.v>0;});
+  $('sl-avg').textContent=nv.length?hm(nv.reduce(function(s,n){return s+n.v;},0)/nv.length):'—';
+  bars($('sl-bars'),nights,'linear-gradient(180deg,#B39DDB,#9575CD)',0,hm);
+
+  /* ── Déficit ── */
+  var bmr=d.bmr?d.bmr.kcal:null;
+  $('d-bmr').textContent=bmr?fmt(bmr)+' kcal':'—';
+  $('d-act').textContent=avgK!=null?fmt(avgK)+' kcal':'—';
+  $('d-tdee').textContent=(bmr&&avgK!=null)?fmt(bmr+avgK)+' kcal':'—';
+  var src='Health Connect',pts=ws;
+  if(!slopePerDay(pts)){pts=localWeights();src='onglet Poids';}
+  var r=slopePerDay(pts);
+  if(r){
+    var perWeek=r.slope*7,def=-r.slope*KCAL_PER_KG;
+    $('d-def').textContent=(def>=0?'≈ −':'≈ +')+fmt(Math.abs(def))+' kcal/j';
+    $('d-def').style.color=def>=0?'var(--ok)':'var(--warn)';
+    $('d-note').textContent='Tendance '+(perWeek<=0?'':'+')+fmt1(perWeek).replace('-','−')+' kg/semaine sur '+Math.round(r.span)+' jours ('+r.n+' pesées, source : '+src+').'
+      +(def<0?' Surplus calorique : la courbe remonte.':'');
+  }else{$('d-def').textContent='—';$('d-def').style.color='';}
+}
+
+(function(){
+  try{var v=window.App&&App.version();if(v)document.querySelectorAll('.app-ver').forEach(function(e){e.textContent=' · v'+v;});}catch(e){}
+  try{var c=JSON.parse(localStorage.getItem('sante_cache_v1'));if(c)render(c);}catch(e){}
+  refresh();
+})();
+</script>
+</body>
+</html>
