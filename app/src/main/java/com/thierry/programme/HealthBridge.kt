@@ -13,9 +13,14 @@ import androidx.health.connect.client.records.BasalMetabolicRateRecord
 import androidx.health.connect.client.records.BodyFatRecord
 import androidx.health.connect.client.records.LeanBodyMassRecord
 import androidx.health.connect.client.records.SleepSessionRecord
+import androidx.health.connect.client.records.HeartRateRecord
+import androidx.health.connect.client.records.RestingHeartRateRecord
+import androidx.health.connect.client.records.Vo2MaxRecord
+import androidx.health.connect.client.records.OxygenSaturationRecord
 import androidx.health.connect.client.records.StepsRecord
 import androidx.health.connect.client.records.WeightRecord
 import androidx.health.connect.client.request.AggregateGroupByPeriodRequest
+import androidx.health.connect.client.request.AggregateRequest
 import androidx.health.connect.client.request.ReadRecordsRequest
 import androidx.health.connect.client.time.TimeRangeFilter
 import kotlinx.coroutines.CoroutineScope
@@ -51,7 +56,11 @@ class HealthBridge(private val activity: ComponentActivity, private val webView:
         HealthPermission.getReadPermission(BodyFatRecord::class),
         HealthPermission.getReadPermission(LeanBodyMassRecord::class),
         HealthPermission.getReadPermission(BasalMetabolicRateRecord::class),
-        HealthPermission.getReadPermission(SleepSessionRecord::class)
+        HealthPermission.getReadPermission(SleepSessionRecord::class),
+        HealthPermission.getReadPermission(HeartRateRecord::class),
+        HealthPermission.getReadPermission(RestingHeartRateRecord::class),
+        HealthPermission.getReadPermission(Vo2MaxRecord::class),
+        HealthPermission.getReadPermission(OxygenSaturationRecord::class)
     )
 
     private val permissionLauncher: ActivityResultLauncher<Set<String>> =
@@ -128,6 +137,8 @@ class HealthBridge(private val activity: ComponentActivity, private val webView:
         val out = JSONObject()
         out.put("status", if (granted.isEmpty()) "denied" else "ok")
         out.put("granted", JSONArray(granted.map { it.substringAfterLast('.') }))
+        out.put("requested", permissions.size)
+        out.put("grantedCount", granted.count { it in permissions })
         out.put("updated", Instant.now().toString())
         if (granted.isEmpty()) return out
 
@@ -227,6 +238,53 @@ class HealthBridge(private val activity: ComponentActivity, private val webView:
                     .put("min", Duration.between(it.startTime, it.endTime).toMinutes()))
             }
             out.put("sleep", arr)
+        }
+        // FC repos : mesures des 7 derniers jours (tendance)
+        if (has(granted, "READ_RESTING_HEART_RATE")) safe {
+            val recs = client.readRecords(
+                ReadRecordsRequest(
+                    RestingHeartRateRecord::class,
+                    TimeRangeFilter.between(now.minus(Duration.ofDays(7)), now),
+                    ascendingOrder = true, pageSize = 200
+                )
+            ).records
+            val arr = JSONArray()
+            recs.forEach { arr.put(JSONObject().put("t", it.time.toString()).put("bpm", it.beatsPerMinute)) }
+            out.put("restingHr", arr)
+        }
+        // FC max du jour
+        if (has(granted, "READ_HEART_RATE")) safe {
+            val startOfDay = today.atStartOfDay(zone).toInstant()
+            val res = client.aggregate(
+                AggregateRequest(
+                    metrics = setOf(HeartRateRecord.BPM_MAX, HeartRateRecord.BPM_AVG),
+                    timeRangeFilter = TimeRangeFilter.between(startOfDay, now)
+                )
+            )
+            res[HeartRateRecord.BPM_MAX]?.let { out.put("hrMaxToday", it) }
+            res[HeartRateRecord.BPM_AVG]?.let { out.put("hrAvgToday", it) }
+        }
+        // VO2 max : dernière valeur sur 30 jours
+        if (has(granted, "READ_VO2_MAX")) safe {
+            client.readRecords(
+                ReadRecordsRequest(Vo2MaxRecord::class, last30, ascendingOrder = false, pageSize = 1)
+            ).records.firstOrNull()?.let {
+                out.put("vo2max", JSONObject().put("t", it.time.toString())
+                    .put("v", round1(it.vo2MillilitersPerMinuteKilogram)))
+            }
+        }
+        // SpO2 : mesures des 36 dernières heures (nuit)
+        if (has(granted, "READ_OXYGEN_SATURATION")) safe {
+            val recs = client.readRecords(
+                ReadRecordsRequest(
+                    OxygenSaturationRecord::class,
+                    TimeRangeFilter.between(now.minus(Duration.ofHours(36)), now),
+                    ascendingOrder = true, pageSize = 1000
+                )
+            ).records
+            val arr = JSONArray()
+            recs.forEach { arr.put(JSONObject().put("t", it.time.toString()).put("pct", round1(it.percentage.value))) }
+            out.put("spo2", arr)
         }
         return out
     }
