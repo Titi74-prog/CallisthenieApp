@@ -44,6 +44,13 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
 .line:last-child{border-bottom:none}
 .line span:first-child{color:var(--t2)}
 .line span:last-child{font-weight:700;font-variant-numeric:tabular-nums}
+.ptabs{display:flex;gap:6px;margin-bottom:12px}
+.ptab{flex:1;padding:8px 4px;border-radius:10px;border:1px solid var(--bd);background:transparent;color:var(--t3);font-size:12px;font-weight:700;cursor:pointer}
+.ptab.active{background:linear-gradient(135deg,rgba(38,198,160,.18),rgba(66,165,245,.18));border-color:var(--acc);color:var(--txt,#f0efec)}
+.goal-tag{display:inline-block;margin-top:6px;font-size:12px;font-weight:700;padding:3px 10px;border-radius:20px;background:#0f0f13;color:var(--t2)}
+.bars.dense{gap:2px}
+.bars.dense .bar{border-radius:3px 3px 1px 1px}
+.wchart{width:100%;height:90px;display:block;margin-top:12px}
 #banner{display:none}
 #banner .msg{font-size:13px;color:var(--t2);line-height:1.45;margin-bottom:12px}
 .btn{display:block;width:100%;padding:12px;border-radius:12px;border:none;font-size:14px;font-weight:700;cursor:pointer;margin-top:8px}
@@ -74,40 +81,54 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
 
     <!-- Calories brûlées (total) -->
     <div class="card">
+      <div class="ptabs" id="ptabs">
+        <button class="ptab" data-p="week" onclick="setPeriod('week')">Semaine</button>
+        <button class="ptab" data-p="month" onclick="setPeriod('month')">Mois</button>
+        <button class="ptab" data-p="year" onclick="setPeriod('year')">Année</button>
+      </div>
       <div class="card-title">🔥 Calories brûlées <b id="kcal-upd"></b></div>
       <div class="big" id="kcal-today">—<small>kcal</small></div>
       <div class="track"><div class="fill" id="kcal-fill" style="width:0;background:linear-gradient(90deg,#FF7043,#FFB74D)"></div></div>
-      <div class="track-l"><span id="kcal-pct">Aujourd'hui</span><span>Objectif 2 600 kcal · métabolisme + activité</span></div>
+      <div class="track-l"><span id="kcal-pct">Aujourd'hui</span><span id="kcal-goal">Objectif — · métabolisme + activité</span></div>
+      <span class="goal-tag" id="kcal-daytype">—</span>
       <div class="bars" id="kcal-bars"></div>
       <div class="row" style="margin-top:12px">
-        <div class="mini"><div class="mini-l">Semaine</div><div class="mini-v" id="kcal-week">—</div><div class="mini-s">kcal · 7 jours</div></div>
+        <div class="mini"><div class="mini-l">Total</div><div class="mini-v" id="kcal-week">—</div><div class="mini-s" id="kcal-week-s">kcal · 7 jours</div></div>
         <div class="mini"><div class="mini-l">Moyenne</div><div class="mini-v" id="kcal-avg">—</div><div class="mini-s">kcal / jour</div></div>
-        <div class="mini"><div class="mini-l">Objectif</div><div class="mini-v" id="kcal-hit">—</div><div class="mini-s">jours ≥ 2 600</div></div>
+        <div class="mini"><div class="mini-l">Objectif</div><div class="mini-v" id="kcal-hit">—</div><div class="mini-s">jours atteints</div></div>
       </div>
+      <div class="note">Objectif du jour : 2 800 kcal si la dépense dépasse 2 400 (jour padel), sinon 2 100 (jour callisthénie).</div>
     </div>
 
     <!-- Cardiaque -->
     <div class="card">
-      <div class="card-title">❤️ Cardiaque</div>
+      <div class="card-title">❤️ Cardiaque <b class="per-lbl">7 jours</b></div>
       <div class="row">
         <div class="mini"><div class="mini-l">FC repos</div><div class="mini-v" id="hr-rest">—</div><div class="mini-s" id="hr-rest-d">bpm</div></div>
         <div class="mini"><div class="mini-l">FC max du jour</div><div class="mini-v" id="hr-max">—</div><div class="mini-s" id="hr-zone">bpm</div></div>
         <div class="mini"><div class="mini-l">VO2 max</div><div class="mini-v" id="vo2">—</div><div class="mini-s" id="vo2-d">ml/kg/min</div></div>
       </div>
+      <div class="row" style="margin-top:8px">
+        <div class="mini"><div class="mini-l">FC repos moy.</div><div class="mini-v" id="hr-avg">—</div><div class="mini-s">bpm</div></div>
+        <div class="mini"><div class="mini-l">Min</div><div class="mini-v" id="hr-min">—</div><div class="mini-s">bpm</div></div>
+        <div class="mini"><div class="mini-l">Max</div><div class="mini-v" id="hr-mx">—</div><div class="mini-s">bpm</div></div>
+      </div>
       <div class="bars" id="hr-bars" style="height:80px"></div>
-      <div class="note" id="hr-note">FC repos sur 7 jours : une baisse régulière signe une meilleure forme.</div>
+      <div class="note" id="hr-note">Une FC repos qui baisse régulièrement signe une meilleure forme.</div>
     </div>
 
     <!-- Activité -->
     <div class="card">
-      <div class="card-title">👟 Activité</div>
+      <div class="card-title">👟 Activité <b class="per-lbl">7 jours</b></div>
       <div class="row">
-        <div class="mini"><div class="mini-l">Aujourd'hui</div><div class="mini-v" id="steps-today">—</div><div class="mini-s">pas</div></div>
-        <div class="mini"><div class="mini-l">Moyenne 7 j</div><div class="mini-v" id="steps-avg">—</div><div class="mini-s">pas / jour</div></div>
+        <div class="mini"><div class="mini-l">Pas aujourd'hui</div><div class="mini-v" id="steps-today">—</div><div class="mini-s">pas</div></div>
+        <div class="mini"><div class="mini-l">Total</div><div class="mini-v" id="steps-tot">—</div><div class="mini-s">pas</div></div>
+        <div class="mini"><div class="mini-l">Moyenne</div><div class="mini-v" id="steps-avg">—</div><div class="mini-s">pas / jour</div></div>
       </div>
       <div class="row" style="margin-top:8px">
         <div class="mini"><div class="mini-l">Étages aujourd'hui</div><div class="mini-v" id="fl-today">—</div><div class="mini-s" id="fl-kcal">étages</div></div>
-        <div class="mini"><div class="mini-l">Étages moy. 7 j</div><div class="mini-v" id="fl-avg">—</div><div class="mini-s">étages / jour</div></div>
+        <div class="mini"><div class="mini-l">Total</div><div class="mini-v" id="fl-tot">—</div><div class="mini-s">étages</div></div>
+        <div class="mini"><div class="mini-l">Moyenne</div><div class="mini-v" id="fl-avg">—</div><div class="mini-s">étages / jour</div></div>
       </div>
       <div class="bars" id="steps-bars" style="height:90px"></div>
     </div>
@@ -123,6 +144,8 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
         <div class="mini"><div class="mini-l">Masse maigre</div><div class="mini-v" id="c-lean">—</div><div class="mini-s" id="c-lean-d">kg</div></div>
         <div class="mini"><div class="mini-l">Métabolisme</div><div class="mini-v" id="c-bmr">—</div><div class="mini-s">kcal / jour</div></div>
       </div>
+      <svg class="wchart" id="w-chart" viewBox="0 0 320 90" preserveAspectRatio="none"></svg>
+      <div class="track-l" id="w-chart-l" style="margin-top:4px"><span>Poids · 30 jours (Health Connect)</span><span id="w-chart-r"></span></div>
     </div>
 
     <!-- Sommeil -->
@@ -161,7 +184,38 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
 </div>
 
 <script>
-var GOAL_KCAL=2600, KCAL_PER_KG=7700;
+var KCAL_PER_KG=7700;
+var MOIS=['Jan','Fév','Mar','Avr','Mai','Juin','Juil','Aoû','Sep','Oct','Nov','Déc'];
+var PER_LBL={week:'7 jours',month:'30 jours',year:'12 mois'};
+var PERIOD='week';try{PERIOD=localStorage.getItem('sante_period')||'week';}catch(e){}
+/* Objectif dynamique : > 2 400 kcal brûlées = jour padel */
+function goalFor(k){return k>2400?2800:2100;}
+function setPeriod(p){
+  PERIOD=p;try{localStorage.setItem('sante_period',p);}catch(e){}
+  paintTabs();
+  var c=null;try{c=JSON.parse(localStorage.getItem('sante_cache_'+p));}catch(e){}
+  if(c)render(c);
+  refresh();
+}
+function paintTabs(){document.querySelectorAll('.ptab').forEach(function(b){b.classList.toggle('active',b.getAttribute('data-p')===PERIOD);});
+  document.querySelectorAll('.per-lbl').forEach(function(e){e.textContent=PER_LBL[PERIOD];});}
+/* Regroupe la série quotidienne en barres : jours (semaine/mois) ou mois (année) */
+function buckets(days,period){
+  var out=[];
+  if(period!=='year'){
+    days.forEach(function(x,i){var dt=new Date(x.date+'T12:00:00');
+      out.push({key:x.date,lbl:period==='week'?JOURS[dt.getDay()]:((days.length-1-i)%5===0?String(dt.getDate()):''),days:[x]});});
+    return out;
+  }
+  var now=new Date(),map={};
+  for(var m=11;m>=0;m--){var d=new Date(now.getFullYear(),now.getMonth()-m,1),k=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+    var b={key:k,lbl:MOIS[d.getMonth()],days:[]};map[k]=b;out.push(b);}
+  days.forEach(function(x){var b=map[x.date.slice(0,7)];if(b)b.days.push(x);});
+  return out;
+}
+function vals(arr,f){return arr.map(function(x){return x[f];}).filter(function(v){return v!=null;});}
+function sum(a){return a.reduce(function(s,v){return s+v;},0);}
+function avg(a){return a.length?sum(a)/a.length:null;}
 var JOURS=['Di','Lu','Ma','Me','Je','Ve','Sa'];
 
 function navTo(p){var m={'programme':'programme.html','respiration':'respiration.html','poids':'poids.html','extra':'seance_extra.html','seance_extra':'seance_extra.html','sante':'sante.html'};if(m[p])window.location.href='file:///android_asset/'+m[p];}
@@ -176,7 +230,7 @@ function hasBridge(){return typeof window.HealthBridge!=='undefined';}
 function refresh(){
   if(!hasBridge()){showBanner("Le pont Health Connect n'est disponible que dans l'appli Android.",null,null);return;}
   $('btn-refresh').textContent='… Lecture';
-  try{HealthBridge.requestData();}catch(e){}
+  try{if(HealthBridge.requestDataForPeriod)HealthBridge.requestDataForPeriod(PERIOD);else HealthBridge.requestData();}catch(e){try{HealthBridge.requestData();}catch(e2){}}
 }
 function openHC(){try{HealthBridge.openSettings();}catch(e){}}
 
@@ -189,13 +243,15 @@ function showBanner(msg,label,fn){
 function hideBanner(){$('banner').style.display='none';}
 
 /* Barres verticales ; goal = ligne pointillée optionnelle */
-function bars(el,items,color,goal,fmtV){
-  var max=Math.max.apply(null,items.map(function(i){return i.v||0;}).concat([goal||0,1]))*1.1;
-  var todayKey=ld(new Date()),h='';
+function bars(el,items,color,goal,fmtV,base){
+  base=base||0;
+  var max=Math.max.apply(null,items.map(function(i){return i.v||0;}).concat([goal||0,1]));max=base?max+(max-base)*0.1:max*1.1;
+  var todayKey=ld(new Date()),h='',dense=items.length>12;
+  el.classList.toggle('dense',dense);
   items.forEach(function(it){
-    var pct=it.v?Math.max(2,it.v/max*100):0;
+    var pct=it.v?Math.max(2,(it.v-base)/(max-base)*100):0;
     var col=typeof color==='function'?color(it.v):color;
-    h+='<div class="bar-col"><div class="bar-v">'+(it.v?fmtV(it.v):'')+'</div>'
+    h+='<div class="bar-col"><div class="bar-v">'+(it.v&&!dense?fmtV(it.v):'')+'</div>'
       +'<div class="bar" style="height:'+pct+'%;background:'+col+'"></div>'
       +'<div class="bar-d'+(it.key===todayKey?' today':'')+'">'+it.lbl+'</div></div>';
   });
@@ -204,6 +260,26 @@ function bars(el,items,color,goal,fmtV){
     h+='<div class="goal-line" style="bottom:calc(20px + (100% - 34px) * '+(goal/max)+')"><span class="goal-lbl">'+goal+'</span></div>';
   }
   el.innerHTML=h;
+}
+
+/* Mini courbe de poids (SVG) */
+function weightChart(ws){
+  var svg=$('w-chart');if(!svg)return;
+  if(ws.length<2){svg.innerHTML='<text x="160" y="50" text-anchor="middle" fill="#6b6a75" font-size="12">Pas assez de pesées dans Health Connect</text>';$('w-chart-r').textContent='';return;}
+  var t0=Date.now()-30*864e5,t1=Date.now();
+  var ks=ws.map(function(w){return w.kg;}),mn=Math.min.apply(null,ks),mx=Math.max.apply(null,ks);
+  if(mx-mn<1){var c=(mx+mn)/2;mn=c-0.5;mx=c+0.5;}
+  var pad=(mx-mn)*0.15;mn-=pad;mx+=pad;
+  function X(t){return 6+(t-t0)/(t1-t0)*308;}function Y(k){return 6+(mx-k)/(mx-mn)*78;}
+  var pts=ws.map(function(w){return X(w.t).toFixed(1)+','+Y(w.kg).toFixed(1);}).join(' ');
+  var area='M'+X(ws[0].t).toFixed(1)+',84 L'+pts.split(' ').join(' L')+' L'+X(ws[ws.length-1].t).toFixed(1)+',84 Z';
+  var h='<defs><linearGradient id="wg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F9A825" stop-opacity=".35"/><stop offset="1" stop-color="#F9A825" stop-opacity="0"/></linearGradient></defs>'
+    +'<path d="'+area+'" fill="url(#wg)"/>'
+    +'<polyline points="'+pts+'" fill="none" stroke="#F9A825" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/>';
+  var l=ws[ws.length-1];h+='<circle cx="'+X(l.t).toFixed(1)+'" cy="'+Y(l.kg).toFixed(1)+'" r="3.5" fill="#F9A825"/>';
+  svg.innerHTML=h;
+  var dk=l.kg-ws[0].kg;
+  $('w-chart-r').innerHTML='<span style="color:'+(dk<=0?'var(--ok)':'var(--warn)')+';font-weight:700">'+(dk<=0?'−':'+')+fmt1(Math.abs(dk))+' kg</span> · min '+fmt1(Math.min.apply(null,ks))+' / max '+fmt1(Math.max.apply(null,ks));
 }
 
 /* Régression linéaire : pente en kg/jour */
@@ -227,7 +303,8 @@ function localWeights(){
 window.onHealthData=function(d){
   if(typeof d==='string'){try{d=JSON.parse(d);}catch(e){return;}}
   $('btn-refresh').textContent='↻ Actualiser';
-  try{localStorage.setItem('sante_cache_v1',JSON.stringify(d));}catch(e){}
+  if(d.period&&d.period!==PERIOD)return; // réponse d'un ancien onglet
+  try{localStorage.setItem('sante_cache_'+(d.period||'week'),JSON.stringify(d));}catch(e){}
   render(d);
 };
 
@@ -242,32 +319,34 @@ function render(d){
   else hideBanner();
   if(d.updated){var u=new Date(d.updated);$('kcal-upd').textContent='màj '+String(u.getHours()).padStart(2,'0')+':'+String(u.getMinutes()).padStart(2,'0');}
 
-  /* ── Calories & pas ── */
-  var days=d.days||[],todayKey=ld(new Date());
-  var items=days.map(function(x){var dt=new Date(x.date+'T12:00:00');return {key:x.date,lbl:JOURS[dt.getDay()],kcal:x.kcal,steps:x.steps,floors:x.floors};});
-  var t=items.filter(function(i){return i.key===todayKey;})[0]||{};
-  var kT=t.kcal||0;
+  /* ── Calories, pas, étages sur la période ── */
+  var days=d.days||[],todayKey=ld(new Date()),per=d.period||'week';
+  var t=days.filter(function(x){return x.date===todayKey;})[0]||{};
+  var kT=t.kcal||0,G=goalFor(kT);
   $('kcal-today').innerHTML=fmt(t.kcal!=null?t.kcal:null)+'<small>kcal</small>';
-  $('kcal-fill').style.width=Math.min(100,kT/GOAL_KCAL*100)+'%';
-  $('kcal-pct').textContent="Aujourd'hui · "+Math.round(kT/GOAL_KCAL*100)+' %';
-  var kv=items.filter(function(i){return i.kcal!=null;});
-  var wk=kv.reduce(function(s,i){return s+i.kcal;},0);
-  $('kcal-week').textContent=kv.length?fmt(wk):'—';
-  var avgK=kv.length?wk/kv.length:null;
-  $('kcal-avg').textContent=fmt(avgK);
-  $('kcal-hit').textContent=kv.length?kv.filter(function(i){return i.kcal>=GOAL_KCAL;}).length+'/7':'—';
-  bars($('kcal-bars'),items.map(function(i){return {key:i.key,lbl:i.lbl,v:i.kcal};}),
-    function(v){return v>=GOAL_KCAL?'linear-gradient(180deg,#4ECDC4,#26A69A)':'linear-gradient(180deg,#FF8A65,#FF7043)';},GOAL_KCAL,fmt);
+  $('kcal-fill').style.width=Math.min(100,kT/G*100)+'%';
+  $('kcal-pct').textContent="Aujourd'hui · "+Math.round(kT/G*100)+' %';
+  $('kcal-goal').textContent='Objectif '+fmt(G)+' kcal · métabolisme + activité';
+  $('kcal-daytype').textContent=kT>2400?'Jour padel 🎾':'Jour callisthénie 🏋️';
+  var kv=vals(days,'kcal');
+  $('kcal-week').textContent=kv.length?fmt(sum(kv)):'—';
+  $('kcal-week-s').textContent='kcal · '+PER_LBL[per];
+  $('kcal-avg').textContent=fmt(avg(kv));
+  $('kcal-hit').textContent=kv.length?kv.filter(function(k){return k>=goalFor(k);}).length+'/'+kv.length:'—';
+  var B=buckets(days,per);
+  bars($('kcal-bars'),B.map(function(b){var k=vals(b.days,'kcal');return {key:b.key,lbl:b.lbl,v:avg(k),hit:per!=='year'&&k.length&&k[0]>=goalFor(k[0])};}),
+    per==='year'?'linear-gradient(180deg,#FF8A65,#FF7043)':function(v){return v>=goalFor(v)?'linear-gradient(180deg,#4ECDC4,#26A69A)':'linear-gradient(180deg,#FF8A65,#FF7043)';},0,fmt);
 
-  var sv=items.filter(function(i){return i.steps!=null;});
+  var sv=vals(days,'steps'),fv=vals(days,'floors');
   $('steps-today').textContent=fmt(t.steps!=null?t.steps:null);
-  var fv=items.filter(function(i){return i.floors!=null;});
+  $('steps-tot').textContent=sv.length?fmt(sum(sv)):'—';
+  $('steps-avg').textContent=fmt(avg(sv));
   $('fl-today').textContent=t.floors!=null?fmt(t.floors):'—';
   $('fl-kcal').textContent=t.floors!=null?'étages · ~'+Math.round(t.floors*4)+' kcal':'étages';
-  $('fl-avg').textContent=fv.length?fmt1(fv.reduce(function(s,i){return s+i.floors;},0)/fv.length):'—';
-  $('steps-avg').textContent=sv.length?fmt(sv.reduce(function(s,i){return s+i.steps;},0)/sv.length):'—';
-  bars($('steps-bars'),items.map(function(i){return {key:i.key,lbl:i.lbl,v:i.steps};}),'linear-gradient(180deg,#64B5F6,#42A5F5)',0,
-    function(v){return v>=1000?(Math.round(v/100)/10).toLocaleString('fr-FR')+'k':v;});
+  $('fl-tot').textContent=fv.length?fmt(sum(fv)):'—';
+  $('fl-avg').textContent=fv.length?fmt1(avg(fv)):'—';
+  bars($('steps-bars'),B.map(function(b){return {key:b.key,lbl:b.lbl,v:avg(vals(b.days,'steps'))};}),'linear-gradient(180deg,#64B5F6,#42A5F5)',0,
+    function(v){return v>=1000?(Math.round(v/100)/10).toLocaleString('fr-FR')+'k':Math.round(v);});
 
   /* ── Composition ── */
   var ws=(d.weights||[]).map(function(w){return {t:new Date(w.t).getTime(),kg:w.kg};});
@@ -279,21 +358,25 @@ function render(d){
   $('c-lean').textContent=d.leanMass?fmt1(d.leanMass.kg):'—';
   $('c-lean-d').textContent=d.leanMass?'kg · '+ago(d.leanMass.t):'kg';
   $('c-bmr').textContent=d.bmr?fmt(d.bmr.kcal):'—';
+  weightChart(ws);
 
   /* ── Cardiaque ── */
-  var rh=(d.restingHr||[]).map(function(r){return {t:new Date(r.t),bpm:r.bpm};});
-  var rByDay={};rh.forEach(function(r){rByDay[ld(r.t)]=r.bpm;}); // dernière valeur du jour
-  var rDays=[];for(var j=6;j>=0;j--){var dj=new Date();dj.setDate(dj.getDate()-j);var kj=ld(dj);rDays.push({key:kj,lbl:JOURS[dj.getDay()],v:rByDay[kj]||0});}
-  var lastR=rh.length?rh[rh.length-1]:null;
-  $('hr-rest').textContent=lastR?lastR.bpm:'—';
-  var rStat=lastR?(lastR.bpm<60?['En baisse ✅','var(--ok)']:lastR.bpm<=70?['Normal','var(--t2)']:['Élevée ⚠️','var(--warn)']):null;
-  var rv=rDays.filter(function(x){return x.v>0;});
-  if(rv.length>=2){
-    var delta=rv[rv.length-1].v-rv[0].v;
-    $('hr-rest-d').innerHTML='<span style="color:'+rStat[1]+';font-weight:700">'+rStat[0]+'</span><br>'+(delta<0?'▼ −':delta>0?'▲ +':'= ')+Math.abs(delta)+' bpm sur 7 j';
-    $('hr-note').textContent=delta<0?'FC repos en baisse sur 7 jours : bonne adaptation à l\'entraînement.':delta>0?'FC repos en hausse sur 7 jours : fatigue, manque de sommeil ou récupération à surveiller.':'FC repos stable sur 7 jours.';
+  var rDaysAll=days.filter(function(x){return x.rhr!=null;});
+  var lastR=rDaysAll.length?rDaysAll[rDaysAll.length-1]:null;
+  $('hr-rest').textContent=lastR?lastR.rhr:'—';
+  var rStat=lastR?(lastR.rhr<60?['En baisse ✅','var(--ok)']:lastR.rhr<=70?['Normal','var(--t2)']:['Élevée ⚠️','var(--warn)']):null;
+  var rv=vals(days,'rhr');
+  $('hr-avg').textContent=rv.length?fmt1(avg(rv)):'—';
+  $('hr-min').textContent=rv.length?Math.min.apply(null,rv):'—';
+  $('hr-mx').textContent=rv.length?Math.max.apply(null,rv):'—';
+  var rB=B.map(function(b){return {key:b.key,lbl:b.lbl,v:avg(vals(b.days,'rhr'))};});
+  var rBv=rB.filter(function(x){return x.v;});
+  if(lastR&&rBv.length>=2){
+    var delta=Math.round((rBv[rBv.length-1].v-rBv[0].v)*10)/10;
+    $('hr-rest-d').innerHTML='<span style="color:'+rStat[1]+';font-weight:700">'+rStat[0]+'</span><br>'+(delta<0?'▼ −':delta>0?'▲ +':'= ')+fmt1(Math.abs(delta))+' sur '+PER_LBL[per];
+    $('hr-note').textContent=delta<0?'FC repos en baisse sur '+PER_LBL[per]+' : bonne adaptation à l\'entraînement 📉':delta>0?'FC repos en hausse sur '+PER_LBL[per]+' : fatigue, manque de sommeil ou récupération à surveiller.':'FC repos stable sur '+PER_LBL[per]+'.';
   }else $('hr-rest-d').innerHTML=lastR?'<span style="color:'+rStat[1]+';font-weight:700">'+rStat[0]+'</span>':'bpm';
-  bars($('hr-bars'),rDays,'linear-gradient(180deg,#EF9A9A,#E57373)',0,function(v){return v;});
+  bars($('hr-bars'),rB,'linear-gradient(180deg,#EF9A9A,#E57373)',0,function(v){return Math.round(v);},rv.length?Math.min.apply(null,rv)-4:0);
   var mx=d.hrMaxToday;
   $('hr-max').textContent=mx!=null?mx:'—';
   if(mx!=null){var z=mx>170?['🔴 Maximum','#EF5350']:mx>=140?['🟠 Intense','#FF7043']:mx>=120?['🟡 Modéré','#F9A825']:['🟢 Léger','var(--ok)'];$('hr-zone').innerHTML='bpm · <span style="color:'+z[1]+';font-weight:700">'+z[0]+'</span>';}
@@ -305,8 +388,8 @@ function render(d){
   var sp=(d.spo2||[]).filter(function(x){var h=new Date(x.t).getHours();return h>=21||h<11;});
   if(sp.length){
     var lastNight=ld(new Date(sp[sp.length-1].t));
-    var avg=sp.reduce(function(s,x){return s+x.pct;},0)/sp.length,mn=Math.min.apply(null,sp.map(function(x){return x.pct;}));
-    $('spo2-box').style.display='block';$('spo2').textContent=fmt1(avg);$('spo2-d').textContent='% · min '+fmt1(mn);
+    var spAvg=sp.reduce(function(s,x){return s+x.pct;},0)/sp.length,mn=Math.min.apply(null,sp.map(function(x){return x.pct;}));
+    $('spo2-box').style.display='block';$('spo2').textContent=fmt1(spAvg);$('spo2-d').textContent='% · min '+fmt1(mn);
   }else $('spo2-box').style.display='none';
 
   /* ── Sommeil : regroupé par date de réveil ── */
@@ -335,7 +418,8 @@ function render(d){
 
 (function(){
   try{var v=window.App&&App.version();if(v)document.querySelectorAll('.app-ver').forEach(function(e){e.textContent=' · v'+v;});}catch(e){}
-  try{var c=JSON.parse(localStorage.getItem('sante_cache_v1'));if(c)render(c);}catch(e){}
+  paintTabs();
+  try{var c=JSON.parse(localStorage.getItem('sante_cache_'+PERIOD));if(c)render(c);}catch(e){}
   refresh();
 })();
 </script>
