@@ -55,6 +55,15 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
 .bars.dense{gap:2px}
 .bars.dense .bar{border-radius:3px 3px 1px 1px}
 .wchart{width:100%;height:90px;display:block;margin-top:12px}
+/* Déficit */
+.deficit-input{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:#0f0f13;border-radius:10px;padding:10px}
+.deficit-input label{flex:1 1 100%;font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px}
+.deficit-input input{flex:1;min-width:0;background:#1a1a22;border:1px solid var(--bd);border-radius:9px;color:#fff;font-size:18px;font-weight:700;padding:8px 10px;font-variant-numeric:tabular-nums}
+.deficit-input input:focus{outline:none;border-color:var(--acc)}
+#conso-source{font-size:11px;font-weight:700;color:var(--t2);white-space:nowrap}
+#def-canvas{width:100%;height:150px;display:block;margin-top:12px}
+.leg{display:flex;gap:12px;flex-wrap:wrap;font-size:10px;color:var(--t3);margin-top:6px}
+.leg i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px;vertical-align:-1px}
 /* Pull-to-refresh */
 #ptr{height:0;overflow:hidden;display:flex;align-items:flex-end;justify-content:center;transition:height .2s}
 #ptr.drag{transition:none}
@@ -128,6 +137,28 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
       <div class="note">Objectif automatique : 2 800 kcal (padel) si plus de 2 400 kcal brûlées dans la journée, sinon 2 100 kcal (callisthénie). Les boutons forcent le type du jour ; retouche le bouton actif pour revenir en auto. Touche une barre pour le détail.</div>
     </div>
 
+    <!-- Déficit journalier -->
+    <div class="card" id="deficit-card">
+      <div class="card-title">📉 Déficit <b>30 jours</b></div>
+      <div class="deficit-input">
+        <label for="inp-conso">Calories consommées aujourd'hui</label>
+        <input type="number" id="inp-conso" inputmode="numeric" placeholder="ex: 1 850" onchange="saveConsoAndRefresh()">
+        <span id="conso-source"></span>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <div class="mini"><div class="mini-l">Brûlées</div><div class="mini-v" id="df-burn">—</div><div class="mini-s">kcal · montre</div></div>
+        <div class="mini"><div class="mini-l">Déficit du jour</div><div class="mini-v" id="df-today">—</div><div class="mini-s" id="df-today-s">kcal</div></div>
+      </div>
+      <canvas id="def-canvas"></canvas>
+      <div class="leg"><span><i style="background:var(--ok)"></i>≥ 400</span><span><i style="background:var(--warn)"></i>0 – 400</span><span><i style="background:#EF5350"></i>surplus</span><span><i style="border:1.5px solid var(--t2)"></i>estimé</span><span style="color:#66BB6A">– – 500 kcal</span></div>
+      <div class="row" style="margin-top:12px">
+        <div class="mini"><div class="mini-l">Moy. 7 j</div><div class="mini-v" id="df-avg7">—</div><div class="mini-s">kcal / jour</div></div>
+        <div class="mini"><div class="mini-l">Moy. 30 j</div><div class="mini-v" id="df-avg30">—</div><div class="mini-s">kcal / jour</div></div>
+        <div class="mini"><div class="mini-l">≥ 400 kcal</div><div class="mini-v" id="df-hit">—</div><div class="mini-s">jours / 30</div></div>
+      </div>
+      <div class="note" id="df-note">Sans saisie, la consommation est estimée : 2 100 kcal un jour padel (&gt; 2 400 kcal brûlées), 1 850 kcal sinon. Les calories brûlées du jour sont complètes le soir.</div>
+    </div>
+
     <!-- Cardiaque -->
     <div class="card">
       <div class="card-title">❤️ Cardiaque <b class="per-lbl">cette semaine</b></div>
@@ -192,7 +223,7 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
       <div class="card-title">📉 Bilan déficit <b>aujourd'hui</b></div>
       <div class="line"><span>Calories brûlées aujourd'hui (montre)</span><span id="d-tdee">—</span></div>
       <div class="note">La dépense de la montre inclut déjà le métabolisme de base et s'accumule au fil de la journée : le chiffre est complet le soir.</div>
-      <div class="note" style="color:var(--t2)">💬 Pour le déficit du jour, donne tes calories consommées dans la conversation Claude avec ce total.</div>
+      <div class="note" style="color:var(--t2)">✏️ Saisis tes calories consommées dans la section 📉 Déficit plus haut.</div>
       <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--bd)">
         <div class="mini-l" style="text-align:left">Contrôle : déficit moyen d'après la courbe de poids</div>
         <div class="deficit-v" id="d-def" style="font-size:22px">—</div>
@@ -424,11 +455,166 @@ function localWeights(){
   }catch(e){return [];}
 }
 
+/* ═════════ Déficit journalier (v5.7) ═════════
+   deficitHist  : [{date:'Mon Oct 12 2026', conso:1828, estimated:false}] — calories consommées saisies
+   deficitBurned: {'2026-10-12': 2650} — calories brûlées mémorisées depuis Health Connect (toutes périodes) */
+var HIST_KEY='deficitHist',BURN_KEY='deficitBurned';
+const HISTORIQUE_PRECHARGE = [
+  // Juin-juillet 2026 (dates approx, estimated: true)
+  {date:'Sun Jun 21 2026', conso:1850, estimated:true},
+  {date:'Sun Jun 28 2026', conso:2575, estimated:true},
+  {date:'Mon Jun 29 2026', conso:1626, estimated:true},
+  {date:'Tue Jun 30 2026', conso:1890, estimated:true},
+  {date:'Wed Jul 01 2026', conso:1703, estimated:true},
+  {date:'Thu Jul 02 2026', conso:1768, estimated:true},
+  {date:'Fri Jul 03 2026', conso:1794, estimated:true},
+  {date:'Sat Jul 04 2026', conso:1992, estimated:true},
+  {date:'Sun Jul 05 2026', conso:1841, estimated:true},
+  {date:'Mon Jul 06 2026', conso:1930, estimated:true},
+  {date:'Tue Jul 07 2026', conso:1990, estimated:true},
+  {date:'Wed Jul 08 2026', conso:1875, estimated:true},
+  {date:'Thu Jul 09 2026', conso:2080, estimated:true},
+  {date:'Fri Jul 10 2026', conso:2020, estimated:true},
+  {date:'Sat Jul 11 2026', conso:2050, estimated:true},
+  // Octobre 2026 (données fiables)
+  {date:'Sun Oct 04 2026', conso:1921, estimated:false},
+  {date:'Mon Oct 05 2026', conso:1808, estimated:false},
+  {date:'Tue Oct 06 2026', conso:2177, estimated:false},
+  {date:'Wed Oct 07 2026', conso:2171, estimated:false},
+  {date:'Thu Oct 08 2026', conso:1910, estimated:false},
+  {date:'Fri Oct 09 2026', conso:1944, estimated:false},
+  {date:'Sat Oct 10 2026', conso:2362, estimated:false},
+  {date:'Sun Oct 11 2026', conso:2362, estimated:false},
+  {date:'Mon Oct 12 2026', conso:1828, estimated:false},
+];
+// Au premier lancement uniquement (jamais d'écrasement d'un historique existant)
+try{if(!localStorage.getItem(HIST_KEY))localStorage.setItem(HIST_KEY,JSON.stringify(HISTORIQUE_PRECHARGE));}catch(e){}
+
+function getDefaultConso(calsBrulees){return calsBrulees>PADEL_AUTO?2100:1850;}
+function loadHist(){try{return JSON.parse(localStorage.getItem(HIST_KEY)||'[]');}catch(e){return [];}}
+function loadBurned(){try{return JSON.parse(localStorage.getItem(BURN_KEY)||'{}');}catch(e){return {};}}
+/* Mémorise les calories brûlées reçues (le jour en cours est mis à jour, les autres jours complétés) */
+function storeBurned(days){
+  var b=loadBurned(),ch=false;
+  (days||[]).forEach(function(x){if(x.kcal!=null&&x.kcal>0&&b[x.date]!==x.kcal){b[x.date]=x.kcal;ch=true;}});
+  if(!ch)return;
+  var keys=Object.keys(b).sort();if(keys.length>400)keys.slice(0,keys.length-400).forEach(function(k){delete b[k];});
+  try{localStorage.setItem(BURN_KEY,JSON.stringify(b));}catch(e){}
+}
+function saveConsoAndRefresh(){
+  var inp=document.getElementById('inp-conso'),raw=inp.value.trim();
+  var today=new Date().toDateString(),hist=loadHist();
+  var idx=hist.findIndex(function(e){return e.date===today;});
+  if(raw===''){ // champ vidé → on supprime la saisie du jour, retour à l'estimation
+    if(idx>=0)hist.splice(idx,1);
+  }else{
+    var val=parseInt(raw,10);
+    if(isNaN(val)||val<300||val>8000){inp.style.borderColor='#EF5350';return;}
+    inp.style.borderColor='';
+    var entry={date:today,conso:val,estimated:false};
+    if(idx>=0)hist[idx]=entry;else hist.push(entry);
+  }
+  hist.sort(function(a,b){return new Date(a.date)-new Date(b.date);});
+  hist=hist.slice(-400); // 30 jours affichés, historique plus long conservé
+  try{localStorage.setItem(HIST_KEY,JSON.stringify(hist));}catch(e){}
+  inp.blur();
+  renderDeficit();
+}
+/* Série des 30 derniers jours : {key, burn, conso, estimated, def} (def null si brûlées inconnues) */
+function deficitSeries(){
+  var hist={},burned=loadBurned(),out=[];
+  loadHist().forEach(function(e){var d=new Date(e.date);if(!isNaN(d))hist[ld(d)]=e;});
+  for(var i=29;i>=0;i--){
+    var dt=new Date();dt.setDate(dt.getDate()-i);var k=ld(dt),b=burned[k]!=null?burned[k]:null,e=hist[k];
+    var conso=e?e.conso:(b!=null?getDefaultConso(b):null),est=e?!!e.estimated:true;
+    out.push({key:k,dt:dt,burn:b,conso:conso,estimated:est,saisie:!!e,def:b!=null&&conso!=null?b-conso:null});
+  }
+  return out;
+}
+function defColor(v){return v>=400?'#4ECDC4':v>=0?'#F9A825':'#EF5350';}
+function sgn(v){return v==null?'—':(v>=0?'':'−')+fmt(Math.abs(v));}
+function renderDeficit(){
+  var S=deficitSeries(),t=S[S.length-1];
+  var inp=$('inp-conso');
+  if(document.activeElement!==inp)inp.value=t.saisie?t.conso:'';
+  inp.placeholder=t.burn!=null?'estimé '+fmt(getDefaultConso(t.burn)):'ex: 1 850';
+  $('conso-source').textContent=t.saisie?(t.estimated?'📊 Estimé':'✏️ Saisie'):'📊 Estimé';
+  $('df-burn').textContent=fmt(t.burn);
+  $('df-today').textContent=sgn(t.def);$('df-today').style.color=t.def!=null?defColor(t.def):'';
+  $('df-today-s').textContent=t.def==null?'kcal':(t.def>=0?'kcal · déficit':'kcal · surplus')+(t.saisie?'':' (estimé)');
+  var v30=S.filter(function(x){return x.def!=null;}),v7=S.slice(-7).filter(function(x){return x.def!=null;});
+  function A(a){return a.length?avg(a.map(function(x){return x.def;})):null;}
+  var a7=A(v7),a30=A(v30);
+  $('df-avg7').textContent=sgn(a7);$('df-avg7').style.color=a7!=null?defColor(a7):'';
+  $('df-avg30').textContent=sgn(a30);$('df-avg30').style.color=a30!=null?defColor(a30):'';
+  $('df-hit').textContent=v30.length?v30.filter(function(x){return x.def>=400;}).length:'—';
+  var nEst=v30.filter(function(x){return !x.saisie||x.estimated;}).length;
+  $('df-note').innerHTML='Sans saisie, la consommation est estimée : 2 100 kcal un jour padel (&gt; 2 400 kcal brûlées), 1 850 kcal sinon. '
+    +(v30.length?v30.length+' jours calculés sur 30'+(nEst?', dont '+nEst+' estimés':'')+'. ':'')
+    +(v30.length<30?'Ouvre l\'onglet Mois pour charger les calories brûlées des 30 jours. ':'')
+    +'Les calories brûlées du jour sont complètes le soir.';
+  deficitChart(S);
+}
+function deficitChart(S){
+  var cv=$('def-canvas');if(!cv||!cv.getContext)return;
+  var dpr=window.devicePixelRatio||1,W=cv.clientWidth||320,H=cv.clientHeight||150;
+  cv.width=Math.round(W*dpr);cv.height=Math.round(H*dpr);
+  var g=cv.getContext('2d');g.setTransform(dpr,0,0,dpr,0,0);g.clearRect(0,0,W,H);
+  var pts=S.filter(function(x){return x.def!=null;});
+  if(!pts.length){g.fillStyle='#6b6a75';g.font='12px sans-serif';g.textAlign='center';g.fillText('Pas encore de calories brûlées sur 30 jours',W/2,H/2);return;}
+  var L=34,R=6,T=8,B=18,vs=pts.map(function(x){return x.def;}).concat([0,500]);
+  var mn=Math.min.apply(null,vs),mx=Math.max.apply(null,vs),pad=(mx-mn)*0.1||100;mn-=pad;mx+=pad;
+  function X(i){return L+i*(W-L-R)/29;}function Y(v){return T+(mx-v)/(mx-mn)*(H-T-B);}
+  /* axes / graduations */
+  g.font='9px sans-serif';g.textAlign='right';g.textBaseline='middle';
+  var step=Math.max(250,Math.ceil((mx-mn)/4/250)*250);
+  for(var v=Math.ceil(mn/step)*step;v<=mx;v+=step){
+    g.strokeStyle=v===0?'rgba(255,255,255,.28)':'rgba(255,255,255,.07)';g.lineWidth=1;g.setLineDash([]);
+    g.beginPath();g.moveTo(L,Y(v));g.lineTo(W-R,Y(v));g.stroke();
+    g.fillStyle='#6b6a75';g.fillText(v===0?'0':(v>0?'':'−')+Math.abs(v),L-4,Y(v));
+  }
+  /* référence 500 kcal */
+  g.strokeStyle='#66BB6A';g.lineWidth=1.2;g.setLineDash([5,4]);
+  g.beginPath();g.moveTo(L,Y(500));g.lineTo(W-R,Y(500));g.stroke();
+  /* libellés X : 1 sur 7 + aujourd'hui */
+  g.setLineDash([]);g.textAlign='center';g.textBaseline='top';g.fillStyle='#6b6a75';
+  S.forEach(function(x,i){if((29-i)%7===0)g.fillText(dd(x.dt),Math.min(W-R-12,Math.max(L+12,X(i))),H-B+5);});
+  /* ligne : pleine entre deux valeurs saisies, pointillée si l'une est estimée */
+  var prev=null;
+  S.forEach(function(x,i){
+    if(x.def==null){prev=null;return;}
+    if(prev){var real=prev.x.saisie&&!prev.x.estimated&&x.saisie&&!x.estimated;
+      g.strokeStyle=real?'rgba(240,239,236,.55)':'rgba(240,239,236,.3)';g.lineWidth=1.6;g.setLineDash(real?[]:[3,3]);
+      g.beginPath();g.moveTo(X(prev.i),Y(prev.x.def));g.lineTo(X(i),Y(x.def));g.stroke();}
+    prev={x:x,i:i};
+  });
+  /* points : plein = saisi, creux = estimé */
+  g.setLineDash([]);
+  S.forEach(function(x,i){
+    if(x.def==null)return;var c=defColor(x.def),real=x.saisie&&!x.estimated;
+    g.beginPath();g.arc(X(i),Y(x.def),real?3.4:3,0,Math.PI*2);
+    if(real){g.fillStyle=c;g.fill();}else{g.fillStyle='#1a1a22';g.fill();g.strokeStyle=c;g.lineWidth=1.6;g.stroke();}
+  });
+}
+window.addEventListener('resize',function(){deficitChart(deficitSeries());});
+/* Si les calories brûlées des 30 derniers jours ne sont pas toutes connues, lecture « Mois » en arrière-plan (une fois par ouverture) */
+var monthPreloaded=false;
+function preloadMonthBurned(){
+  if(monthPreloaded||PERIOD==='month'||!hasBridge()||!HealthBridge.requestDataForPeriod)return;
+  var b=loadBurned(),miss=0;
+  for(var i=1;i<30;i++){var dt=new Date();dt.setDate(dt.getDate()-i);if(b[ld(dt)]==null)miss++;}
+  if(!miss)return;
+  monthPreloaded=true;
+  try{HealthBridge.requestDataForPeriod('month');}catch(e){}
+}
+
 window.onHealthData=function(d){
   if(typeof d==='string'){try{d=JSON.parse(d);}catch(e){return;}}
   clearTimeout(window._rto);
   $('btn-refresh').textContent='↻ Actualiser';hideRefreshIndicator();
-  if(d.period&&d.period!==PERIOD)return; // réponse d'un ancien onglet
+  if(d.status==='ok'&&d.days)storeBurned(d.days); // calories brûlées mémorisées pour la courbe déficit, quelle que soit la période
+  if(d.period&&d.period!==PERIOD){renderDeficit();return;} // réponse d'un autre onglet / pré-chargement 30 j
+  if(d.status==='ok')setTimeout(preloadMonthBurned,400);
   if(d.status==='ok'&&!d.period)d.period=PERIOD;
   if(d.status==='ok'){
     if(hasToday(d)){saveCache(d);showCacheBadge(null);}
@@ -503,6 +689,10 @@ function render(d){
   $('c-bmr').textContent=d.bmr?fmt(d.bmr.kcal):'—';
   weightChart(ws);
 
+  /* ── Déficit ── */
+  storeBurned(days);
+  renderDeficit();
+
   /* ── Cardiaque ── */
   var rDaysAll=days.filter(function(x){return x.rhr!=null;});
   var lastR=rDaysAll.length?rDaysAll[rDaysAll.length-1]:null;
@@ -565,6 +755,7 @@ function render(d){
   try{var lp=localStorage.getItem(PADEL_KEY);if(lp&&window.App&&App.getPref&&App.getPref(PADEL_KEY)==null)App.setPref(PADEL_KEY,lp);}catch(e){}
   paintDayType();
   ['week','month','year'].forEach(function(p){try{localStorage.removeItem('sante_cache_'+p);}catch(e){}}); // ancien cache v5.4-5.5
+  renderDeficit();
   var c=loadCache(PERIOD);if(c)render(c);
   document.addEventListener('click',function(e){if(!e.target.closest('#tip'))hideTip();});
   $('content').addEventListener('scroll',hideTip,{passive:true});
