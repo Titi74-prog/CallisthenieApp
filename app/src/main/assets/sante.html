@@ -456,7 +456,7 @@ function localWeights(){
 }
 
 /* ═════════ Déficit journalier (v5.7) ═════════
-   deficitHist  : [{date:'Mon Oct 12 2026', conso:1828, estimated:false}] — calories consommées saisies
+   deficitHist  : [{date:'Sun Oct 11 2026', conso:2362, brulees:2652, estimated:false}] — jours passés ; aujourd'hui : {conso, manual:true} seulement
    deficitBurned: {'2026-10-12': 2650} — calories brûlées mémorisées depuis Health Connect (toutes périodes) */
 var HIST_KEY='deficitHist',BURN_KEY='deficitBurned';
 const HISTORIQUE_PRECHARGE = [
@@ -485,8 +485,8 @@ const HISTORIQUE_PRECHARGE = [
   {date:'Fri Oct 09 2026', conso:1944, brulees:2153, estimated:false},
   {date:'Sat Oct 10 2026', conso:2362, brulees:3034, estimated:false},
   {date:'Sun Oct 11 2026', conso:2362, brulees:2652, estimated:false},
-  {date:'Mon Oct 12 2026', conso:1828, brulees:2700, estimated:false},
-];
+  // ⚠️ PAS d'entrée pour aujourd'hui (12/10) — Health Connect en temps réel
+].filter(function(e){return e.date!==new Date().toDateString();}); // sécurité supplémentaire
 // Au premier lancement uniquement (jamais d'écrasement d'un historique existant)
 try{if(!localStorage.getItem(HIST_KEY))localStorage.setItem(HIST_KEY,JSON.stringify(HISTORIQUE_PRECHARGE));}catch(e){}
 /* Migration v5.7 → v5.8 (une seule fois) : l'historique v5.7 n'avait pas les calories brûlées.
@@ -501,6 +501,17 @@ try{if(!localStorage.getItem('deficitPreloadV2')){
   H.sort(function(a,b){return new Date(a.date)-new Date(b.date);});
   localStorage.setItem(HIST_KEY,JSON.stringify(H));localStorage.setItem('deficitPreloadV2','1');
 }}catch(e){}
+/* v5.9 — À chaque lancement : le jour en cours ne vient jamais de l'historique.
+   On retire toute entrée du jour qui n'est pas une saisie manuelle faite dans l'appli (pré-chargement, ancienne v5.8),
+   et on ne garde jamais de « brulees » stockées pour aujourd'hui. */
+try{(function(){
+  var today=new Date().toDateString(),hist=JSON.parse(localStorage.getItem(HIST_KEY)||'[]'),n=hist.length,ch=false;
+  hist=hist.filter(function(e){return e.date!==today||e.manual===true;});
+  hist.forEach(function(e){if(e.date===today&&e.brulees!=null){delete e.brulees;ch=true;}});
+  if(ch||hist.length!==n)localStorage.setItem(HIST_KEY,JSON.stringify(hist));
+})();}catch(e){}
+/* Calories brûlées du jour : uniquement la dernière lecture Health Connect reçue pendant cette ouverture (mémoire) */
+var LIVE_TODAY_KCAL=null;
 
 function getDefaultConso(calsBrulees){return calsBrulees>PADEL_AUTO?2100:1850;}
 function loadHist(){try{return JSON.parse(localStorage.getItem(HIST_KEY)||'[]');}catch(e){return [];}}
@@ -513,12 +524,11 @@ function storeBurned(days){
     var keys=Object.keys(b).sort();if(keys.length>400)keys.slice(0,keys.length-400).forEach(function(k){delete b[k];});
     try{localStorage.setItem(BURN_KEY,JSON.stringify(b));}catch(e){}
   }
-  /* Historique : aujourd'hui → brûlées = max(valeur stockée, Health Connect) car le total grimpe dans la journée ;
-     autres jours → on complète seulement si « brulees » manque (les valeurs pré-chargées restent prioritaires). */
+  /* Jours passés : on complète « brulees » si elle manque (les valeurs pré-chargées restent prioritaires).
+     Aujourd'hui : rien n'est écrit dans l'historique — valeur Health Connect en direct uniquement. */
   var hist=loadHist(),hch=false,todayKey=ld(new Date());
-  hist.forEach(function(e){var d=new Date(e.date);if(isNaN(d))return;var k=ld(d),hc=b[k];if(hc==null)return;
-    if(k===todayKey){if(e.brulees==null||hc>e.brulees){e.brulees=hc;hch=true;}}
-    else if(e.brulees==null){e.brulees=hc;hch=true;}});
+  hist.forEach(function(e){var d=new Date(e.date);if(isNaN(d))return;var k=ld(d),hc=b[k];if(hc==null||k===todayKey)return;
+    if(e.brulees==null){e.brulees=hc;hch=true;}});
   if(hch)try{localStorage.setItem(HIST_KEY,JSON.stringify(hist));}catch(e){}
 }
 function calcDeficit(entry){return entry.brulees-entry.conso;}
@@ -532,9 +542,8 @@ function saveConsoAndRefresh(){
     var val=parseInt(raw,10);
     if(isNaN(val)||val<300||val>8000){inp.style.borderColor='#EF5350';return;}
     inp.style.borderColor='';
-    var hcToday=loadBurned()[ld(new Date())],old=idx>=0?hist[idx].brulees:null;
-    var calsBruleesAujourdhui=Math.max(hcToday||0,old||0)||null; // valeur lue depuis onHealthData
-    var entry={date:today,conso:val,brulees:calsBruleesAujourdhui,estimated:false};
+    // Seule la consommation est mémorisée pour aujourd'hui ; les brûlées restent celles de Health Connect en direct
+    var entry={date:today,conso:val,estimated:false,manual:true};
     if(idx>=0)hist[idx]=entry;else hist.push(entry);
   }
   hist.sort(function(a,b){return new Date(a.date)-new Date(b.date);});
@@ -550,7 +559,7 @@ function deficitSeries(){
   for(var i=29;i>=0;i--){
     var dt=new Date();dt.setDate(dt.getDate()-i);var k=ld(dt),e=hist[k];
     var hc=burned[k]!=null?burned[k]:null,b=e&&e.brulees!=null?e.brulees:hc;
-    if(i===0&&hc!=null&&(b==null||hc>b))b=hc; // aujourd'hui : la valeur la plus avancée
+    if(i===0)b=LIVE_TODAY_KCAL; // aujourd'hui : Health Connect en temps réel, jamais localStorage
     var conso=e?e.conso:(b!=null?getDefaultConso(b):null),est=e?!!e.estimated:true;
     out.push({key:k,dt:dt,burn:b,conso:conso,estimated:est,saisie:!!e,def:b!=null&&conso!=null?calcDeficit({brulees:b,conso:conso}):null});
   }
@@ -637,7 +646,7 @@ window.onHealthData=function(d){
   if(typeof d==='string'){try{d=JSON.parse(d);}catch(e){return;}}
   clearTimeout(window._rto);
   $('btn-refresh').textContent='↻ Actualiser';hideRefreshIndicator();
-  if(d.status==='ok'&&d.days)storeBurned(d.days); // calories brûlées mémorisées pour la courbe déficit, quelle que soit la période
+  if(d.status==='ok'&&d.days){var td=todayOf(d);if(td&&td.kcal!=null&&td.kcal>0)LIVE_TODAY_KCAL=td.kcal;storeBurned(d.days);} // calories brûlées mémorisées pour la courbe déficit, quelle que soit la période
   if(d.period&&d.period!==PERIOD){renderDeficit();return;} // réponse d'un autre onglet / pré-chargement 30 j
   if(d.status==='ok')setTimeout(preloadMonthBurned,400);
   if(d.status==='ok'&&!d.period)d.period=PERIOD;
