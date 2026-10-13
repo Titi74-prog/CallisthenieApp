@@ -169,12 +169,15 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
     <!-- Stratégie nutritionnelle -->
     <div class="card strat">
       <div class="card-title">🎯 Stratégie <b>reprendre la baisse</b></div>
-      <div class="strat-row"><span>🍽️ Calories consommées</span><span>Réduire — <b>~1 700-1 800 kcal</b> jour normal, <b>~2 000-2 100 kcal</b> jour padel</span></div>
+      <div class="strat-row"><span>🍽️ Jour normal</span><span>Vise <b>~1 700 kcal</b> consommées, déficit cible <b>~400 kcal</b></span></div>
+      <div class="strat-row"><span>🏋️ Jour force</span><span>Vise <b>~1 700 kcal</b> consommées, déficit cible <b>~500 kcal</b></span></div>
+      <div class="strat-row"><span>🎾 Jour padel 1h</span><span>Vise <b>~2 100 kcal</b> consommées, déficit cible <b>~600 kcal</b></span></div>
+      <div class="strat-row"><span>🔥 Jour padel 1h30+</span><span>Vise <b>~2 100 kcal</b> consommées, déficit cible <b>~800 kcal max</b></span></div>
       <div class="strat-row"><span>🥩 Protéines</span><span><b>160 g / jour</b> — non négociable</span></div>
       <div class="strat-row"><span>🍫 Barre de récup</span><span>Uniquement après padel</span></div>
       <div class="strat-row"><span>🧱 HP Bar</span><span>Uniquement si retard protéique constaté</span></div>
       <div class="strat-row"><span>💪 Séance soir</span><span>Lun / Mer / Ven — +68 kcal × 3 ≈ <b>+200 kcal / semaine</b></span></div>
-      <div class="strat-row"><span>📉 Déficit cible</span><span><b>600-700 kcal / jour</b></span></div>
+      <div class="strat-row"><span>📉 Déficit cible</span><span><b id="strat-def">—</b> — calculé en temps réel selon les calories brûlées du jour</span></div>
       <div class="strat-today" id="strat-today"></div>
     </div>
 
@@ -551,6 +554,22 @@ function storeBurned(days){
   if(hch)try{localStorage.setItem(HIST_KEY,JSON.stringify(hist));}catch(e){}
 }
 function calcDeficit(entry){return entry.brulees-entry.conso;}
+/* v6.1 — Déficit cible dynamique selon le type de jour (détecté via les calories brûlées) */
+function getDeficitCible(calsBrulees) {
+    if (calsBrulees >= 3000) return 800;       // padel 1h30 intense
+    if (calsBrulees >= 2600) return 600;       // padel 1h
+    if (calsBrulees >= 2200) return 500;       // callisthénie + force soir
+    return 400;                                 // callisthénie seule
+}
+function getObjectifConso(calsBrulees) {
+    return calsBrulees - getDeficitCible(calsBrulees);
+}
+function getTypeJour(calsBrulees){
+  if(calsBrulees>=3000)return 'jour padel 1h30+ 🔥';
+  if(calsBrulees>=2600)return 'jour padel 1h 🎾';
+  if(calsBrulees>=2200)return 'jour force 🏋️';
+  return 'jour normal';
+}
 function saveConsoAndRefresh(){
   var inp=document.getElementById('inp-conso'),raw=inp.value.trim();
   var today=new Date().toDateString(),hist=loadHist();
@@ -590,11 +609,19 @@ function sgn(v){return v==null?'—':(v>=0?'':'−')+fmt(Math.abs(v));}
 function renderStrategy(t){
   var el=$('strat-today');if(!el)return;
   var d=new Date().getDay(),padel=isPadel(ld(new Date())),soir=[1,3,5].indexOf(d)>=0;
-  var cible=padel?'2 000-2 100':'1 700-1 800';
-  var h='<b>Aujourd\'hui</b> · '+(padel?'jour padel 🎾':'jour normal')+' → vise <b>'+cible+' kcal</b> consommées et <b>160 g</b> de protéines.';
+  var h;
   if(t&&t.burn!=null){
-    var lo=padel?2000:1700,hi=padel?2100:1800;
-    h+='<br>Avec '+fmt(t.burn)+' kcal brûlées, ça donne un déficit de <b>'+fmt(t.burn-hi)+' à '+fmt(t.burn-lo)+' kcal</b> (cible 600-700).';
+    var cible=getDeficitCible(t.burn),obj=getObjectifConso(t.burn);
+    $('strat-def').textContent='~'+fmt(cible)+' kcal aujourd\'hui';
+    h='<b>Aujourd\'hui</b> · '+getTypeJour(t.burn)+' ('+fmt(t.burn)+' kcal brûlées) → vise <b>~'+fmt(obj)+' kcal</b> consommées, déficit cible <b>~'+fmt(cible)+' kcal</b>, et <b>160 g</b> de protéines.';
+    if(t.def!=null&&t.saisie){
+      var ecart=t.def-cible;
+      h+='<br>Déficit actuel <b>'+sgn(t.def)+' kcal</b> → '+(ecart>=0?'✅ cible atteinte (+'+fmt(ecart)+')':'encore <b>'+fmt(-ecart)+' kcal</b> sous la cible');
+    }
+    h+='<br><span style="color:var(--t3)">Les calories brûlées montent au fil de la journée : la cible s\'ajuste en temps réel.</span>';
+  }else{
+    $('strat-def').textContent='400-800 kcal / jour';
+    h='<b>Aujourd\'hui</b> · en attente des calories brûlées Health Connect pour calculer le déficit cible. Vise <b>160 g</b> de protéines.';
   }
   h+=padel?'<br>🍫 Barre de récup autorisée après le padel.':'<br>🍫 Pas de barre de récup aujourd\'hui.';
   if(soir)h+='<br>💪 Séance du soir prévue (onglet Extra).';
