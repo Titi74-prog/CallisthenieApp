@@ -85,6 +85,13 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
 .btn-rest{background:rgba(255,255,255,.08);color:#b0aeb8;border:1.5px solid #3a3a45}
 .btn-done{display:flex;align-items:center;gap:8px;width:100%;background:#1a1a22;border:1.5px solid var(--border);color:var(--txt2);font-size:14px;font-weight:600;padding:11px 16px;border-radius:12px;cursor:pointer;margin-top:8px;-webkit-appearance:none;justify-content:center}
 .btn-done.is-done{border-color:#4ECDC4;color:#3db8b0;background:#f0fffe}
+.soir-sep{display:flex;align-items:center;gap:10px;margin:22px 4px 4px;color:#4DB6AC;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:1.5px}
+.soir-sep:before,.soir-sep:after{content:'';flex:1;height:1px;background:linear-gradient(90deg,transparent,#4DB6AC88,transparent)}
+.soir-titre{background:linear-gradient(135deg,rgba(0,137,123,.25),rgba(77,182,172,.12));color:#80CBC4;border:1px solid rgba(77,182,172,.35);text-transform:none;letter-spacing:0;font-size:17px}
+.bloc-sous{font-size:12px;font-weight:600;color:var(--txt2);margin-top:4px}
+.bloc-jour{display:inline-block;margin-top:8px;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;background:rgba(255,255,255,.06);color:var(--txt3)}
+.bloc-jour.on{background:rgba(78,205,196,.18);color:#4ECDC4}
+.bloc-auto{font-size:11px;font-weight:600;color:var(--txt3);margin-top:6px}
 .conseil{margin:0 12px 80px;border-radius:16px;padding:13px 14px;font-size:14px;line-height:1.75;border:1px solid}
 .conseil-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
 .repos-wrap{padding:16px}
@@ -116,7 +123,7 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
     <h1>Séance Extra</h1>
     <div class="header-sub">
       <div class="h-dot"></div>
-      <span class="h-tag">Chaise romaine · 3 tours</span>
+      <span class="h-tag">Chaise romaine · Soir haltères</span>
     </div>
   </div>
   <div class="header-right">
@@ -149,6 +156,7 @@ var COLORS={
   E:{bg:'#FF7043',light:'#fff0ec',badge:'#E64A19',grad:'linear-gradient(135deg,#FF7043,#FF8A65)'},
   F:{bg:'#F9A825',light:'#fffbec',badge:'#F57F17',grad:'linear-gradient(135deg,#FDD835,#F9A825)'},
   X:{bg:'#FF7043',light:'#fff0ec',badge:'#FF7043',grad:'linear-gradient(135deg,#FF5722,#FF8A65)'},
+  SOIR:{bg:'#26A69A',light:'#e0f2f1',badge:'#4DB6AC',grad:'linear-gradient(135deg,#00897B,#4DB6AC)'},
   REC:{bg:'#66BB6A',light:'#edf7ee',badge:'#43A047',grad:'linear-gradient(135deg,#66BB6A,#81C784)'},
 };
 
@@ -162,9 +170,11 @@ var SESSIONS=[
 /* ─── EXTRA : Chaise romaine (3 tours) ─── */
 {id:'X',letter:'💪',col:'X',day:'Extra',time:'3 tours',
  name:'Séance Extra — Chaise romaine',desc:'Tractions, dips et abdos au poids de corps',
- conseil:'3 tours complets. 60 s de repos entre les exercices, 90 s entre les tours. Mouvements stricts, sans élan : la qualité avant le nombre de répétitions.',
+ conseil:'3 tours complets. 60 s de repos entre les exercices, 90 s entre les tours. Mouvements stricts, sans élan : la qualité avant le nombre de répétitions.<br><br><b>Soir 💪</b> lun / mer / ven : 4 exercices haltères 8 kg, tempo 4-0-2 (4 s de descente, 2 s de montée). Marque chaque exercice terminé : le repos se lance tout seul. ≈ +68 kcal par séance.',
  warmup:[],
- exos:[
+ blocs:[
+ {titre:'Chaise romaine — poids de corps',type:'rounds',maxRounds:3,restSec:90,
+  exos:[
   {name:'Tractions — prise large',reps:'15 rép.',rest:60,hold:0,kg:'',
    steps:['Saisir la barre en prise large, paumes vers l\'avant.','Partir bras tendus, corps gainé.','Tirer jusqu\'à ce que le menton dépasse la barre.','Redescendre lentement sur 4 sec — bras bien tendus.'],
    tip:'💡 Si 15 rép. impossibles : fais le max puis complète en négatifs (monter avec élan, descendre sur 4 sec).',
@@ -189,6 +199,29 @@ var SESSIONS=[
    steps:['Allongé au sol, genoux fléchis, pieds à plat.','Mains derrière la tête ou croisées sur la poitrine.','Contracter les abdos pour monter les épaules du sol.','Descendre lentement sur 3 sec — ne pas poser complètement.'],
    tip:'💡 Amplitude courte et contrôlée — épaules décollent, pas le bas du dos.',
    erreur:'⚠ Ne pas tirer sur le cou avec les mains.'},
+ ]},
+ /* ─── SOIR 💪 — Renforcement haltères (lun / mer / ven soir) ─── */
+ {titre:'Soir 💪 — Renforcement haltères',soir:true,type:'rounds',maxRounds:3,restSec:90,autoRest:true,
+  sous:'Recommandé lun / mer / ven soir · 3 tours · ~20 min',
+  jours:[1,3,5],
+  exos:[
+  {name:'Rowing haltère penché',reps:'15 rép.',rest:60,hold:0,kg:'8 kg',note:'Tempo 4-0-2',
+   steps:['Un genou et une main en appui sur un banc (ou buste penché à 45°, dos plat).','Haltère bras tendu sous l\'épaule.','Tirer le coude vers la hanche en 2 sec, omoplate serrée.','Redescendre lentement sur 4 sec, bras tendu. 15 rép. de chaque côté.'],
+   tip:'💡 Tempo 4-0-2 : 4 s de descente, pas de pause en bas, 2 s de montée.',
+   erreur:'⚠ Ne pas arrondir le dos ni tourner le buste pour tirer.'},
+  {name:'Développé épaules',reps:'15 rép.',rest:60,hold:0,kg:'8 kg',note:'Tempo 4-0-2',
+   steps:['Assis ou debout, gainé, haltères à hauteur des épaules, paumes vers l\'avant.','Pousser au-dessus de la tête en 2 sec sans verrouiller les coudes.','Redescendre sur 4 sec jusqu\'aux épaules.','Enchaîner sans pause en bas.'],
+   tip:'💡 Serrer les fessiers et les abdos pour protéger le bas du dos.',
+   erreur:'⚠ Ne pas cambrer le dos en poussant.'},
+  {name:'Curl biceps',reps:'15 rép.',rest:60,hold:0,kg:'8 kg',note:'Tempo 4-0-2',
+   steps:['Debout, haltères bras tendus, paumes vers l\'avant.','Coudes collés au corps.','Monter en 2 sec en contractant les biceps.','Redescendre sur 4 sec jusqu\'à l\'extension complète.'],
+   tip:'💡 Descente lente = l\'essentiel du travail.',
+   erreur:'⚠ Pas d\'élan avec le dos, les coudes restent fixes.'},
+  {name:'Écarté haltères au sol',reps:'15 rép.',rest:90,hold:0,kg:'8 kg',note:'Tempo 4-0-2',
+   steps:['Allongé au sol, genoux fléchis, haltères au-dessus de la poitrine, paumes face à face.','Coudes légèrement fléchis.','Ouvrir les bras sur 4 sec jusqu\'à ce que les coudes effleurent le sol.','Refermer en 2 sec en serrant les pectoraux.'],
+   tip:'💡 Le sol limite l\'amplitude : les épaules sont protégées.',
+   erreur:'⚠ Ne pas tendre complètement les bras ni laisser tomber les haltères.'},
+ ]},
  ]},
 ];
 
@@ -331,23 +364,32 @@ function renderSession(s){
   if(s.blocs&&s.blocs.length>0){
     html+='<div class="exo-list">';
     s.blocs.forEach(function(bloc,b){
+      if(bloc.soir){
+        var today=new Date().getDay(),reco=bloc.jours&&bloc.jours.indexOf(today)>=0;
+        html+='<div class="soir-sep"><span>Soir</span></div>'
+          +'<div class="bloc-titre soir-titre">'+bloc.titre
+          +(bloc.sous?'<div class="bloc-sous">'+bloc.sous+'</div>':'')
+          +'<div class="bloc-jour'+(reco?' on':'')+'">'+(reco?'✅ Recommandée ce soir':'Pas prévue aujourd\'hui · prochaine : '+nextDay(bloc.jours))+'</div>'
+          +'<div class="bloc-auto">⏱ Repos auto : 60 s entre les exercices, 90 s en fin de tour</div></div>';
+      }else
       html+='<div class="bloc-titre" style="background:rgba(255,255,255,.06);color:'+C.badge+'">'+bloc.titre+'</div>';
       if(bloc.type==='rounds'){
         var curRound=doneExos['__round_'+s.id+(b?'_'+b:'')]||1;
+        var BC=bloc.soir?COLORS.SOIR:C;
         var maxR=bloc.maxRounds||3;
         var restSec=bloc.restSec||90;
         html+='<div class="round-bar">'
           +'<span class="round-lbl">Tour</span>'
           +Array.from({length:maxR},function(_,i){return i+1;}).map(function(r){
             return '<button class="round-btn'+(curRound===r?' active':'')+'" '
-              +'style="'+(curRound===r?'background:'+C.bg+';color:#fff;border-color:'+C.bg:'background:transparent;color:'+C.badge+';border-color:'+C.badge)+'" '
+              +'style="'+(curRound===r?'background:'+BC.bg+';color:#fff;border-color:'+BC.bg:'background:transparent;color:'+BC.badge+';border-color:'+BC.badge)+'" '
               +'onclick="setRound(\''+s.id+(b?'_'+b:'')+'\','+r+')">'+r+'</button>';
           }).join('')
-          +'<button class="round-rest-btn" style="background:'+C.grad+'" onclick="startTimer('+restSec+',\'&#x23F1; Repos entre les tours\')">&#x23F1; Repos '+restSec+'s</button>'
+          +'<button class="round-rest-btn" style="background:'+BC.grad+'" onclick="startTimer('+restSec+',\'&#x23F1; Repos entre les tours\')">&#x23F1; Repos '+restSec+'s</button>'
           +'</div>';
       }
       var offset=b*100;
-      bloc.exos.forEach(function(ex,i){html+=makeCard(ex,offset+i,s,dk,C,i);});
+      bloc.exos.forEach(function(ex,i){html+=makeCard(ex,offset+i,s,dk,bloc.soir?COLORS.SOIR:C,i);});
     });
     html+='</div>';
   } else {
@@ -387,10 +429,31 @@ function toggleCard(sid,i){
   if(!isOpen)card.classList.add('open');
 }
 
+function nextDay(js){var n=['dimanche','lundi','mardi','mercredi','jeudi','vendredi','samedi'],d=new Date().getDay();
+  for(var k=1;k<=7;k++){var x=(d+k)%7;if(js.indexOf(x)>=0)return n[x]+' soir';}return '';}
 function markDone(sid,i){
   if(!doneExos[sid])doneExos[sid]={};
-  if(doneExos[sid][i])delete doneExos[sid][i];
+  var wasDone=!!doneExos[sid][i];
+  if(wasDone)delete doneExos[sid][i];
   else doneExos[sid][i]=true;
+  /* Repos automatique (bloc Soir) : 60 s après chaque exercice, 90 s après le dernier du tour → tour suivant */
+  var S=SESSIONS[SESSION_IDX[currentTab]],b=Math.floor(i/100),bloc=S.blocs&&S.blocs[b];
+  if(!wasDone&&bloc&&bloc.autoRest){
+    var ex=bloc.exos[i%100],rk=sid+(b?'_'+b:''),cur=doneExos['__round_'+rk]||1,maxR=bloc.maxRounds||3;
+    var all=bloc.exos.every(function(_,k){return doneExos[sid][b*100+k];});
+    if(all){
+      if(cur<maxR){
+        bloc.exos.forEach(function(_,k){delete doneExos[sid][b*100+k];});
+        doneExos['__round_'+rk]=cur+1;
+        startTimer(bloc.restSec||90,'⏱ Fin du tour '+cur+'/'+maxR+' — repos avant le tour '+(cur+1));
+      }else{
+        startTimer(5,'🎉 Séance du soir terminée — 3 tours !');
+      }
+    }else{
+      var nxt=bloc.exos.filter(function(_,k){return !doneExos[sid][b*100+k];})[0];
+      startTimer(ex.rest||60,'⏱ Repos · tour '+cur+'/'+maxR+(nxt?' — ensuite : '+nxt.name:''));
+    }
+  }
   var sc=document.getElementById('content').scrollTop;
   renderSession(SESSIONS[SESSION_IDX[currentTab]]);
   document.getElementById('content').scrollTop=sc;
