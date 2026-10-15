@@ -2,6 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
+<meta name="color-scheme" content="dark light">
 <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -36,6 +37,7 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
 .session-badge .s-lbl{font-size:8px;color:#fff;opacity:.9;text-transform:uppercase;letter-spacing:.3px;margin-top:2px;text-align:center;white-space:nowrap;width:100%;padding:0 4px}
 .session-title{font-size:15px;font-weight:700;color:var(--txt);margin-bottom:3px}
 .session-meta{font-size:11px;color:var(--txt2)}
+.session-tours{font-size:13px;font-weight:800;margin-top:5px}
 .session-tag{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;margin-right:4px}
 .progress-wrap{padding:10px 16px;background:#1a1a22;border-bottom:1px solid var(--border)}
 .progress-row{display:flex;justify-content:space-between;margin-bottom:6px}
@@ -108,6 +110,29 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
 .nav-btn.active{color:#5C6BC0}
 .nav-btn span{font-size:15px}
 .app-ver{font-size:10px;font-weight:600;color:#6b6a75;letter-spacing:.3px}
+
+/* v7.0 — Thème clair automatique (mode jour du téléphone) */
+@media (prefers-color-scheme: light){
+html,body{background:#f2f2f6;color:#1a1a22}
+:root{--bg:#f2f2f6;--white:#ffffff;--txt:#1a1a22;--txt2:#4f4d58;--txt3:#7d7b87;--border:#e2e2ea}
+#header{background:#ffffff}
+#tabs{background:#ffffff}
+.session-header{background:#ffffff}
+.progress-wrap{background:#ffffff}
+.round-bar{background:#ffffff}
+.warm-section{background:#e6f6f1;border-bottom:1px solid #cdeee4}
+.exo-card{background:#ffffff}
+.tip-box{background:#fff7dc;color:#8a6a00}
+.err-box{background:#ffecec;color:#c62828}
+.btn-rest{background:rgba(0,0,0,0.064);color:#4f4d58;border:1.5px solid #d0d0da}
+.btn-done{background:#ffffff}
+#bottom-nav{background:#ffffff;border-top:1px solid #e2e2ea}
+.nav-btn{color:#7d7b87}
+.app-ver{color:#7d7b87}
+[style*="rgba(255,255,255,.06)"]{background:rgba(0,0,0,.045)!important}
+.exo-card{box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.session-badge .s-icon{color:#fff}
+}
 </style>
 </head>
 <body>
@@ -165,219 +190,190 @@ var DAYS=[
 var SESSION_IDX=[0,1,2,3,4,5,6];
 
 var SESSIONS=[
-/* ─── A — LUNDI : Dos & Gainage avec haltères ─── */
-{id:'A',letter:'A',col:'A',day:'Lun',time:'7h15',
- name:'Dos & Gainage',desc:'Chaîne postérieure + haltères',
- conseil:'Les haltères de 3 kg transforment des exercices simples en vrais exercices de définition. Tempo lent, contraction consciente à chaque rep.',
+/* ─── A — LUNDI : Dos & Gainage ─── */
+{id:'A',letter:'A',col:'A',day:'Lun',time:'7h15',tours:3,dur:'~25 min',
+ name:'Dos & Gainage',desc:'Chaîne postérieure + haltères — renforcement dos et gainage',
+ conseil:'3 tours complets, repos 90 s uniquement en fin de tour. Tempo lent sur les haltères (4-0-2) : la descente contrôlée dessine le dos.',
  warmup:[
   {n:'Rotations cervicales et épaules',d:'Lent, amplitude max',b:'2x10'},
   {n:'Cat-Cow',d:'Synchronisé avec la respiration',b:'2x8'},
   {n:'Rotations bras complets',d:'Avant puis arrière',b:'2x10'},
  ],
  exos:[
-  {name:'Rowing haltères — penché',reps:'10 rép.',rest:60,hold:0,kg:'8 kg',
-   steps:['Penché en avant à 45°, dos plat et rigide, haltères en main bras tendus.','Tirer les coudes vers l\'arrière en serrant les omoplates — expirer.','Tenir 1 sec en haut, descendre lentement sur 4 sec (tempo 4-0-2).','12 répétitions, concentration sur la contraction du dos.'],
-   tip:'💡 C\'est l\'exercice qui dessine le dos le plus efficacement. Priorité à la qualité.',
+  {name:'Rowing haltères penché',reps:'10 rép.',rest:0,hold:0,kg:'8 kg',
+   steps:['Penché en avant à 45°, dos plat et rigide, haltères en main bras tendus.','Tirer les coudes vers le plafond en serrant les omoplates — expirer.','Tenir 1 sec en haut, descendre lentement sur 4 sec (tempo 4-0-2).','Concentration sur la contraction du dos à chaque répétition.'],
+   tip:'💡 Dos plat, coude vers le plafond, tempo 4-0-2.',
    erreur:'⚠ Ne pas arrondir le dos — il reste plat et rigide tout au long.'},
-  {name:'Superman haltères',reps:'10 rép.',rest:45,hold:0,kg:'1,5 kg',
-   steps:['Allongé ventre, haltères de 1,5 kg dans les mains, bras tendus devant.','Lever simultanément bras et jambes en expirant.','Tenir 3 secondes en haut — contraction maximale.','Redescente lente sans toucher le sol.'],
-   tip:'💡 Le 1,5 kg suffit — ce n\'est pas la charge qui compte mais la durée de contraction.',
-   erreur:'⚠ Membres tendus — ne pas plier les coudes.'},
-  {name:'Planche frontale — tenue progressive',reps:'35 sec',rest:45,hold:35,kg:'',
-   steps:['Avant-bras au sol, coudes sous les épaules.','Corps aligné tête-talon, nombril rentré.','Fessiers contractés, respiration lente.','Augmenter de 5 sec chaque semaine.'],
-   tip:'💡 Objectif : 60 sec en 5 semaines. Notez votre temps.',
-   erreur:'⚠ Si le dos s\'affaisse : posez les genoux.'},
-  {name:'Bird-Dog — pause longue',reps:'8 rép./côté',rest:45,hold:0,kg:'',
-   steps:['À 4 pattes, dos plat comme une table.','Tendre bras droit + jambe gauche à l\'horizontale.','Tenir 4 secondes — contraction abdos et fessiers.','Revenir lentement et alterner.'],
-   tip:'💡 4 secondes de tension = gainage profond bien plus intense.',
+  {name:'Superman haltères',reps:'10 rép.',rest:0,hold:0,kg:'1,5 kg',
+   steps:['Allongé ventre, haltères de 1,5 kg dans les mains, bras tendus devant.','Lever bras et jambes en contrôlant la montée — expirer.','Tenir 2 secondes en haut — contraction maximale.','Redescendre lentement sans relâcher complètement.'],
+   tip:'💡 Contrôle de la montée, tenir 2 sec en haut.',
+   erreur:'⚠ Membres tendus — ne pas plier les coudes ni donner d\'élan.'},
+  {name:'Planche frontale',reps:'60 sec',rest:0,hold:60,kg:'',
+   steps:['Avant-bras au sol, coudes sous les épaules.','Corps aligné tête-talon, nombril rentré.','Fessiers contractés, bassin neutre.','Respiration abdominale lente pendant toute la tenue.'],
+   tip:'💡 Bassin neutre, respiration abdominale.',
+   erreur:'⚠ Si le dos s\'affaisse : posez les genoux et finissez la tenue.'},
+  {name:'Bird-Dog pause longue',reps:'8 rép./côté',rest:0,hold:0,kg:'',
+   steps:['À 4 pattes, dos plat comme une table.','Tendre bras droit + jambe gauche à l\'horizontale.','Pause 3 secondes en extension — abdos et fessiers contractés.','Revenir lentement et alterner.'],
+   tip:'💡 Pause 3 sec en extension, dos plat.',
    erreur:'⚠ Le bassin ne pivote pas — hanches parallèles au sol.'},
-  {name:'Curl biceps haltères — tempo lent',reps:'12 rép.',rest:60,hold:0,kg:'5 kg',
-   steps:['Debout, haltères de 3 kg dans chaque main, paumes vers le haut.','Fléchir les coudes lentement sur 2 secondes.','Tenir 1 sec en haut, descendre sur 4 sec (tempo 4-0-2).','Les coudes restent collés au corps — ne pas les écarter.'],
-   tip:'💡 La descente 4-0-2 (4 sec) est ce qui dessine les biceps.',
-   erreur:'⚠ Ne pas balancer le buste pour prendre de l\'élan — mouvement strict.'},
-  {name:'Planche latérale — tenue',reps:'25 sec/côté',rest:90,hold:25,kg:'',
-   steps:['Sur le côté, appui sur l\'avant-bras.','Lever les hanches — corps aligné tête-pied.','Tenir 25 secondes sans laisser les hanches descendre.','Alterner les côtés.'],
-   tip:'💡 Progresser vers 40 sec en 6 semaines.',
+  {name:'Curl biceps',reps:'12 rép.',rest:0,hold:0,kg:'8 kg',
+   steps:['Debout, haltères de 8 kg, paumes vers le haut.','Fléchir les coudes sur 2 secondes.','Tenir 1 sec en haut, descendre sur 4 secondes.','Coudes collés au corps — mouvement strict.'],
+   tip:'💡 Descente 4 sec, pas d\'élan.',
+   erreur:'⚠ Ne pas balancer le buste pour prendre de l\'élan.'},
+  {name:'Planche latérale',reps:'50 sec/côté',rest:0,hold:50,kg:'',
+   steps:['Sur le côté, appui sur l\'avant-bras, coude sous l\'épaule.','Lever les hanches — corps aligné tête-pied.','Tenir 50 secondes, hanche haute.','Alterner les côtés.'],
+   tip:'💡 Hanche haute, corps aligné.',
    erreur:'⚠ Hanches qui s\'affaissent = obliques qui ne travaillent plus.'},
  ]},
 
-/* ─── B — MARDI : Abdos & Lombaires ─── */
-{id:'B',letter:'B',col:'B',day:'Mar',time:'7h15',
- name:'Abdos & Lombaires',desc:'Sangle abdominale profonde',
- conseil:'Tempo lent sur chaque exercice — c\'est la clé de la définition abdominale. Pas de reps rapides.',
+/* ─── B — MARDI : Abdos & Obliques ─── */
+{id:'B',letter:'B',col:'B',day:'Mar',time:'7h15',tours:3,dur:'~20 min',
+ name:'Abdos & Obliques',desc:'Sangle abdominale + obliques — ventre plat et poignées d\'amour',
+ conseil:'3 tours, repos 90 s en fin de tour seulement. Tempo lent sur chaque exercice — c\'est la clé de la définition abdominale.',
  warmup:[
   {n:'Rotations buste debout',d:'Hanches fixes',b:'2x10'},
   {n:'Cat-Cow',d:'Lent, respirez',b:'2x8'},
   {n:'Rotations bras complets',d:'Activation épaules',b:'2x10'},
  ],
  exos:[
-  {name:'Relevés de jambes allongé — tempo lent',reps:'12 rép.',rest:60,hold:0,kg:'',
-   steps:['Allongé sur le dos, mains sous les fesses.','Jambes tendues à la verticale au départ.','Descendre les jambes en 4 secondes vers 30° du sol.','Remonter en expirant — dos plaqué en permanence.'],
-   tip:'💡 Plus les jambes descendent bas, plus c\'est difficile. Le dos plaqué est la priorité.',
-   erreur:'⚠ Le dos ne se cambre jamais — mains sous les fesses si besoin.'},
-  {name:'Crunchs — tempo 3 secondes',reps:'15 rép.',rest:45,hold:0,kg:'',
-   steps:['Allongé, genoux à 90°, mains derrière les oreilles.','Montée lente sur 2 secondes — seules les épaules décollent.','Pause 1 seconde en haut, contraction maximale.','Descente sur 3 secondes — tête ne touche pas le sol.'],
-   tip:'💡 Le tempo lent triple l\'efficacité par rapport aux reps rapides.',
-   erreur:'⚠ Ne tirez pas sur la nuque — coudes ouverts.'},
-  {name:'Dead Bug — tempo 4 secondes',reps:'8 rép./côté',rest:45,hold:0,kg:'',
-   steps:['Allongé, DOS PLAQUÉ au sol — règle absolue.','Bras au plafond, genoux à 90°.','Descendre bras droit + jambe gauche sur 4 secondes.','Si le dos décolle : réduire l\'amplitude.'],
-   tip:'💡 Meilleur exercice pour la stabilité lombaire. Peut être fait quotidiennement.',
-   erreur:'⚠ Le dos NE DOIT PAS décoller du sol.'},
-  {name:'Pont fessier — tenue isométrique',reps:'40 sec',rest:45,hold:40,kg:'',
-   steps:['Allongé, genoux à 90°, pieds à plat.','Monter les hanches en contractant les fessiers.','Maintenir la position haute 40 secondes.','Respiration lente et régulière pendant la tenue.'],
-   tip:'💡 La tenue isométrique est plus efficace que les répétitions pour tonifier les fessiers.',
+  {name:'Relevés de jambes tempo lent',reps:'12 rép.',rest:0,hold:0,kg:'',
+   steps:['Allongé sur le dos, mains sous les fesses.','Jambes tendues à la verticale au départ.','Descendre les jambes en 4 secondes vers 30° du sol.','Remonter en expirant — lombaires plaquées en permanence.'],
+   tip:'💡 Lombaires plaquées au sol.',
+   erreur:'⚠ Le dos ne se cambre jamais — réduire l\'amplitude si besoin.'},
+  {name:'Crunchs tempo 3 sec',reps:'15 rép.',rest:0,hold:0,kg:'',
+   steps:['Allongé, genoux à 90°, mains derrière les oreilles.','Monter en expirant — seules les épaules décollent.','Pause 1 seconde en haut, contraction maximale.','Descendre sur 3 secondes — la tête ne touche pas le sol.'],
+   tip:'💡 Expirer en montant, pas de coup de nuque.',
+   erreur:'⚠ Ne pas tirer sur la nuque — coudes ouverts.'},
+  {name:'Crunchs obliques',reps:'15 rép./côté',rest:0,hold:0,kg:'',
+   steps:['Allongé, genoux fléchis, mains derrière les oreilles.','Décoller les épaules et amener le coude droit vers le genou gauche.','Rotation contrôlée du buste, expirer en montant.','Redescendre lentement, toute la série puis changer de côté.'],
+   tip:'💡 Coude vers genou opposé, rotation contrôlée.',
+   erreur:'⚠ C\'est le buste qui tourne — pas seulement le coude qui avance.'},
+  {name:'Pont fessier isométrique',reps:'40 sec',rest:0,hold:40,kg:'',
+   steps:['Allongé, genoux à 90°, pieds à plat largeur bassin.','Monter les hanches en contractant les fessiers.','Tenir la position haute 40 secondes.','Respiration lente et régulière pendant la tenue.'],
+   tip:'💡 Tenir la contraction, hanches hautes.',
    erreur:'⚠ Le mouvement vient des fessiers, pas du bas du dos.'},
-  {name:'Vacuum abdominal',reps:'20 sec',rest:30,hold:20,kg:'',
-   steps:['Debout, assis ou à 4 pattes.','Expirer à fond — vider complètement les poumons.','Rentrer le nombril vers la colonne au maximum.','Tenir 20 sec, respiration courte et superficielle.'],
-   tip:'💡 L\'exercice ventre plat n°1. À refaire aussi debout dans la journée.',
-   erreur:'⚠ C\'est une rétraction vers l\'intérieur, pas une contraction vers le haut.'},
-  {name:'Extension dorsale au sol (Cobra actif)',reps:'12 rép.',rest:45,hold:0,kg:'',
-   steps:['Allongé ventre, bras le long du corps paumes vers le bas.','Décoller le buste en contractant les lombaires — bras collés au corps.','Tenir 2 secondes en haut.','Redescendre lentement sur 3 secondes.'],
-   tip:'💡 Sans les mains = travail lombaire pur. Plus dur qu\'il n\'y paraît.',
-   erreur:'⚠ Ne pas pousser avec les mains — bras collés au corps.'},
+  {name:'Planche frontale touches épaules',reps:'10 rép./côté',rest:0,hold:0,kg:'',
+   steps:['Position planche bras tendus, pieds écartés largeur bassin.','Lever la main droite et toucher l\'épaule gauche.','Reposer la main, puis main gauche vers épaule droite.','Alterner lentement, corps gainé.'],
+   tip:'💡 Hanches stables, pas de rotation.',
+   erreur:'⚠ Le bassin ne balance pas — écarter un peu plus les pieds si besoin.'},
+  {name:'Extension dorsale Cobra',reps:'12 rép.',rest:0,hold:0,kg:'',
+   steps:['Allongé ventre, mains au sol sous les épaules.','Monter lentement le buste en contractant les lombaires.','Tenir 2 secondes en haut, regard devant.','Redescendre lentement sur 3 secondes.'],
+   tip:'💡 Mains au sol, monter lentement.',
+   erreur:'⚠ Ne pas pousser fort avec les bras — ce sont les lombaires qui travaillent.'},
  ]},
 
-/* ─── C — MERCREDI & VENDREDI : Circuit métabolique ─── */
-{id:'C',letter:'C',col:'C',day:'Mer',time:'7h15',
- name:'Circuit Métabolique',desc:'Cardio + force — 3 tours',
- conseil:'3 tours complets, 90 sec de repos entre chaque tour. Rythme régulier du premier au dernier — pas de sprint au départ.',
+/* ─── C — MERCREDI : Circuit Métabolique Haut du Corps ─── */
+{id:'C',letter:'C',col:'C',day:'Mer',time:'7h15',tours:3,dur:'~25 min',
+ name:'Circuit Métabolique Haut du Corps',desc:'Pecs, obliques, cardio — 3 tours enchaînés',
+ conseil:'Enchaîne les 6 exercices sans pause, repos 90 s en fin de tour. Rythme régulier du premier au dernier tour — pas de sprint au départ.',
  warmup:[
   {n:'Rotations épaules + buste',d:'Amplitude progressive',b:'2x10'},
   {n:'Cat-Cow',d:'Activez la colonne',b:'2x8'},
   {n:'Rotations bras complets',d:'Accélérez progressivement',b:'2x10'},
  ],
  exos:[
-  {name:'Montées de bras énergiques',reps:'2 min',rest:15,hold:120,kg:'1,5 kg',
-   steps:['Debout, haltères de 1,5 kg, légère flexion des hanches.','Lever alternativement les bras au-dessus de la tête à rythme soutenu.','Bras actifs, épaules engagées — rythme continu.','2 minutes, respiration régulière.'],
-   tip:'💡 Cardio d\'activation en ouverture — monte le rythme cardiaque progressivement.',
-   erreur:'⚠ Ne bloquez pas la respiration — rythme respiratoire régulier.'},
-  {name:'Pompes arquées — mains très écartées',reps:'12 rép.',rest:60,hold:0,kg:'',
-   steps:['Mains au sol largeur épaules, corps aligné tête-pieds.','Descendre coudes à 45°, poitrine qui touche le sol.','Pousser en expirant, corps gainé.','Garder les hanches dans l\'axe du corps tout au long.'],
-   tip:'💡 Progression vers les pompes au sol — baisser la hauteur chaque semaine.',
-   erreur:'⚠ Corps comme une planche — hanches ne montent pas.'},
-  {name:'Planche dynamique in-out',reps:'30 sec',rest:45,hold:30,kg:'',
-   steps:['Position planche bras tendus.','Avancer les deux mains vers les pieds en fléchissant les hanches.','Revenir en position planche en un mouvement fluide.','1 aller-retour toutes les 2-3 secondes.'],
-   tip:'💡 Gainage + cardio sans impact — le meilleur combo pour cette séance.',
-   erreur:'⚠ Ne relâchez pas le gainage lors du retour.'},
-  {name:'🦵 Squat chaise — tempo lent',reps:'10 rép.',rest:60,hold:0,kg:'',
-   steps:['Pieds largeur épaules, chaise derrière toi.','Descendre lentement sur 3 secondes jusqu\'à effleurer l\'assise.','Remonter en expirant — ne pas s\'asseoir vraiment.','Genoux dans l\'axe des orteils tout au long.'],
-   tip:'💡 Sem. 1-2 : version chaise. Sem. 3-4 : squat complet. Sem. 5+ : goblet squat haltère 3 kg.',
-   erreur:'⚠ Stopper si douleur — même légère. Genoux ne rentrent pas vers l\'intérieur.'},
-  {name:'🦵 Fente statique — isométrique',reps:'20 sec / jambe',rest:45,hold:20,kg:'',
-   steps:['Une jambe avancée, genou avant à 90°.','Genou arrière à quelques cm du sol — tenir sans bouger.','Poids sur le talon avant — genou ne dépasse pas les orteils.','20 sec par jambe, respiration régulière.'],
-   tip:'💡 Sem. 1-2 : tenue isométrique. Sem. 3-4 : fente dynamique 3 sec. Sem. 5+ : fente complète.',
-   erreur:'⚠ Genou avant ne dépasse jamais la pointe du pied. Pincement sous la rotule = stop.'},
-  {name:'Pont fessier',reps:'20 rép.',rest:90,hold:0,kg:'',
-   steps:['Allongé, pieds à plat, largeur bassin.','Pousser à travers les talons — lever les hanches.','Contracter les fessiers — tenir 2 sec en haut.','Descendre lentement. Puis 90 sec de repos.'],
-   tip:'💡 Fin de tour — 90 sec de repos puis recommencer.',
-   erreur:'⚠ Mouvement des fessiers, pas du dos.'},
+  {name:'Pompes avec rotation',reps:'10 rép./côté',rest:0,hold:0,kg:'',
+   steps:['Position pompe, corps aligné.','Faire une pompe complète.','En haut, pivoter en planche latérale bras tendu (étoile), bras vers le plafond.','Revenir, nouvelle pompe, rotation de l\'autre côté.'],
+   tip:'💡 Pompe + rotation en planche étoile, bras vers le plafond.',
+   erreur:'⚠ Pieds qui pivotent avec le corps — hanches hautes pendant la rotation.'},
+  {name:'Pompes arquées mains écartées',reps:'12 rép.',rest:0,hold:0,kg:'',
+   steps:['Mains au sol nettement plus larges que les épaules.','Corps aligné tête-pieds, abdos gainés.','Descendre poitrine vers le sol, coudes vers l\'extérieur.','Pousser en expirant.'],
+   tip:'💡 Mains larges, coudes vers l\'extérieur, pecs externes.',
+   erreur:'⚠ Corps comme une planche — les hanches ne montent pas.'},
+  {name:'Commando planche',reps:'10 rép.',rest:0,hold:0,kg:'',
+   steps:['Planche sur les avant-bras.','Monter sur la main gauche puis sur la main droite (planche bras tendus).','Redescendre coude gauche puis coude droit.','Alterner le bras qui commence à chaque répétition.'],
+   tip:'💡 Coude G, coude D, main G, main D — dos plat.',
+   erreur:'⚠ Le bassin ne se balance pas — pieds écartés pour la stabilité.'},
+  {name:'Mountain climbers lents',reps:'30 sec',rest:0,hold:30,kg:'',
+   steps:['Position planche bras tendus, épaules au-dessus des mains.','Amener un genou vers la poitrine.','Revenir et alterner, rythme contrôlé.','Respiration régulière pendant 30 secondes.'],
+   tip:'💡 Genou vers poitrine, dos plat, rythme contrôlé.',
+   erreur:'⚠ Les fesses ne montent pas — corps aligné.'},
+  {name:'Écartés haltères au sol',reps:'12 rép.',rest:0,hold:0,kg:'8 kg',
+   steps:['Allongé au sol, haltères 8 kg, bras tendus au-dessus de la poitrine.','Ouvrir les bras en croix, coudes légèrement fléchis.','Descente contrôlée jusqu\'au sol, étirement des pectoraux.','Remonter en arc de cercle en expirant.'],
+   tip:'💡 Bras en croix, légère flexion coudes, descente contrôlée.',
+   erreur:'⚠ Ne pas verrouiller les coudes — légère flexion permanente.'},
+  {name:'Crunchs obliques',reps:'15 rép./côté',rest:0,hold:0,kg:'',
+   steps:['Allongé, genoux fléchis, mains derrière les oreilles.','Décoller les épaules et tourner vers le genou opposé.','Expirer en montant, contraction 1 sec.','Redescendre lentement, puis changer de côté.'],
+   tip:'💡 Rotation vers le genou opposé.',
+   erreur:'⚠ Ne pas tirer sur la nuque.'},
  ]},
 
-/* ─── D — JEUDI : Haut du corps haltères ─── */
-{id:'D',letter:'D',col:'D',day:'Jeu',time:'7h15',
- name:'Haut du Corps',desc:'Matin haltères (3 tours) · Post-padel hanches',
- conseil:'Tempo lent sur tous les exercices haltères. La descente 4-0-2 (4 sec) est ce qui dessine la musculature. Notez vos pompes négatives — c\'est votre baromètre. Le bloc Post-padel se fait le soir, après le padel, muscles encore chauds.',
+/* ─── D — JEUDI : Haut du Corps ─── */
+{id:'D',letter:'D',col:'D',day:'Jeu',time:'7h15',tours:3,dur:'~25 min',
+ name:'Haut du Corps',desc:'Épaules, bras, poitrine — haltères et poids de corps',
+ conseil:'3 tours, repos 90 s en fin de tour. Tempo lent sur les haltères. Notez vos pompes négatives — c\'est votre baromètre.',
  warmup:[
   {n:'Rotations épaules + poignets',d:'Amplitude complète',b:'2x10'},
   {n:'Cat-Cow',d:'Mobilité colonne',b:'2x8'},
   {n:'Rotations bras complets',d:'Avant puis arrière',b:'2x10'},
  ],
- blocs:[
-  {
-   titre:'PARTIE MATIN — Haltères (3 tours · repos 90s)',
-   type:'rounds',maxRounds:3,restSec:90,
-   exos:[
-    {name:'Développé épaules haltères ⚡',reps:'12 rép.',rest:0,hold:0,kg:'5 kg',note:'SUPERSET → enchaîner sans repos',
-     steps:['Assis ou debout, haltères à hauteur des épaules, paumes vers l\'avant.','Pousser les haltères vers le haut en expirant jusqu\'à bras tendus.','Descendre lentement sur 4 sec (tempo 4-0-2).','Ne pas verrouiller les coudes en haut.'],
-     tip:'💡 C\'est l\'exercice qui dessine les épaules le plus efficacement.',
-     erreur:'⚠ Ne pas cambrer le dos — buste droit tout au long.'},
-    {name:'Élévations latérales haltères ⚡',reps:'12 rép.',rest:90,hold:0,kg:'3 kg',note:'← fin SUPERSET · repos 90s',
-     steps:['Debout, haltères de 3 kg le long du corps, légère flexion des coudes.','Lever les bras latéralement jusqu\'à hauteur des épaules.','Tenir 1 sec en haut, descendre sur 4 sec (tempo 4-0-2).','Les coudes restent légèrement fléchis tout au long.'],
-     tip:'💡 3 kg : passer à 5 kg quand 3x15 fluides sans compensation.',
-     erreur:'⚠ Ne pas lever au-dessus des épaules — risque de tendinite.'},
-    {name:'Pompes négatives',reps:'8 rép.',rest:60,hold:0,kg:'',
-     steps:['Monter en position haute sur les genoux.','Basculer en position complète (orteils au sol), corps aligné.','Descendre lentement sur 6 secondes — poitrine qui touche le sol.','Remonter sur les genoux et recommencer.'],
-     tip:'💡 5 secondes de descente. C\'est ce qui construit la force le plus vite.',
-     erreur:'⚠ Ne pas s\'effondrer en bas — contrôle total jusqu\'au sol.'},
-    {name:'Extension triceps haltères',reps:'10 rép.',rest:60,hold:0,kg:'8 kg',
-     steps:['Debout, tenir un haltère de 8 kg à deux mains derrière la tête.','Coudes pointés vers le plafond, bras fléchis.','Étendre les bras vers le haut en expirant.','Descendre lentement sur 4 sec (tempo 4-0-2) — coudes fixes.'],
-     tip:'💡 Les coudes ne bougent pas — seuls les avant-bras s\'étendent.',
-     erreur:'⚠ Ne pas laisser les coudes s\'écarter vers les côtés.'},
-    {name:'Curl biceps haltères — tempo lent',reps:'12 rép.',rest:60,hold:0,kg:'5 kg',
-     steps:['Debout, haltères 5 kg, paumes vers le haut.','Fléchir les coudes lentement sur 2 secondes.','Tenir 1 sec en haut, descendre sur 4 sec (tempo 4-0-2).','Coudes collés au corps — mouvement strict.'],
-     tip:'💡 La descente 4-0-2 (4 sec) est ce qui dessine les biceps.',
-     erreur:'⚠ Ne pas balancer le buste — mouvement strict.'},
-    {name:'Pompes déclinées — pieds sur chaise',reps:'12 rép.',rest:90,hold:0,kg:'',
-     steps:['Mains au sol, pieds posés sur la chaise.','Corps aligné, abdos gainés.','Descendre la poitrine vers le sol sur 3 sec, coudes à 45°.','Pousser en expirant — cible les pectoraux hauts.'],
-     tip:'💡 Plus les pieds sont hauts, plus les pectoraux hauts travaillent.',
-     erreur:'⚠ Ne pas laisser les hanches monter — corps gainé tout au long.'},
-   ]
-  },
-  {
-   titre:'PARTIE POST-PADEL — Hanches & gainage (ordre linéaire)',
-   type:'linear',
-   exos:[
-    {name:'Bird-Dog — pause longue',reps:'8 rép./côté',rest:45,hold:0,kg:'',
-     steps:['À 4 pattes, dos plat.','Tendre bras droit + jambe gauche à l\'horizontale.','Tenir 4 secondes — gainage profond.','Revenir lentement et alterner.'],
-     tip:'💡 Gainage profond après le padel — muscles chauds, idéal pour la stabilité.',
-     erreur:'⚠ Le bassin ne pivote pas.'},
-    {name:'🦵 Abduction hanche allongée',reps:'15 rép./côté',rest:30,hold:0,kg:'',
-     steps:['Allongé sur le côté gauche, corps aligné.','Lever la jambe gauche tendue à 45° en expirant — pied en flexion.','Tenir 1 sec en haut, redescendre lentement sur 3 sec.','Faire toute la série puis retourner côté droit.'],
-     tip:'💡 Exercice n°1 pour le fessier moyen — la faiblesse de ce muscle cause la douleur latérale de hanche au padel.',
-     erreur:'⚠ Le bassin ne bascule pas — hanches empilées verticalement pendant toute la série.'},
-    {name:'🦵 Clamshell (huître)',reps:'15 rép./côté',rest:30,hold:0,kg:'',
-     steps:['Allongé sur le côté, genoux fléchis à 90°, pieds joints.','Ouvrir le genou du dessus vers le plafond comme une huître.','Tenir 1 sec en haut — contraction du fessier moyen.','Redescendre lentement. Le bassin ne bouge pas.'],
-     tip:'💡 Cible le piriforme et le fessier moyen profond — les deux muscles irrités lors des changements de direction.',
-     erreur:'⚠ Le bassin ne doit pas rouler vers l\'arrière lors de l\'ouverture.'},
-    {name:'🦵 Pont fessier unilatéral',reps:'10 rép./côté',rest:30,hold:0,kg:'',
-     steps:['Allongé sur le dos, genou droit fléchi, pied à plat, jambe gauche tendue.','Pousser sur le talon droit pour lever les hanches.','Tenir 3 sec en haut — fessier gauche contracté.','Redescendre lentement. Toute la série d\'un côté puis alterner.'],
-     tip:'💡 Renforce le fessier moyen en charge réelle — plus proche des contraintes du padel que les exercices au sol.',
-     erreur:'⚠ Le bassin ne penche pas d\'un côté — garder les hanches de niveau pendant les 3 sec.'},
-   ]
-  }
- ],
- exos:[]},
+ exos:[
+  {name:'Développé épaules',reps:'12 rép.',rest:0,hold:0,kg:'5 kg',
+   steps:['Assis ou debout, haltères à hauteur des épaules, coudes à 90°.','Pousser vers le haut en expirant jusqu\'à bras presque tendus.','Redescendre lentement jusqu\'aux coudes à 90°.','Amplitude complète à chaque répétition.'],
+   tip:'💡 Coudes à 90° en bas, amplitude complète.',
+   erreur:'⚠ Ne pas cambrer le dos — buste droit tout au long.'},
+  {name:'Élévations latérales',reps:'12 rép.',rest:0,hold:0,kg:'3 kg',
+   steps:['Debout, haltères de 3 kg le long du corps, coudes légèrement fléchis.','Lever les bras sur les côtés jusqu\'à l\'horizontale.','Tenir 1 sec, redescendre lentement.','Aucun balancement du buste.'],
+   tip:'💡 Pas de balancement, monter jusqu\'à l\'horizontale.',
+   erreur:'⚠ Ne pas monter au-dessus des épaules — risque de tendinite.'},
+  {name:'Pompes négatives',reps:'8 rép.',rest:0,hold:0,kg:'',
+   steps:['Position planche bras tendus, corps aligné.','Descendre lentement sur 4 secondes jusqu\'au sol.','Remonter en un mouvement.','Corps gainé tout au long.'],
+   tip:'💡 Descente 4 sec, remonter en un mouvement.',
+   erreur:'⚠ Contrôle total jusqu\'au sol — ne pas s\'effondrer.'},
+  {name:'Extension triceps',reps:'10 rép.',rest:0,hold:0,kg:'8 kg',
+   steps:['Debout, un haltère de 8 kg à deux mains derrière la tête.','Coudes pointés vers le plafond.','Étendre les bras vers le haut en expirant.','Redescendre sur 4 sec (tempo 4-0-2) — coudes fixes.'],
+   tip:'💡 Coude fixe, tempo 4-0-2.',
+   erreur:'⚠ Les coudes ne s\'écartent pas vers les côtés.'},
+  {name:'Curl biceps',reps:'12 rép.',rest:0,hold:0,kg:'8 kg',
+   steps:['Debout, haltères de 8 kg, paumes vers le haut.','Fléchir les coudes sur 2 secondes.','Descendre sur 4 secondes.','Coudes collés au corps — mouvement strict.'],
+   tip:'💡 Descente 4 sec, coudes collés au corps.',
+   erreur:'⚠ Ne pas balancer le buste.'},
+  {name:'Pompes déclinées pieds sur chaise',reps:'12 rép.',rest:0,hold:0,kg:'',
+   steps:['Mains au sol, pieds posés sur la chaise.','Corps aligné, abdos gainés.','Descendre la poitrine vers le sol de façon contrôlée.','Pousser en expirant — cible les pectoraux hauts.'],
+   tip:'💡 Hanches alignées, descente contrôlée.',
+   erreur:'⚠ Les hanches ne montent pas — corps gainé.'},
+ ]},
 
-/* ─── C2 — VENDREDI : Circuit métabolique (variante) ─── */
-{id:'E',letter:'E',col:'E',day:'Ven',time:'7h15',
- name:'Circuit Haut du Corps',desc:'Épaules, dos, gainage — vendredi',
- conseil:'Même structure que mercredi mais on ouvre avec le rowing assis au lieu des montées de bras. Alterner les deux garde la motivation intacte.',
+/* ─── E — VENDREDI : Circuit Haut du Corps ─── */
+{id:'E',letter:'E',col:'E',day:'Ven',time:'7h15',tours:3,dur:'~20 min',
+ name:'Circuit Haut du Corps',desc:'Épaules, dos, obliques — circuit varié vendredi',
+ conseil:'3 tours enchaînés, repos 90 s en fin de tour. Les pompes négatives en dernier : le baromètre de ta progression.',
  warmup:[
   {n:'Rotations épaules + buste',d:'Amplitude progressive',b:'2x10'},
   {n:'Cat-Cow',d:'Activez la colonne',b:'2x8'},
   {n:'Rotations bras complets',d:'Accélérez progressivement',b:'2x10'},
  ],
  exos:[
-  {name:'Développé épaules haltères — cardio',reps:'2 min',rest:15,hold:120,kg:'1,5 kg',
-   steps:['Debout ou assis, haltères de 1,5 kg à hauteur des épaules.','Pousser les haltères vers le haut alternativement gauche/droite à rythme soutenu.','Bras actifs, rythme continu.','2 minutes, respiration régulière.'],
-   tip:'💡 Cardio épaules différent du mercredi — activation haut du corps.',
+  {name:'Développé épaules cardio',reps:'2 min',rest:0,hold:120,kg:'1,5 kg',
+   steps:['Debout, haltères de 1,5 kg à hauteur des épaules.','Pousser vers le haut alternativement gauche/droite.','Rythme soutenu, amplitude complète.','2 minutes, respiration régulière.'],
+   tip:'💡 Rythme soutenu, amplitude complète.',
    erreur:'⚠ Buste droit — ne pas cambrer le dos.'},
-  {name:'Rowing assis haltères',reps:'45 sec',rest:60,hold:45,kg:'3 kg',
-   steps:['Assis sur le tapis, jambes tendues, haltères de 3 kg.','Se pencher légèrement en avant, bras tendus.','Tirer les deux bras vers les hanches en se redressant.','Contractez le dos à chaque traction.'],
-   tip:'💡 Dos + cardio — complémentaire du développé épaules.',
-   erreur:'⚠ Gardez un galbe naturel — ne vous affaissez pas.'},
-  {name:'Planche latérale — tenue',reps:'40 sec / côté',rest:30,hold:40,kg:'',
-   steps:['Sur le côté, avant-bras au sol, hanches levées.','Corps aligné tête-pied — tenir sans laisser les hanches descendre.','25 sec puis alterner.','Version genoux si trop difficile.'],
-   tip:'💡 Obliques — différent de la planche dynamique du mercredi.',
-   erreur:'⚠ Hanches qui s\'affaissent = obliques inactifs.'},
-  {name:'Dead Bug — tempo 4 secondes',reps:'8 rép./côté',rest:45,hold:0,kg:'',
-   steps:['Allongé, dos plaqué au sol.','Bras au plafond, genoux à 90°.','Descendre bras droit + jambe gauche sur 4 secondes.','Revenir et alterner — dos plaqué en permanence.'],
-   tip:'💡 Gainage profond — different du pont fessier du mercredi.',
-   erreur:'⚠ Le dos ne décolle pas du sol.'},
-  {name:'Curl biceps haltères — tempo lent',reps:'12 rép.',rest:60,hold:0,kg:'5 kg',
-   steps:['Debout, haltères 5 kg, paumes vers le haut.','Fléchir les coudes lentement sur 2 secondes.','Tenir 1 sec en haut, descendre sur 4 sec (tempo 4-0-2).','Coudes collés au corps — mouvement strict.'],
-   tip:'💡 La descente 4-0-2 dessine les biceps — exercice absent du mercredi.',
-   erreur:'⚠ Ne pas balancer le buste — mouvement strict.'},
-  {name:'Pompes négatives',reps:'8 rép.',rest:60,hold:0,kg:'',
-   steps:['Position planche bras tendus, corps aligné.','Descendre lentement sur 6 secondes — poitrine qui touche le sol.','Remonter normalement en poussant fort.','Corps gainé tout au long — pas de genoux.'],
-   tip:'💡 6 secondes de descente contrôlée + remontée normale — sans genoux.',
+  {name:'Rowing assis haltères',reps:'45 sec',rest:0,hold:45,kg:'3 kg',
+   steps:['Assis sur le tapis, jambes tendues, haltères de 3 kg.','Dos droit, bras tendus devant.','Tirer les coudes vers l\'arrière en serrant les omoplates.','Rythme continu pendant 45 secondes.'],
+   tip:'💡 Dos droit, coudes vers l\'arrière.',
+   erreur:'⚠ Ne pas s\'affaisser — buste grand.'},
+  {name:'Planche latérale dynamique',reps:'50 sec/côté',rest:0,hold:50,kg:'',
+   steps:['Planche latérale sur l\'avant-bras, corps aligné.','Descendre la hanche vers le sol sans le toucher.','Remonter la hanche au-dessus de l\'alignement.','Rythme régulier 50 sec, puis l\'autre côté.'],
+   tip:'💡 Hanche monte et descend sans toucher le sol.',
+   erreur:'⚠ Le corps reste de profil — ne pas basculer vers l\'avant.'},
+  {name:'Crunchs obliques',reps:'15 rép./côté',rest:0,hold:0,kg:'',
+   steps:['Allongé, genoux fléchis, mains derrière les oreilles.','Décoller les épaules et tourner vers le genou opposé.','Expirer en montant, contraction 1 sec.','Redescendre lentement, puis changer de côté.'],
+   tip:'💡 Rotation vers le genou opposé.',
+   erreur:'⚠ Ne pas tirer sur la nuque.'},
+  {name:'Pompes diamant',reps:'10 rép.',rest:0,hold:0,kg:'',
+   steps:['Mains jointes en triangle sous la poitrine (pouces et index se touchent).','Corps aligné, abdos gainés.','Descendre la poitrine vers les mains, coudes le long du corps.','Pousser en expirant.'],
+   tip:'💡 Mains en triangle sous la poitrine, triceps + pecs internes.',
+   erreur:'⚠ Trop dur ? Faire la version genoux au sol plutôt que casser l\'alignement.'},
+  {name:'Pompes négatives',reps:'8 rép.',rest:0,hold:0,kg:'',
+   steps:['Position planche bras tendus, corps aligné.','Descendre lentement sur 4 à 6 secondes jusqu\'au sol.','Remonter normalement.','Corps gainé tout au long.'],
+   tip:'💡 Le baromètre de ta progression.',
    erreur:'⚠ Contrôle total jusqu\'au sol — ne pas s\'effondrer.'},
  ]},
 
-/* ─── E — SAMEDI : Full Body + Étirements ─── */
-{id:'F',letter:'F',col:'F',day:'Sam',time:'8h30',
- name:'Full Body + Mobilité',desc:'Bloc Force (3 tours) puis Bloc Étirements',
- conseil:'Séance du samedi matin à tête reposée. Fais les 3 tours du bloc Force, puis enchaîne les étirements dans l\'ordre.',
+/* ─── F — SAMEDI : Full Body + Mobilité ─── */
+{id:'F',letter:'F',col:'F',day:'Sam',time:'8h30',tours:3,toursLbl:'Bloc Force 3 tours + Étirements',dur:'~35 min',
+ name:'Full Body + Mobilité',desc:'Bloc Force puis Bloc Étirements — séance complète à tête reposée',
+ conseil:'Bloc Force en 3 tours avec repos 90 s en fin de tour, puis les étirements en un seul passage, dans l\'ordre.',
  warmup:[
   {n:'Rotations articulaires complètes',d:'Nuque → chevilles',b:'1 tour'},
   {n:'Cat-Cow',d:'Réveil de la colonne',b:'2x8'},
@@ -385,108 +381,116 @@ var SESSIONS=[
  ],
  blocs:[
   {
-   titre:'BLOC 1 — Force (3 tours · repos 90s)',
-   type:'rounds',
+   titre:'Bloc Force — 3 tours · repos 90 s en fin de tour',
+   type:'rounds',maxRounds:3,restSec:90,
    exos:[
     {name:'Rowing haltères penché',reps:'10 rép.',rest:0,hold:0,kg:'8 kg',
-     steps:['Penché à 45°, dos plat, haltères bras tendus.','Tirer les coudes vers l\'arrière, omoplates serrées.','Tenir 1 sec, descendre sur 4 sec (tempo 4-0-2).','Concentration sur la contraction du dos.'],
-     tip:'💡 Le dos se dessine ici. Qualité avant vitesse.',
+     steps:['Penché à 45°, dos plat, haltères bras tendus.','Tirer les coudes vers l\'arrière, omoplates serrées.','Tenir 1 sec, descendre sur 4 sec.','Tirage puissant, descente contrôlée.'],
+     tip:'💡 Dos plat, tirage puissant.',
      erreur:'⚠ Dos plat et rigide — jamais arrondi.'},
-    {name:'Développé épaules haltères',reps:'12 rép.',rest:0,hold:0,kg:'5 kg',
-     steps:['Assis, haltères à hauteur des épaules.','Pousser vers le haut en expirant.','Descendre lentement sur 4 sec (tempo 4-0-2).','Ne pas verrouiller les coudes en haut.'],
-     tip:'💡 Épaules qui se dessinent en 4 à 6 semaines.',
+    {name:'Développé épaules',reps:'12 rép.',rest:0,hold:0,kg:'5 kg',
+     steps:['Assis, haltères à hauteur des épaules.','Pousser vers le haut en expirant.','Redescendre lentement, coudes à 90°.','Amplitude complète à chaque répétition.'],
+     tip:'💡 Amplitude complète.',
      erreur:'⚠ Dos droit — ne pas cambrer.'},
     {name:'Pompes complètes au sol',reps:'10 rép.',rest:0,hold:0,kg:'',
-     steps:['Mains sur le bord de l\'assise, corps aligné.','Descendre poitrine vers l\'assise sur 3 sec.','Pousser en expirant.','Baisser la hauteur chaque semaine.'],
-     tip:'💡 Progression vers les pompes au sol.',
-     erreur:'⚠ Corps comme une planche.'},
-    {name:'Extension triceps haltères',reps:'10 rép.',rest:0,hold:0,kg:'8 kg',
-     steps:['Haltère de 5 kg à deux mains derrière la tête.','Étendre les bras vers le haut en expirant.','Descendre sur 4 sec (tempo 4-0-2) — coudes fixes.','Coudes pointés vers le plafond.'],
-     tip:'💡 Triceps définis = bras redessinés.',
-     erreur:'⚠ Coudes ne s\'écartent pas.'},
+     steps:['Mains au sol largeur épaules, corps aligné.','Descendre jusqu\'au sol, coudes à 45°.','Pousser en expirant.','Abdos et fessiers gainés tout au long.'],
+     tip:'💡 Corps aligné, descente jusqu\'au sol.',
+     erreur:'⚠ Corps comme une planche — pas de hanches qui tombent.'},
+    {name:'Extension triceps',reps:'10 rép.',rest:0,hold:0,kg:'8 kg',
+     steps:['Un haltère de 8 kg à deux mains derrière la tête.','Coudes pointés vers le plafond.','Étendre les bras vers le haut en expirant.','Redescendre sur 4 sec (tempo 4-0-2) — coudes fixes.'],
+     tip:'💡 Coude fixe, tempo 4-0-2.',
+     erreur:'⚠ Les coudes ne s\'écartent pas.'},
+    {name:'Écartés haltères au sol',reps:'12 rép.',rest:0,hold:0,kg:'8 kg',
+     steps:['Allongé au sol, haltères 8 kg, bras tendus au-dessus de la poitrine.','Ouvrir les bras au maximum, coudes légèrement fléchis.','Sentir l\'étirement des pectoraux en bas.','Remonter lentement en expirant.'],
+     tip:'💡 Ouverture maximale, légère flexion coudes.',
+     erreur:'⚠ Ne pas verrouiller les coudes.'},
+    {name:'Planche latérale dynamique',reps:'30 sec/côté',rest:0,hold:30,kg:'',
+     steps:['Planche latérale sur l\'avant-bras, corps aligné.','Descendre la hanche vers le sol sans le toucher.','Remonter la hanche au-dessus de l\'alignement.','30 sec puis l\'autre côté.'],
+     tip:'💡 Hanche monte et descend.',
+     erreur:'⚠ Le corps reste de profil.'},
    ]
   },
   {
-   titre:'BLOC 2 — Étirements (ordre linéaire)',
+   titre:'Bloc Étirements — 1 passage',
    type:'linear',
    exos:[
-    {name:'Pigeon — étirement hanches',reps:'60 sec/côté',rest:15,hold:60,kg:'',
-     steps:['Jambe avant fléchie à 90°, jambe arrière tendue.','Avant-bras au sol pour s\'abaisser.','Relâcher le poids du corps.','60 secondes, respiration profonde.'],
-     tip:'💡 Étirement clé après le travail des jambes et du dos.',
+    {name:'Pigeon',reps:'60 sec/côté',rest:0,hold:60,kg:'',
+     steps:['Jambe avant fléchie à 90°, jambe arrière tendue.','Hanches vers le sol, avant-bras au sol pour s\'abaisser.','Relâcher le poids du corps.','60 secondes par côté, respiration profonde.'],
+     tip:'💡 Hanches au sol, respiration profonde.',
      erreur:'⚠ Ne forcez pas — respirez dans la position.'},
-    {name:'Torsion spinale allongée',reps:'45 sec/côté',rest:15,hold:45,kg:'',
-     steps:['Allongé sur le dos, bras en croix.','Genou droit ramené de l\'autre côté.','Épaule reste au sol — regarder à gauche.','45 sec puis alterner.'],
-     tip:'💡 Inspirez en position neutre, expirez en laissant descendre.',
+    {name:'Torsion spinale',reps:'45 sec/côté',rest:0,hold:45,kg:'',
+     steps:['Allongé sur le dos, bras en croix.','Ramener le genou droit de l\'autre côté, guidé par la main.','Épaules au sol — regard du côté opposé.','45 sec puis alterner.'],
+     tip:'💡 Épaules au sol, genou guidé par la main.',
      erreur:'⚠ La gravité suffit — ne forcez pas.'},
-    {name:'Posture de l\'enfant (Balasana)',reps:'90 sec',rest:15,hold:90,kg:'',
-     steps:['À genoux, bras tendus devant, front au sol.','Relâcher complètement le dos.','Chaque expiration allonge la colonne.','Rester le plus longtemps possible.'],
-     tip:'💡 Décompression vertébrale active.',
+    {name:'Posture de l\'enfant',reps:'90 sec',rest:0,hold:90,kg:'',
+     steps:['À genoux, bras tendus devant, front au sol.','Relâcher complètement le dos.','Chaque expiration allonge la colonne.','90 secondes.'],
+     tip:'💡 Bras tendus, front au sol.',
      erreur:'⚠ Serviette sous les fesses si les genoux font mal.'},
    ]
   }
  ],
  exos:[]},
 
-/* ─── DIMANCHE REPOS ─── */
-{id:'G',letter:'🌿',col:'REC',day:'Dim',time:'',
- name:'Gainage & Récupération',desc:'Bloc Gainage puis Repos actif',
- conseil:'15 min de gainage pour relancer le métabolisme, puis récupération active. Sans impact — le meilleur combo pour casser le plateau.',
+/* ─── G — DIMANCHE : Gainage & Récupération ─── */
+{id:'G',letter:'🌿',col:'REC',day:'Dim',time:'',tours:3,toursLbl:'Bloc Gainage 3 tours + Récupération',dur:'~40 min',
+ name:'Gainage & Récupération',desc:'Bloc Gainage puis Repos actif — préparer la semaine suivante',
+ conseil:'Bloc Gainage en 3 tours (repos 60 s en fin de tour), puis le bloc Récupération en un seul passage, sans impact.',
  warmup:[],
  blocs:[
   {
-   titre:'BLOC 1 — Gainage (2 tours · repos 60s)',
-   type:'rounds',maxRounds:2,restSec:60,
+   titre:'Bloc Gainage — 3 tours · repos 60 s en fin de tour',
+   type:'rounds',maxRounds:3,restSec:60,
    exos:[
-    {name:'Planche frontale — tenue max',reps:'30 sec',rest:20,hold:30,kg:'',
-     steps:['Avant-bras au sol, corps aligné tête-talon.','Nombril rentré, fessiers contractés.','Tenir en respirant lentement.','Augmenter de 5 sec chaque semaine.'],
-     tip:'💡 Le dimanche = gainage sans fatigue. Parfait pour casser le plateau.',
+    {name:'Planche frontale',reps:'60 sec',rest:0,hold:60,kg:'',
+     steps:['Avant-bras au sol, corps aligné tête-talon.','Nombril rentré, fessiers contractés.','Tenir en respirant lentement.','60 secondes.'],
+     tip:'💡 Objectif : tenir sans trembler.',
      erreur:'⚠ Genoux au sol si le dos s\'affaisse.'},
-    {name:'Planche latérale — tenue',reps:'20 sec/côté',rest:15,hold:20,kg:'',
-     steps:['Sur le côté, avant-bras au sol, hanches levées.','Corps aligné tête-pied.','Tenir 20 sec sans laisser les hanches descendre.','Alterner les côtés.'],
-     tip:'💡 Obliques travaillent sans aucun impact.',
+    {name:'Planche latérale',reps:'50 sec/côté',rest:0,hold:50,kg:'',
+     steps:['Sur le côté, avant-bras au sol, hanches levées.','Corps aligné tête-pied.','Tenir 50 sec, hanche haute.','Alterner les côtés.'],
+     tip:'💡 Hanche haute tout au long.',
      erreur:'⚠ Hanches qui s\'affaissent = obliques inactifs.'},
-    {name:'Dead Bug — 4 sec',reps:'6 rép./côté',rest:30,hold:0,kg:'',
+    {name:'Dead Bug 4 sec',reps:'6 rép./côté',rest:0,hold:0,kg:'',
      steps:['Allongé, dos plaqué au sol.','Bras au plafond, genoux à 90°.','Descendre bras droit + jambe gauche sur 4 secondes.','Revenir et alterner.'],
-     tip:'💡 4 sec de descente = gainage profond maximal.',
-     erreur:'⚠ Le dos ne décolle pas.'},
-    {name:'Vacuum abdominal',reps:'3 x 20 sec',rest:20,hold:20,kg:'',
-     steps:['Expirer à fond.','Rentrer le nombril vers la colonne au maximum.','Tenir 20 sec.','Respiration courte et superficielle pendant la tenue.'],
-     tip:'💡 L\'exercice ventre plat n°1 — 3 fois par jour idéalement.',
+     tip:'💡 Qualité sur quantité.',
+     erreur:'⚠ Le dos ne décolle pas du sol.'},
+    {name:'Vacuum abdominal',reps:'20 sec',rest:0,hold:20,kg:'',
+     steps:['Expirer à fond.','Rentrer le nombril vers la colonne au maximum.','Tenir 20 sec.','Respiration thoracique courte pendant la tenue.'],
+     tip:'💡 Nombril vers la colonne, respiration thoracique.',
      erreur:'⚠ C\'est une rétraction vers l\'intérieur, pas vers le haut.'},
    ]
   },
   {
-   titre:'BLOC 2 — Récupération (ordre linéaire)',
+   titre:'Bloc Récupération — 1 passage',
    type:'linear',
    exos:[
     {name:'Marche extérieure douce',reps:'20 min',rest:0,hold:1200,kg:'',
-     steps:['Rythme tranquille, pas de performance.','La lumière naturelle du matin régule le sommeil.','Respiration libre, épaules relâchées.','20 minutes minimum.'],
-     tip:'💡 La marche matinale améliore le sommeil du soir.',
+     steps:['Allure tranquille, pas de performance.','La lumière naturelle du matin régule le sommeil.','Respiration libre, épaules relâchées.','20 minutes minimum.'],
+     tip:'💡 Allure tranquille, bénéfice mental et physique.',
      erreur:''},
-    {name:'🦵 Abduction hanche allongée',reps:'12 rép./côté',rest:20,hold:0,kg:'',
-     steps:['Allongé sur le côté, corps aligné.','Lever la jambe tendue à 45° — pied en flexion.','Tenir 1 sec, redescendre sur 3 sec.','Toute la série d\'un côté puis alterner.'],
-     tip:'💡 Après le padel du dimanche, les muscles sont chauds — c\'est le moment idéal pour renforcer.',
+    {name:'Abduction hanche allongée',reps:'12 rép./côté',rest:0,hold:0,kg:'',
+     steps:['Allongé sur le côté, corps aligné.','Lever la jambe tendue, pied en flexion, amplitude maximale.','Tenir 1 sec, redescendre lentement.','Toute la série d\'un côté puis alterner.'],
+     tip:'💡 Amplitude maximale, mouvement lent.',
      erreur:'⚠ Hanches empilées — le bassin ne bascule pas.'},
-    {name:'🦵 Clamshell (huître)',reps:'12 rép./côté',rest:20,hold:0,kg:'',
-     steps:['Allongé sur le côté, genoux fléchis à 90°, pieds joints.','Ouvrir le genou vers le plafond comme une huître.','Tenir 1 sec, redescendre lentement.','Toute la série d\'un côté puis alterner.'],
-     tip:'💡 Cible exactement les muscles irrités lors des changements de direction au padel.',
+    {name:'Clamshell',reps:'12 rép./côté',rest:0,hold:0,kg:'',
+     steps:['Allongé sur le côté, genoux fléchis à 90°, pieds joints.','Ouvrir le genou du dessus vers le plafond (rotation externe de hanche).','Tenir 1 sec, redescendre lentement.','Toute la série d\'un côté puis alterner.'],
+     tip:'💡 Pieds joints, rotation externe de hanche.',
      erreur:'⚠ Le bassin ne roule pas vers l\'arrière.'},
-    {name:'🦵 Pont fessier unilatéral',reps:'10 rép./côté',rest:20,hold:0,kg:'',
-     steps:['Allongé, genou droit fléchi, jambe gauche tendue.','Pousser sur le talon droit pour lever les hanches.','Tenir 3 sec en haut.','Toute la série d\'un côté puis alterner.'],
-     tip:'💡 Renforcement fonctionnel du fessier moyen — résultats visibles en 3-4 semaines.',
-     erreur:'⚠ Hanches de niveau pendant les 3 sec.'},
-    {name:'Torsion spinale allongée',reps:'45 sec/côté',rest:15,hold:45,kg:'',
-     steps:['Allongé sur le dos, bras en croix.','Genou droit ramené de l\'autre côté.','Épaule au sol — 45 sec puis alterner.','Respiration profonde.'],
-     tip:'💡 Décompression lombaire — indispensable.',
+    {name:'Pont fessier unilatéral',reps:'10 rép./côté',rest:0,hold:0,kg:'',
+     steps:['Allongé, un genou fléchi pied à plat, l\'autre jambe tendue.','Pousser sur le talon pour lever les hanches.','Tenir 2 sec en haut, hanches hautes et de niveau.','Toute la série d\'un côté puis alterner.'],
+     tip:'💡 Poussée sur le talon, hanches hautes.',
+     erreur:'⚠ Le bassin ne penche pas d\'un côté.'},
+    {name:'Torsion spinale',reps:'45 sec/côté',rest:0,hold:45,kg:'',
+     steps:['Allongé sur le dos, bras en croix.','Genou ramené de l\'autre côté.','Épaules au sol — 45 sec puis alterner.','Respiration profonde.'],
+     tip:'💡 Décompression lombaire.',
      erreur:'⚠ La gravité suffit.'},
-    {name:'Posture de l\'enfant (Balasana)',reps:'90 sec',rest:15,hold:90,kg:'',
-     steps:['À genoux, bras tendus devant, front au sol.','Relâcher complètement le poids du corps.','Chaque expiration allonge la colonne.','Rester aussi longtemps que possible.'],
-     tip:'💡 Décompression vertébrale : plus longtemps, mieux c\'est.',
+    {name:'Posture de l\'enfant',reps:'90 sec',rest:0,hold:90,kg:'',
+     steps:['À genoux, bras tendus devant, front au sol.','Relâcher complètement le poids du corps.','Chaque expiration allonge la colonne.','90 secondes.'],
+     tip:'💡 Relâchement complet.',
      erreur:'⚠ Serviette sous les fesses si les genoux font mal.'},
-    {name:'Étirement hip flexors — allongé',reps:'45 sec/côté',rest:15,hold:45,kg:'',
-     steps:['Allongé, genou droit ramené vers la poitrine.','Jambe gauche tendue sur le sol.','Pousser doucement le genou vers la poitrine.','Sentir l\'étirement à l\'avant de la hanche gauche.'],
-     tip:'💡 Psoas = cause n°1 des maux de dos. Prioritaire.',
-     erreur:'⚠ Le dos reste plaqué au sol.'},
+    {name:'Étirement hip flexors',reps:'45 sec/côté',rest:0,hold:45,kg:'',
+     steps:['En fente basse, genou arrière au sol.','Basculer le bassin vers l\'avant, fessier arrière contracté.','Sentir l\'étirement à l\'avant de la hanche arrière.','45 sec puis changer de côté.'],
+     tip:'💡 Bassin basculé vers l\'avant.',
+     erreur:'⚠ Ne pas cambrer le bas du dos — c\'est le bassin qui bascule.'},
    ]
   }
  ],
@@ -575,7 +579,7 @@ function showTab(i){
   renderSession(SESSIONS[SESSION_IDX[i]]);
 }
 
-function makeCard(ex,i,s,dk,C,displayNum){
+function makeCard(ex,i,s,dk,C,displayNum,endRest){
   var done=dk[i];
   var num=displayNum!==undefined?displayNum:i;
   return '<div class="exo-card'+(done?' done':'')+'" id="card-'+s.id+'-'+i+'" onclick="toggleCard(\''+s.id+'\','+i+')">'
@@ -596,7 +600,7 @@ function makeCard(ex,i,s,dk,C,displayNum){
     +(ex.erreur?'<div class="err-box">'+ex.erreur+'</div>':'')
     +'<div class="btn-row">'
     +(ex.hold>0?'<button class="btn-timer btn-hold" onclick="event.stopPropagation();startTimer('+ex.hold+',\'&#x1F3CB; Exercice\')">&#x1F3CB; Exercice '+ex.hold+'s</button>':'')
-    +(ex.rest>0?'<button class="btn-timer btn-rest" onclick="event.stopPropagation();startTimer('+ex.rest+',\'&#x23F1; Repos\')">&#x23F1; Repos '+ex.rest+'s</button>':'')
+    +(endRest>0?'<button class="btn-timer btn-rest" onclick="event.stopPropagation();startTimer('+endRest+',\'&#x23F1; Repos fin de tour\')">&#x23F1; Fin de tour · repos '+endRest+'s</button>':'')
     +'</div>'
     +'<button class="btn-done'+(done?' is-done':'')+'" onclick="event.stopPropagation();markDone(\''+s.id+'\','+i+')">'+(done?'&#x21A9; Marquer non fait':'&#x2713; Exercice termin&#233;')+'</button>'
     +'</div></div></div>';
@@ -618,6 +622,7 @@ function renderSession(s){
     +'</div>'
     +'<div><div class="session-title">'+s.name+'</div>'
     +'<div class="session-meta"><span class="session-tag" style="background:'+C.light+';color:'+C.badge+'">'+(s.time||s.day)+'</span>'+s.desc+'</div>'
+    +(s.tours?'<div class="session-tours" style="color:'+C.bg+'">&#x1F501; '+(s.toursLbl||s.tours+' tours')+(s.dur?' · &#x23F1; '+s.dur:'')+'</div>':'')
     +'</div></div>';
 
 
@@ -649,7 +654,7 @@ function renderSession(s){
           +'</div>';
       }
       var offset=b*100;
-      bloc.exos.forEach(function(ex,i){html+=makeCard(ex,offset+i,s,dk,C,i);});
+      bloc.exos.forEach(function(ex,i){html+=makeCard(ex,offset+i,s,dk,C,i,bloc.type==='rounds'&&i===bloc.exos.length-1?(bloc.restSec||90):0);});
     });
     html+='</div>';
   } else {
@@ -666,7 +671,7 @@ function renderSession(s){
         +'</div>';
     }
     html+='<div class="exo-list">';
-    s.exos.forEach(function(ex,i){html+=makeCard(ex,i,s,dk,C);});
+    s.exos.forEach(function(ex,i){html+=makeCard(ex,i,s,dk,C,undefined,i===s.exos.length-1?90:0);});
     html+='</div>';
   }
 
