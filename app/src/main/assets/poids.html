@@ -668,6 +668,61 @@ function s400Parse(lines){
   var found=S400_DEF.filter(function(d){return res[d.k]!=null;}).length;
   return {v:res,src:src,found:found,date:date};
 }
+/* ═════════ v6.7 — Lecture du texte ML Kit brut (ordre natif des lignes, validée 17/17 sur un vrai rapport S400) ═════════
+   Particularités du texte ML Kit : le grand poids « 90,2 » est lu « 902 » (virgule perdue) → le poids n'est JAMAIS lu,
+   il est calculé = poids standard + |contrôle du poids| ; « 20,9 %\nkg\nMasse grasse » (valeur sur 3 lignes) ;
+   « Masse musculaire\nsquelettique » (libellé sur 2 lignes) ; l'ordre des blocs ne suit pas l'ordre visuel.
+   Règle générale : valeur = ligne juste avant le libellé. Le poids sans graisse est toujours calculé (poids − masse grasse). */
+function firstNum(t){var m=String(t||'').replace(/(\d)[\s\u00a0\u202f](\d{3})\b/g,'$1$2').replace(/,/g,'.').replace(/[^0-9.\-]/g,' ').trim().match(/-?\d+\.?\d*/);return m?parseFloat(m[0]):NaN;}
+function s400ParseBrut(lines){
+  var T=(lines||[]).map(function(l){return String(l&&l.t!=null?l.t:l).trim();});
+  var N=T.map(function(t){return s400Norm(t).replace(/[:\s]+$/,'').trim();});
+  var v={},src={};
+  function avant(i){var j=i-1;while(j>=0&&/^(kg|%|kcal|bpm)$/i.test(T[j]))j--;return j>=0?j:-1;}  // saute « kg » seul
+  function val(k,test,ok,exact){
+    if(v[k]!=null)return;
+    for(var i=1;i<N.length;i++){
+      if(exact?N[i]!==test:N[i].indexOf(test)!==0)continue;
+      var j=avant(i);if(j<0)continue;var x=Math.abs(firstNum(T[j]));
+      if(!isNaN(x)&&x>=ok[0]&&x<=ok[1]){v[k]=x;src[k]=T[j]+' ← '+T[i];return;}
+    }
+  }
+  /* Score corporel : première ligne du texte */
+  var sc=firstNum(T[0]);if(!isNaN(sc)&&sc>=1&&sc<=100){v.score=sc;src.score=T[0];}
+  /* Masse musculaire squelettique : « Masse musculaire » / « squelettique » sur 2 lignes → valeur 2 lignes avant */
+  for(var i=2;i<N.length;i++)if(N[i]==='squelettique'&&N[i-1].indexOf('masse musculaire')===0){var x=firstNum(T[i-2]);if(x>=10&&x<=80){v.squelK=x;src.squelK=T[i-2]+' ← Masse musculaire squelettique';}break;}
+  val('squelK','masse musculaire squelettique',[10,80],true);
+  /* Masse musculaire : libellé exact, pas suivi de « squelettique », valeur > 30 */
+  for(var i=1;i<N.length&&v.muscK==null;i++)if(N[i]==='masse musculaire'&&N[i+1]!=='squelettique'){var j=avant(i),x=j>=0?firstNum(T[j]):NaN;if(x>30&&x<150){v.muscK=x;src.muscK=T[j]+' ← '+T[i];}}
+  /* Masse grasse : « 20,9 %\nkg\nMasse grasse » → la ligne « kg » est sautée */
+  val('grasK','masse grasse',[5,60],true);
+  val('imc','imc',[15,50],true);
+  val('grasP','pourcentage de graisse',[3,70]);
+  val('eauK','masse d eau corporelle',[10,120]);
+  val('osK','teneur en mineraux osseux',[0.5,9]);
+  val('protK','masse proteique',[3,40],true);
+  val('eauP','eau corporelle',[30,80],true);
+  val('minP','pourcentage de mineraux',[1,12]);
+  val('visc','taux de graisse viscerale',[1,59]);
+  val('muscP','pourcentage musculaire',[20,95]);
+  val('protP','pourcentage de proteines',[5,35]);
+  val('bmr','taux metabolique de base',[800,4500]);
+  val('whr','estimation du rapport',[0.5,4.99]);
+  val('whr','rapport taille',[0.5,4.99]);
+  val('age','age corporel',[20,100]);
+  val('pouls','frequence cardiaque',[30,200]);
+  /* POIDS RÉEL — toujours calculé, jamais lu : poids standard + |contrôle du poids| */
+  var tmp={};
+  (function(){var save=v;v=tmp;val('std','poids standard',[30,200]);val('ctrl','controle du poids',[0,100]);v=save;})();
+  if(tmp.std!=null&&tmp.ctrl!=null){
+    var pr=Math.round((tmp.std+tmp.ctrl)*10)/10;
+    if(pr>=50&&pr<=200){v.poids=pr;src.poids='poids standard '+tmp.std+' + |contrôle| '+tmp.ctrl;}
+  }
+  /* POIDS SANS GRAISSE — toujours calculé */
+  if(v.poids!=null&&v.grasK!=null){v.ffm=Math.round((v.poids-v.grasK)*10)/10;src.ffm='poids réel − masse grasse';}
+  return {v:v,src:src};
+}
+
 /* Complète les valeurs manquantes à partir des autres (marquées « calculé ») */
 function s400Derive(v){
   var c=[],P=v.poids;function r1(x){return Math.round(x*10)/10;}
@@ -793,7 +848,13 @@ window.onCaptureData=function(d){
   if(S400_CUR&&S400_CUR.id===d.id)return; // déjà affiché
   window.S400_POIDS_NATIF=d.poidsReel&&d.poidsReel.v>=50&&d.poidsReel.v<=200?+d.poidsReel.v:undefined; // v6.5 : poids détecté côté ML Kit (blocs triés par Y)
   var p=s400Parse(d.lines||[]);window.S400_POIDS_NATIF=undefined;
-  var v=Object.assign({},p.v),calc=s400Derive(v);
+  /* v6.7 : la lecture brute ML Kit est prioritaire ; l'analyse générique ne complète que les valeurs manquantes.
+     Poids et poids sans graisse : uniquement calculés (jamais lus). */
+  var b=s400ParseBrut(d.lines||[]),v=Object.assign({},b.v);
+  Object.keys(p.v).forEach(function(k){if(k==='poids'||k==='ffm')return;if(v[k]==null){v[k]=p.v[k];b.src[k]=p.src[k];}});
+  p.src=b.src;p.found=S400_DEF.filter(function(x){return v[x.k]!=null&&x.k!=='poids'&&x.k!=='ffm';}).length; // poids et poids sans graisse : calculés, pas lus
+  var calc=s400Derive(v);
+  if(b.v.poids!=null)calc.push('poids');if(b.v.ffm!=null)calc.push('ffm');
   S400_CUR={id:d.id,v:v,calc:calc,found:p.found,date:p.date||ld(new Date()),dateLu:!!p.date,hi:!!d.hi,w:d.width,lines:d.lines||[],src:p.src};
   s400Fill();
 };
