@@ -472,7 +472,7 @@ function s400Norm(s){return String(s||'').toLowerCase().normalize('NFD').replace
 var S400_STOP=['ideal','objectif','cible','controle','a perdre','a gagner','recommande','standard :','plage','historique','tendance','derniere','precedent','evaluation'];
 /* Nombres d'une ligne : [{v, unit, i}] — ignore dates (14/10), heures (08:15) et années */
 function s400Nums(t){
-  var out=[],s=String(t||'').replace(/(\d)\s+([.,])\s*(\d)/g,'$1$2$3').replace(/\b(\d{1,2})[\s\u00a0\u202f](\d{3})\b/g,'$1$2'),re=/(\d{1,4}(?:[.,]\d{1,2})?)\s*(%|kg|kcal|bpm|ans|an\b|pts|points|cal\b)?/gi,m;
+  var out=[],s=String(t||'').replace(/(\d)\s+([.,])\s*(\d)/g,'$1$2$3').replace(/\b(\d{1,2})[\s\u00a0\u202f](\d{3})\b/g,'$1$2'),re=/(\d{1,4}(?:[.,]\d{1,2})?)\s*(%|kg|kcal|bpm|ans|an\b|pts|points|cal\b|cm\b|m\b)?/gi,m;
   while((m=re.exec(s))){
     var before=s.charAt(m.index-1),after=s.charAt(m.index+m[1].length);
     if(before==='/'||before===':'||after==='/'||after===':'||after==='h'&&/\d/.test(s.charAt(m.index+m[1].length+1)))continue;
@@ -512,6 +512,7 @@ function s400Label(n){
 }
 /* Choisit la clé finale selon l'unité lue (famille % / kg) et vérifie la plage */
 function s400Accept(k,num){
+  if(num.unit==='cm'||num.unit==='m')return null; // taille (en-tête du rapport)
   var d=S400_BY[k],fam=d&&d.fam?S400_FAM[d.fam]:null;
   if(k==='protP')fam=S400_FAM.prot;
   if(fam){
@@ -547,6 +548,25 @@ function s400Parse(lines){
     var best=null;L.forEach(function(b){if(b===a||!b.nums.length)return;var bcy=b.y+b.h/2;
       if(Math.abs(bcy-cy)<Math.max(a.h,b.h)*0.7&&b.x>a.x&&(!best||b.x<best.x))best=b;});
     if(best)exclPoids[best.i]=1;});
+  /* v6.5 — Règle prioritaire (position Y) : le bloc le plus haut contenant une valeur en kg entre 50 et 200
+     = poids réel (grand chiffre en haut du rapport). Exclus : lignes « standard / sans graisse / contrôle / suggestion… »,
+     valeurs rattachées à un autre indicateur (ex. « Masse musculaire 64,2 kg »). */
+  var valAutre={};
+  labels.forEach(function(lb){if(lb.k==='poids'||lb.k==='_ignore')return;var a=lb.line,cy=a.y+a.h/2;valAutre[a.i]=1;
+    var best=null;L.forEach(function(b){if(b===a||!b.nums.length)return;var bcy=b.y+b.h/2;
+      if(Math.abs(bcy-cy)<Math.max(a.h,b.h)*0.7&&b.x>a.x&&(!best||b.x<best.x))best=b;});
+    if(best)valAutre[best.i]=1;});
+  function kgVoisin(b){var cy=b.y+b.h/2;return L.some(function(c){return c!==b&&/^\s*kg\s*$/i.test(c.t)&&Math.abs(c.y+c.h/2-cy)<Math.max(b.h,c.h)*0.8&&c.x>b.x;});}
+  if(typeof S400_POIDS_NATIF==='number'){res.poids=S400_POIDS_NATIF;src.poids='ML Kit (bloc le plus haut)';}
+  else for(var yi=0;yi<L.length&&res.poids==null;yi++){
+    var b=L[yi];if(exclPoids[b.i]||valAutre[b.i])continue;
+    var ign=false;for(var q=0;q<LABELS_A_IGNORER_POIDS.length;q++)if(b.n.indexOf(LABELS_A_IGNORER_POIDS[q])>=0){ign=true;break;}
+    if(ign)continue;
+    for(var j=0;j<b.nums.length;j++){var nm=b.nums[j];
+      if(nm.v<S400_POIDS_MIN||nm.v>S400_POIDS_MAX)continue;
+      if(nm.unit==='kg'||(!nm.unit&&/^\s*\d{2,3}([.,]\d{1,2})?\s*$/.test(b.t)&&kgVoisin(b))){res.poids=nm.v;src.poids=b.t;used[b.i+':'+j]=1;break;}
+    }
+  }
   /* Passe 1 : valeur sur la même ligne OCR, après le libellé */
   var pend=[];
   labels.forEach(function(lb){
@@ -580,7 +600,7 @@ function s400Parse(lines){
   }
   var pb=pass2(false),pa=pass2(true),best=pa.n>pb.n||(pa.n===pb.n&&pa.dist<pb.dist)?pa:pb;
   res=best.r;src=best.s;used=best.u;
-  /* Règle 2 (secours) : poids non trouvé → plus gros chiffre en kg (50 – 200) hors lignes ignorées / libellées */
+  /* Secours : poids toujours non trouvé → plus gros chiffre en kg (50 – 200) hors lignes ignorées / libellées */
   if(res.poids==null){
     var cands=[];
     L.forEach(function(b){
@@ -734,7 +754,9 @@ window.onCaptureData=function(d){
     $('s4v-body').innerHTML='<div class="s4busy" style="color:#EF5350">⚠️ '+(d.message||'Erreur de lecture')+'</div>';
     $('s4v-actions').style.display='flex';$('s4v-save').style.display='none';return;}
   if(S400_CUR&&S400_CUR.id===d.id)return; // déjà affiché
-  var p=s400Parse(d.lines||[]),v=Object.assign({},p.v),calc=s400Derive(v);
+  window.S400_POIDS_NATIF=d.poidsReel&&d.poidsReel.v>=50&&d.poidsReel.v<=200?+d.poidsReel.v:undefined; // v6.5 : poids détecté côté ML Kit (blocs triés par Y)
+  var p=s400Parse(d.lines||[]);window.S400_POIDS_NATIF=undefined;
+  var v=Object.assign({},p.v),calc=s400Derive(v);
   S400_CUR={id:d.id,v:v,calc:calc,found:p.found,date:p.date||ld(new Date()),dateLu:!!p.date,hi:!!d.hi,w:d.width,lines:d.lines||[],src:p.src};
   s400Fill();
 };
