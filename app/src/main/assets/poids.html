@@ -493,6 +493,15 @@ var S400_SYN=(function(){var a=[];S400_DEF.forEach(function(x){x.syn.forEach(fun
    Règle 4 : contrôle de cohérence 50 – 200 kg. */
 var LABELS_A_IGNORER_POIDS=['poids standard','standard','sans graisse','controle','suggestion','ideal','objectif','cible','a perdre','a gagner','perte','evolution','tendance','precedent','derniere'];
 var S400_POIDS_MIN=50,S400_POIDS_MAX=200;
+/* v6.5 — Libellés exacts du rapport Xiaomi S400 (normalisés : minuscules, sans accents ni apostrophes) → clé */
+var S400_MAP_FIXE={
+  'score corporel':'score','imc':'imc','pourcentage de graisse corporelle':'grasP','masse d eau corporelle':'eauK',
+  'masse grasse':'grasK','teneur en mineraux osseux':'osK','masse proteique':'protK','masse musculaire':'muscK',
+  'pourcentage musculaire':'muscP','eau corporelle':'eauP','pourcentage de proteines':'protP',
+  'pourcentage de mineraux osseux':'minP','masse musculaire squelettique':'squelK','taux de graisse viscerale':'visc',
+  'taux metabolique de base':'bmr','rapport taille/hanche':'whr','rapport taille hanche':'whr','age corporel':'age',
+  'poids corporel sans graisse':'ffm','frequence cardiaque':'pouls','poids standard':'_std','controle du poids':'_ctrl'
+};
 function s400PoidsSeul(n){
   for(var i=0;i<LABELS_A_IGNORER_POIDS.length;i++)if(n.indexOf(LABELS_A_IGNORER_POIDS[i])>=0)return false;
   var rest=n.replace(/\d+([.,]\d+)?/g,' ').replace(/\b(kg|lb|lbs)\b/g,' ').replace(/[^a-z ]/g,' ').replace(/\s+/g,' ').trim();
@@ -542,6 +551,33 @@ function s400Parse(lines){
   }
   var labels=[];
   L.forEach(function(line){var lb=s400Label(line.n);if(lb)labels.push({line:line,k:lb.k,end:lb.end});});
+  /* v6.5 — Mapping fixe des libellés exacts du rapport Xiaomi S400 (prioritaire sur l'analyse générique).
+     Structure du rapport : la valeur est sur la ligne juste au-dessus de son libellé. */
+  var fixeLigne={},std=null,ctrl=null,ctrlPlus=false;
+  L.forEach(function(a,ia){
+    var key=S400_MAP_FIXE[a.n.replace(/[:\s]+$/,'').trim()];if(!key)return;
+    for(var back=1;back<=4&&ia-back>=0;back++){
+      var b=L[ia-back];
+      if(!b.nums.length||S400_MAP_FIXE[b.n.replace(/[:\s]+$/,'').trim()]||s400Label(b.n))continue;
+      var ox=Math.min(a.x+a.w,b.x+b.w)-Math.max(a.x,b.x);if(ox<=0)continue;                       // même colonne
+      if(a.y-(b.y+b.h)>Math.max(a.h,b.h)*1.5||b.y>=a.y)continue;                                  // juste au-dessus
+      var pris=false;for(var u0=0;u0<b.nums.length;u0++)if(used[b.i+':'+u0])pris=true;if(pris)continue;
+      var nm=b.nums[0],ok=key==='_std'?[30,200]:key==='_ctrl'?[0,100]:key==='protP'?[5,35]:(S400_BY[key]||{}).ok;
+      if(!ok||nm.v<ok[0]||nm.v>ok[1])break;
+      fixeLigne[a.i]=1;
+      if(key==='_std')std=nm.v;else if(key==='_ctrl'){ctrl=nm.v;ctrlPlus=/\+\s*\d/.test(b.t);}
+      else if(res[key]==null){res[key]=nm.v;src[key]=b.t+' ← '+a.t;}
+      for(var j=0;j<b.nums.length;j++)used[b.i+':'+j]=1;
+      break;
+    }
+  });
+  labels=labels.filter(function(lb){return !fixeLigne[lb.line.i];});
+  /* Poids réel = poids standard ± contrôle du poids (« −13,9 kg » à perdre → standard + 13,9) */
+  if(std!=null&&ctrl!=null){
+    var pr=Math.round((ctrlPlus?std-ctrl:std+ctrl)*10)/10;
+    if(pr>=S400_POIDS_MIN&&pr<=S400_POIDS_MAX){res.poids=pr;src.poids='poids standard '+std+' ± contrôle '+ctrl;
+      if(res.grasK!=null){res.ffm=Math.round((pr-res.grasK)*10)/10;src.ffm='poids réel − masse grasse';}}
+  }
   /* Règle 1 : valeurs rattachées à « Poids standard », « Contrôle du poids »… (même ligne ou juste à droite) interdites pour le poids */
   var exclPoids={};
   labels.forEach(function(lb){if(lb.k!=='_ignore')return;var a=lb.line,cy=a.y+a.h/2;exclPoids[a.i]=1;
@@ -557,7 +593,8 @@ function s400Parse(lines){
       if(Math.abs(bcy-cy)<Math.max(a.h,b.h)*0.7&&b.x>a.x&&(!best||b.x<best.x))best=b;});
     if(best)valAutre[best.i]=1;});
   function kgVoisin(b){var cy=b.y+b.h/2;return L.some(function(c){return c!==b&&/^\s*kg\s*$/i.test(c.t)&&Math.abs(c.y+c.h/2-cy)<Math.max(b.h,c.h)*0.8&&c.x>b.x;});}
-  if(typeof S400_POIDS_NATIF==='number'){res.poids=S400_POIDS_NATIF;src.poids='ML Kit (bloc le plus haut)';}
+  if(res.poids!=null){}
+  else if(typeof S400_POIDS_NATIF==='number'){res.poids=S400_POIDS_NATIF;src.poids='ML Kit (bloc le plus haut)';}
   else for(var yi=0;yi<L.length&&res.poids==null;yi++){
     var b=L[yi];if(exclPoids[b.i]||valAutre[b.i])continue;
     var ign=false;for(var q=0;q<LABELS_A_IGNORER_POIDS.length;q++)if(b.n.indexOf(LABELS_A_IGNORER_POIDS[q])>=0){ign=true;break;}
