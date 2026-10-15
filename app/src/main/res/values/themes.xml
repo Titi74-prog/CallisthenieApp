@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.App" parent="android:Theme.NoTitleBar.Fullscreen">
-        <item name="android:windowBackground">@android:color/black</item>
+    <!-- v7.0 — Thème jour/nuit automatique : clair en mode jour, sombre en mode nuit du téléphone.
+         Le WebView suit ce thème : les pages reçoivent prefers-color-scheme light / dark. -->
+    <style name="Theme.App" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="android:windowFullscreen">true</item>
+        <item name="android:windowBackground">@color/app_bg</item>
     </style>
 </resources>
