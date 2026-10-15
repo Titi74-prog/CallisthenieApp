@@ -53,6 +53,20 @@
                 <category android:name="android.intent.category.HEALTH_PERMISSIONS" />
             </intent-filter>
         </activity-alias>
+        <!-- v6.3 : capture du rapport Xiaomi S400 partagée depuis Xiaomi Home → lecture OCR -->
+        <activity
+            android:name=".ImportCaptureActivity"
+            android:exported="true"
+            android:label="Callisthénie · Balance S400"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar">
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="image/*" />
+            </intent-filter>
+        </activity>
         <receiver
             android:name=".ProgrammeWidget"
             android:exported="true"
