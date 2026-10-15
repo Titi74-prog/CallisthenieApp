@@ -73,8 +73,8 @@ canvas{width:100%;height:180px}
       <div class="stat-sub" id="st-date">—</div>
     </div>
     <div class="stat-card">
-      <div class="stat-label">Objectif</div>
-      <div class="stat-val" id="st-objectif" style="color:#F9A825">87 kg</div>
+      <div class="stat-label" id="st-objectif-l">Objectif</div>
+      <div class="stat-val" id="st-objectif" style="color:#F9A825">89 kg</div>
       <div class="stat-sub" id="st-restant">—</div>
     </div>
   </div>
@@ -123,7 +123,10 @@ canvas{width:100%;height:180px}
 </div>
 <script>
 var DEPART = {date:'2026-06-20', poids:98.5};
-var OBJECTIF = 87.0;
+/* v6.3 — Objectifs par paliers : 89 kg fin octobre 2026, puis 80 kg juin 2027 (plateau hivernal prévu jan-mars) */
+var PALIERS = [{kg:89.0, fin:'2026-10-31', lbl:'Objectif fin oct.'}, {kg:80.0, fin:'2027-06-30', lbl:'Objectif juin 2027'}];
+var PALIER = (function(){var t=new Date().toISOString().slice(0,10);for(var i=0;i<PALIERS.length;i++)if(t<=PALIERS[i].fin)return PALIERS[i];return PALIERS[PALIERS.length-1];})();
+var OBJECTIF = PALIER.kg;
 
 var pesees = [
   {date:'2026-06-20',poids:98.5},
@@ -196,6 +199,7 @@ function save(){
 function render(){
   sortP();
   document.getElementById('st-objectif').textContent=fmtKg(OBJECTIF);
+  document.getElementById('st-objectif-l').textContent=RESET&&RESET.objectif?'Objectif':PALIER.lbl;
   document.getElementById('pl-right').textContent=fmtKg(OBJECTIF);
   if(!pesees.length){
     ['st-depart','st-actuel','st-depart-date','st-date','st-restant'].forEach(function(id){document.getElementById(id).textContent='—';});
