@@ -2,6 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
+<meta name="color-scheme" content="dark light">
 <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
 <meta name="theme-color" content="#1a1a2e">
 <title>Suivi du poids</title>
@@ -109,6 +110,50 @@ canvas{width:100%;height:180px}
 .s4busy .spin{width:34px;height:34px;margin:0 auto 14px;border-radius:50%;border:3px solid var(--bd);border-top-color:var(--acc);border-right-color:var(--acc2);animation:spin .8s linear infinite}
 #s4c-svg{width:100%;height:150px;display:block;margin-top:6px}
 #s4c-info{font-size:12px;color:var(--t2);line-height:1.5;margin:8px 0 4px}
+
+/* v7.0 — Thème clair automatique (mode jour du téléphone) */
+@media (prefers-color-scheme: light){
+html,body{background:#f2f2f6;color:#1a1a22}
+#header{background:#ffffff;border-bottom:1px solid #e2e2ea}
+#header-time{color:#7d7b87}
+#stats{background:#ffffff;border-bottom:1px solid #e2e2ea}
+.stat-card{background:#f2f2f6}
+.stat-label{color:#7d7b87}
+.stat-sub{color:#7d7b87}
+#progress-wrap{background:#ffffff;border-bottom:1px solid #e2e2ea}
+#progress-track{background:#e2e2ea}
+#progress-labels{color:#7d7b87}
+#chart-wrap{background:#ffffff}
+.chart-leg{color:#7d7b87}
+.lg-s4{box-shadow:0 0 0 2px #f2f2f6,0 0 0 3.5px #26C6A0}
+#comp-panel{border-top:1px solid #e2e2ea}
+.cp-hd{color:#4f4d58}
+.cp-hd button{color:#7d7b87}
+.cp-man{background:#f2f2f6;color:#7d7b87}
+.cp-man b{color:#1a1a22}
+#chart-title{color:#4f4d58}
+#historique-title{color:#7d7b87}
+.pesee-row{background:#ffffff}
+.pesee-date{color:#4f4d58}
+.btn-del-p{color:#7d7b87}
+#modal-inner{background:#ffffff}
+#modal-title{color:#1a1a22}
+.inp-label{color:#4f4d58}
+.inp-field{border:1px solid #e2e2ea;background:#f2f2f6;color:#1a1a22}
+#btn-cancel{border:1px solid #e2e2ea;color:#7d7b87}
+#btn-reset{border:1px solid #f6d5d5}
+#empty{background:#ffffff;color:#7d7b87}
+.modal-txt{color:#4f4d58}
+#bottom-nav{background:#ffffff;border-top:1px solid #e2e2ea}
+.nav-btn{color:#7d7b87}
+:root{--card:#ffffff;--bd:#e2e2ea;--t2:#4f4d58;--t3:#7d7b87}
+.s4t{background:#f2f2f6}
+.s4row input{background:#f2f2f6;color:#1a1a22}
+.s4raw pre{background:#f2f2f6}
+#st-actuel[style*="#f0efec"]{color:#1a1a22!important}
+#modal-inner{background:#ffffff!important}
+#modal-reset{background:rgba(0,0,0,.45)!important}
+}
 </style>
 </head>
 <body>
@@ -190,6 +235,11 @@ canvas{width:100%;height:180px}
   </div>
 </div>
 <script>
+/* v7.0 — thème jour/nuit : couleurs dessinées en JS adaptées au mode clair */
+var LT=false;try{LT=window.matchMedia('(prefers-color-scheme: light)').matches;}catch(e){}
+var T_MAP={'#2a2a35':'#e2e2ea','#6b6a75':'#7d7b87','#0f0f13':'#ffffff','#1a1a22':'#ffffff','#f0efec':'#1a1a22','#b0aeb8':'#4f4d58','rgba(255,255,255,.28)':'rgba(0,0,0,.25)','rgba(255,255,255,.07)':'rgba(0,0,0,.08)','rgba(240,239,236,.55)':'rgba(26,26,34,.55)','rgba(240,239,236,.3)':'rgba(26,26,34,.3)'};
+function TC(c){return LT&&T_MAP[c]?T_MAP[c]:c;}
+
 var DEPART = {date:'2026-06-20', poids:98.5};
 /* v6.3 — Objectifs par paliers : 89 kg fin octobre 2026, puis 80 kg juin 2027 (plateau hivernal prévu jan-mars) */
 var PALIERS = [{kg:89.0, fin:'2026-10-31', lbl:'Objectif fin oct.'}, {kg:80.0, fin:'2027-06-30', lbl:'Objectif juin 2027'}];
@@ -353,12 +403,12 @@ function drawChart(){
   function yp(v){return pad.t+(max-v)/(max-min)*h;}
 
   // Grille
-  ctx.strokeStyle='#2a2a35';
+  ctx.strokeStyle=TC('#2a2a35');
   ctx.lineWidth=1;
   var step=(max-min)>16?4:2;
   for(var y=min+step;y<max;y+=step){
     ctx.beginPath();ctx.moveTo(pad.l,yp(y));ctx.lineTo(pad.l+w,yp(y));ctx.stroke();
-    ctx.fillStyle='#6b6a75';ctx.font='9px sans-serif';ctx.textAlign='right';
+    ctx.fillStyle=TC('#6b6a75');ctx.font='9px sans-serif';ctx.textAlign='right';
     ctx.fillText(y+'kg',pad.l-4,yp(y)+3);
   }
 
@@ -383,7 +433,7 @@ function drawChart(){
     var isLast=i===pesees.length-1,isS4=!p.lbl&&!!s4[p.date];
     CHART_PTS.push({x:x,y:y,p:p});
     if(isS4){
-      ctx.beginPath();ctx.arc(x,y,isLast?7:5.5,0,Math.PI*2);ctx.fillStyle='#0f0f13';ctx.fill();
+      ctx.beginPath();ctx.arc(x,y,isLast?7:5.5,0,Math.PI*2);ctx.fillStyle=TC('#0f0f13');ctx.fill();
       ctx.lineWidth=2;ctx.strokeStyle='#26C6A0';ctx.stroke();
       ctx.beginPath();ctx.arc(x,y,isLast?4:3,0,Math.PI*2);ctx.fillStyle='#26C6A0';ctx.fill();
     }else{
@@ -391,7 +441,7 @@ function drawChart(){
       ctx.fillStyle='#5C6BC0';ctx.fill();
     }
     if(isLast){
-      ctx.fillStyle='#f0efec';ctx.font='bold 11px sans-serif';ctx.textAlign='center';
+      ctx.fillStyle=TC('#f0efec');ctx.font='bold 11px sans-serif';ctx.textAlign='center';
       ctx.fillText(p.poids.toFixed(1),x,y-10);
     }
   });
@@ -404,8 +454,8 @@ function renderHistorique(){
     var prev=list[i+1];
     var delta=prev?p.poids-prev.poids:0;
     var deltaStr=prev?(delta>0?'+':'')+delta.toFixed(1)+' kg':'départ';
-    var deltaColor=delta>0?'#EF5350':delta<0?'#4ECDC4':'#6b6a75';
-    var poidsColor=p.poids<=OBJECTIF?'#4ECDC4':p.poids<=90?'#F9A825':'#f0efec';
+    var deltaColor=delta>0?'#EF5350':delta<0?'#4ECDC4':TC('#6b6a75');
+    var poidsColor=p.poids<=OBJECTIF?'#4ECDC4':p.poids<=90?'#F9A825':TC('#f0efec');
     html+='<div class="pesee-row">';
     html+='<span class="pesee-date">'+fmtDate(p.date)+(p.lbl?' · '+p.lbl:'')+'</span>';
     html+='<div style="display:flex;align-items:center">';
@@ -837,7 +887,7 @@ function s400Status(k,v,prev){
   if(d.ref){if(v>d.ref[1])return {t:'Élevé',c:'#F9A825'};if(v<d.ref[0])return {t:'Bas',c:'#F9A825'};}
   if(prev!=null){var eps=d.d===0?0.5:d.d===2?0.005:0.05,dv=v-prev;
     if(Math.abs(dv)>=eps){var up=dv>0,fav=d.good===0?null:(up?d.good>0:d.good<0);
-      return {t:up?'En hausse':'En baisse',c:fav==null?'#b0aeb8':fav?'#4ECDC4':'#FF7043'};}}
+      return {t:up?'En hausse':'En baisse',c:fav==null?TC('#b0aeb8'):fav?'#4ECDC4':'#FF7043'};}}
   return {t:'Standard',c:'#4ECDC4'};
 }
 
@@ -879,19 +929,19 @@ function s400Curve(k){
     .map(function(x){return {t:new Date(x.date+'T12:00:00').getTime(),v:+x.v[k],date:x.date};});
   $('s4c-title').textContent=d.l+(d.u?' ('+d.u+')':'');
   var svg=$('s4c-svg'),info=$('s4c-info');
-  if(!pts.length){svg.innerHTML='<text x="160" y="70" text-anchor="middle" fill="#6b6a75" font-size="12">Aucune mesure sur 30 jours</text>';info.textContent='';}
+  if(!pts.length){svg.innerHTML='<text x="160" y="70" text-anchor="middle" fill="'+TC('#6b6a75')+'" font-size="12">Aucune mesure sur 30 jours</text>';info.textContent='';}
   else{
     var t0=lim,t1=Date.now(),vs=pts.map(function(p){return p.v;}),mn=Math.min.apply(null,vs),mx=Math.max.apply(null,vs);
     var span=mx-mn,minSpan=Math.max(Math.abs(mx)*0.02,d.d===0?2:d.d===2?0.02:0.4);if(span<minSpan){var c=(mx+mn)/2;mn=c-minSpan/2;mx=c+minSpan/2;}
     var pad=(mx-mn)*0.18;mn-=pad;mx+=pad;
     function X(t){return 30+(t-t0)/(t1-t0)*282;}function Y(v){return 10+(mx-v)/(mx-mn)*110;}
     var h='';
-    for(var g=0;g<=2;g++){var gv=mn+(mx-mn)*(0.15+0.35*g);h+='<line x1="30" x2="312" y1="'+Y(gv).toFixed(1)+'" y2="'+Y(gv).toFixed(1)+'" stroke="rgba(255,255,255,.07)"/><text x="26" y="'+(Y(gv)+3).toFixed(1)+'" text-anchor="end" fill="#6b6a75" font-size="9">'+s400Fmt(k,gv)+'</text>';}
+    for(var g=0;g<=2;g++){var gv=mn+(mx-mn)*(0.15+0.35*g);h+='<line x1="30" x2="312" y1="'+Y(gv).toFixed(1)+'" y2="'+Y(gv).toFixed(1)+'" stroke="'+TC('rgba(255,255,255,.07)')+'"/><text x="26" y="'+(Y(gv)+3).toFixed(1)+'" text-anchor="end" fill="'+TC('#6b6a75')+'" font-size="9">'+s400Fmt(k,gv)+'</text>';}
     if(d.ref&&d.ref[1]<mx&&d.ref[1]>mn)h+='<line x1="30" x2="312" y1="'+Y(d.ref[1]).toFixed(1)+'" y2="'+Y(d.ref[1]).toFixed(1)+'" stroke="#F9A825" stroke-dasharray="4 4" stroke-width="1"/>';
     var pl=pts.map(function(p){return X(p.t).toFixed(1)+','+Y(p.v).toFixed(1);}).join(' ');
     if(pts.length>1)h+='<polyline points="'+pl+'" fill="none" stroke="#26C6A0" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>';
     pts.forEach(function(p,i){h+='<circle cx="'+X(p.t).toFixed(1)+'" cy="'+Y(p.v).toFixed(1)+'" r="'+(i===pts.length-1?4:3)+'" fill="'+(i===pts.length-1?'#42A5F5':'#26C6A0')+'"/>';});
-    [0,15,30].forEach(function(o){var t=t1-o*864e5;h+='<text x="'+Math.min(300,Math.max(40,X(t))).toFixed(1)+'" y="136" text-anchor="middle" fill="#6b6a75" font-size="9">'+dd(new Date(t))+'</text>';});
+    [0,15,30].forEach(function(o){var t=t1-o*864e5;h+='<text x="'+Math.min(300,Math.max(40,X(t))).toFixed(1)+'" y="136" text-anchor="middle" fill="'+TC('#6b6a75')+'" font-size="9">'+dd(new Date(t))+'</text>';});
     svg.innerHTML=h;
     var f=pts[0],l=pts[pts.length-1],dv=l.v-f.v;
     info.innerHTML=pts.length<2?'Une seule mesure pour l\'instant ('+dd(new Date(l.t))+') : la courbe se construit à chaque import.'
