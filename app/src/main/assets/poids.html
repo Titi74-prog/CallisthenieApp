@@ -24,6 +24,15 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
 #progress-labels{display:flex;justify-content:space-between;margin-top:4px;font-size:10px;color:#6b6a75}
 #content{flex:1;overflow-y:auto;padding:12px;padding-bottom:90px}
 #chart-wrap{background:#1a1a22;border-radius:14px;padding:12px;margin-bottom:12px}
+.chart-leg{display:flex;gap:12px;flex-wrap:wrap;align-items:center;font-size:10px;color:#6b6a75;margin-top:6px}
+.chart-leg i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:4px;vertical-align:-1px}
+.lg-man{background:#5C6BC0}.lg-s4{background:#26C6A0;box-shadow:0 0 0 2px #0f0f13,0 0 0 3.5px #26C6A0}
+.lg-tip{margin-left:auto}
+#comp-panel{display:none;margin-top:10px;padding-top:10px;border-top:1px solid #2a2a35}
+.cp-hd{display:flex;justify-content:space-between;align-items:center;font-size:12px;font-weight:700;color:#b0aeb8}
+.cp-hd button{border:none;background:none;color:#6b6a75;font-size:16px;cursor:pointer}
+.cp-man{display:flex;flex-direction:column;gap:3px;background:#0f0f13;border-radius:10px;padding:10px 12px;margin-top:8px;font-size:12px;color:#6b6a75}
+.cp-man b{font-size:20px;color:#f0efec}
 #chart-title{font-size:12px;font-weight:700;color:#b0aeb8;margin-bottom:8px}
 canvas{width:100%;height:180px}
 #historique-title{font-size:11px;font-weight:700;color:#6b6a75;text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px}
@@ -133,7 +142,9 @@ canvas{width:100%;height:180px}
     <button class="btn btn-main" id="btn-import" onclick="s400Import()">📷 Importer une capture</button>
     <div id="chart-wrap">
       <div id="chart-title">Courbe de progression</div>
-      <canvas id="chart"></canvas>
+      <canvas id="chart" onclick="onChartTap(event)"></canvas>
+      <div class="chart-leg"><span><i class="lg-man"></i>Pesée manuelle</span><span><i class="lg-s4"></i>Pesée S400</span><span class="lg-tip">Touche un point pour le détail</span></div>
+      <div id="comp-panel" onclick="event.stopPropagation()"></div>
     </div>
     <!-- v6.3 — Balance Xiaomi S400 (capture Xiaomi Home lue par OCR) -->
     <div class="card" id="s400-card">
@@ -288,6 +299,36 @@ function render(){
   renderHistorique();
 }
 
+/* v6.8 — Tap sur un point de la courbe → composition (pesée S400) ou simple poids (pesée manuelle) */
+var CHART_PTS=[];
+function s400Dates(){var m={};try{if(typeof s400Load==='function')s400Load().forEach(function(x){m[x.date]=x;});}catch(e){}return m;}
+function getClickedPoint(e){
+  var r=document.getElementById('chart').getBoundingClientRect(),cx=e.clientX-r.left,cy=e.clientY-r.top,best=null,bd=1e9;
+  CHART_PTS.forEach(function(q){var d=Math.hypot(q.x-cx,(q.y-cy)*0.6);if(d<bd){bd=d;best=q;}});
+  return best&&bd<28?best:null;
+}
+function onChartTap(e){
+  e.stopPropagation();
+  var pt=getClickedPoint(e);if(!pt){hideCompositionPanel();return;}
+  var pesee=pt.p.lbl?null:s400Dates()[pt.p.date];
+  showCompositionPanel(pt.p,pesee);
+}
+function hideCompositionPanel(){var pn=document.getElementById('comp-panel');if(pn)pn.style.display='none';}
+function showCompositionPanel(p,pesee){
+  var pn=document.getElementById('comp-panel'),dt=new Date(p.date+'T12:00:00');
+  var tl=JOURS_L[dt.getDay()]+' '+dd(dt)+(p.lbl?' '+p.lbl:'');
+  if(!pesee){
+    pn.innerHTML='<div class="cp-hd"><span>⚖️ '+tl+'</span><button onclick="hideCompositionPanel()">✕</button></div>'
+      +'<div class="cp-man"><b>'+String(p.poids.toFixed(1)).replace('.',',')+' kg</b><span>Pesée manuelle — pas de composition corporelle</span></div>';
+  }else{
+    var H=s400Load(),i=H.findIndex(function(x){return x.date===pesee.date;}),prev=i>0?H[i-1]:null;
+    pn.innerHTML='<div class="cp-hd"><span>◉ Pesée S400 · '+tl+'</span><button onclick="hideCompositionPanel()">✕</button></div>'
+      +'<div class="s4grid">'+s400TilesHtml(pesee,prev)+'</div>';
+  }
+  pn.style.display='block';
+  pn.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
 function drawChart(){
   var canvas=document.getElementById('chart');
   var dpr=window.devicePixelRatio||1;
@@ -335,12 +376,20 @@ function drawChart(){
   });
   ctx.stroke();
 
-  // Points
+  // Points — v6.8 : bleu = pesée manuelle, vert cerclé = pesée S400 (composition complète). Positions mémorisées pour le tap.
+  var s4=s400Dates();CHART_PTS=[];
   pesees.forEach(function(p,i){
     var x=xp(p),y=yp(p.poids);
-    var isLast=i===pesees.length-1;
-    ctx.beginPath();ctx.arc(x,y,isLast?6:3.5,0,Math.PI*2);
-    ctx.fillStyle=isLast?'#F9A825':'#5C6BC0';ctx.fill();
+    var isLast=i===pesees.length-1,isS4=!p.lbl&&!!s4[p.date];
+    CHART_PTS.push({x:x,y:y,p:p});
+    if(isS4){
+      ctx.beginPath();ctx.arc(x,y,isLast?7:5.5,0,Math.PI*2);ctx.fillStyle='#0f0f13';ctx.fill();
+      ctx.lineWidth=2;ctx.strokeStyle='#26C6A0';ctx.stroke();
+      ctx.beginPath();ctx.arc(x,y,isLast?4:3,0,Math.PI*2);ctx.fillStyle='#26C6A0';ctx.fill();
+    }else{
+      ctx.beginPath();ctx.arc(x,y,isLast?6:3.5,0,Math.PI*2);
+      ctx.fillStyle='#5C6BC0';ctx.fill();
+    }
     if(isLast){
       ctx.fillStyle='#f0efec';ctx.font='bold 11px sans-serif';ctx.textAlign='center';
       ctx.fillText(p.poids.toFixed(1),x,y-10);
@@ -453,7 +502,7 @@ var S400_DEF=[
   {k:'eauK',  l:'Masse d\'eau',        u:'kg',  d:1, kind:'kg',  fam:'eau', ok:[10,120], good:1, syn:['masse d eau','masse hydrique','quantite d eau','eau corporelle','eau']},
   {k:'protK', l:'Masse protéique',     u:'kg',  d:1, kind:'kg',  fam:'prot', ok:[3,40], good:1, syn:['masse proteique','masse de proteines']},
   {k:'osK',   l:'Masse osseuse',       u:'kg',  d:1, kind:'kg',  ok:[0.5,9], good:0, syn:['masse osseuse','os','masse des os','mineraux osseux']},
-  {k:'visc',  l:'Graisse viscérale',   u:'',    d:0, kind:'n',   ok:[1,59], good:-1, ref:[1,9], syn:['graisse viscerale','indice de graisse viscerale','niveau de graisse viscerale','visceral','viscerale']},
+  {k:'visc',  l:'Graisse viscérale',   u:'indice',    d:0, kind:'n',   ok:[1,59], good:-1, ref:[1,9], syn:['graisse viscerale','indice de graisse viscerale','niveau de graisse viscerale','visceral','viscerale']},
   {k:'bmr',   l:'Métabolisme de base', u:'kcal',d:0, kind:'kcal',ok:[800,4500], good:1, syn:['metabolisme de base','metabolisme basal','taux metabolique de base','metabolisme','bmr']},
   {k:'age',   l:'Âge corporel',        u:'ans', d:0, kind:'ans', ok:[10,99], good:-1, ref:[10,S400_AGE], syn:['age corporel','age du corps','age metabolique','age physique']},
   {k:'pouls', l:'Pouls',               u:'bpm', d:0, kind:'bpm', ok:[30,200], good:-1, ref:[50,90], syn:['frequence cardiaque','rythme cardiaque','pouls','battements']},
@@ -805,18 +854,22 @@ function renderS400(){
   $('s400-empty').style.display='none';
   var dt=new Date(last.date+'T12:00:00');
   $('s400-date').textContent=JOURS_L[dt.getDay()]+' '+dd(dt)+' · '+ago(dt.toISOString());
+  grid.innerHTML=s400TilesHtml(last,prev);
+}
+/* Tuiles (carte Balance S400 et panneau de composition sous la courbe) */
+function s400TilesHtml(last,prev){
   var h='';
   S400_DEF.forEach(function(d){
     var v=last.v[d.k],pv=prev?prev.v[d.k]:null,st=v!=null?s400Status(d.k,v,pv):null;
     var dl=v!=null&&pv!=null?v-pv:null,calc=(last.calc||[]).indexOf(d.k)>=0;
     h+='<div class="s4t" onclick="s400Curve(\''+d.k+'\')">'
       +'<div class="s4l">'+d.l+'</div>'
-      +'<div class="s4v">'+s400Fmt(d.k,v)+(v!=null&&d.u?'<small>'+d.u+'</small>':'')+'</div>'
+      +'<div class="s4v">'+s400Fmt(d.k,v)+(v!=null&&d.u?'<small>'+(d.k==='visc'?'(indice)':d.u)+'</small>':'')+'</div>'
       +(st?'<div class="s4s" style="color:'+st.c+';border-color:'+st.c+'55">'+st.t+'</div>':'<div class="s4s" style="color:var(--t3)">—</div>')
       +(dl!=null&&Math.abs(dl)>0?'<div class="s4d">'+(dl>0?'+':'−')+s400Fmt(d.k,Math.abs(dl))+(calc?' · calc.':'')+'</div>':(calc?'<div class="s4d">calculé</div>':''))
       +'</div>';
   });
-  grid.innerHTML=h;
+  return h;
 }
 
 /* ── Courbe 30 jours d'un indicateur ── */
@@ -859,11 +912,10 @@ function s400Import(){
   if(typeof window.CaptureBridge==='undefined'){alert('L\'import de capture n\'est disponible que dans l\'appli Android.');return;}
   try{CaptureBridge.pickImage();}catch(e){}
 }
-function s400Retry(){try{CaptureBridge.retryHighRes();}catch(e){}}
 window.onCaptureData=function(d){
   if(typeof d==='string'){try{d=JSON.parse(d);}catch(e){return;}}
   if(!d)return;
-  if(d.status==='loading'){s400Busy(d.hi?'Nouvelle lecture en haute résolution…':'Lecture de la capture…');return;}
+  if(d.status==='loading'){s400Busy('Lecture de la capture en haute résolution…');return;}
   if(d.status!=='ok'){s400Sheet(true);
     $('s4v-body').innerHTML='<div class="s4busy" style="color:#EF5350">⚠️ '+(d.message||'Erreur de lecture')+'</div>';
     $('s4v-actions').style.display='flex';$('s4v-save').style.display='none';return;}
@@ -885,7 +937,7 @@ function s400Fill(){
   var c=S400_CUR,weak=c.found<12||(c.w&&c.w<800),h='';
   h+='<div class="s4q'+(weak?' warn':'')+'">'+(weak?'⚠️ ':'✅ ')+c.found+' valeur'+(c.found>1?'s':'')+' lue'+(c.found>1?'s':'')+' sur 19'
     +(c.calc.length?' · '+c.calc.length+' calculée'+(c.calc.length>1?'s':''):'')
-    +(weak?'<br><small>Capture peut-être trop compressée : essaie « Réessayer avec une meilleure résolution » ou complète à la main.</small>':'<br><small>Vérifie et corrige si besoin avant d\'enregistrer.</small>')+'</div>';
+    +(weak?'<br><small>Lecture incomplète (déjà en haute résolution) : complète à la main ou partage une capture non compressée.</small>':'<br><small>Vérifie et corrige si besoin avant d\'enregistrer.</small>')+'</div>';
   h+='<div class="s4row"><label>Date de la pesée</label><input type="date" id="s4-date" value="'+c.date+'" max="'+ld(new Date())+'"><span class="s4tag">'+(c.dateLu?'lue':'auj.')+'</span></div>';
   S400_DEF.forEach(function(d){
     var v=c.v[d.k],tag=v==null?'—':c.calc.indexOf(d.k)>=0?'calculé':'lu';
@@ -896,8 +948,6 @@ function s400Fill(){
   h+='<details class="s4raw"><summary>Texte lu par l\'OCR ('+c.lines.length+' lignes)</summary><pre>'+c.lines.map(function(l){return String(l.t).replace(/[<&]/g,function(x){return x==='<'?'&lt;':'&amp;';});}).join('\n')+'</pre></details>';
   $('s4v-body').innerHTML=h;
   $('s4v-actions').style.display='flex';$('s4v-save').style.display='block';
-  $('s4v-retry').classList.toggle('btn-main',weak);$('s4v-retry').classList.toggle('btn-sec',!weak);
-  $('s4v-retry').textContent=c.hi?'Réessayer (haute résolution)':'Réessayer avec une meilleure résolution';
 }
 function s400Save(){
   var date=$('s4-date').value,v={},calc=[],err=false;
@@ -927,6 +977,8 @@ function s400Cancel(){S400_CUR=null;s400Sheet(false);}
 
 (function(){
   renderS400();
+  try{drawChart();}catch(e){} // points S400 sur la courbe (le 1er tracé a lieu avant le chargement de ce script)
+  document.addEventListener('click',function(e){if(!e.target.closest('#comp-panel')&&e.target.id!=='chart')hideCompositionPanel();});
   if(location.hash==='#import'){s400Busy();try{history.replaceState(null,'',location.pathname);}catch(e){}}
   try{if(window.CaptureBridge&&CaptureBridge.takePending){var p=CaptureBridge.takePending();if(p)window.onCaptureData(p);}}catch(e){}
 })();
@@ -938,7 +990,6 @@ function s400Cancel(){S400_CUR=null;s400Sheet(false);}
     <div class="s4bd" id="s4v-body"></div>
     <div class="s4ft" id="s4v-actions" style="display:none">
       <button class="btn btn-main" id="s4v-save" onclick="s400Save()">Enregistrer</button>
-      <button class="btn btn-sec" id="s4v-retry" onclick="s400Retry()">Réessayer avec une meilleure résolution</button>
       <button class="btn btn-sec" onclick="s400Cancel()">Annuler</button>
     </div>
   </div>
