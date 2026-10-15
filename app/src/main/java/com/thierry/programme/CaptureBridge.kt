@@ -60,7 +60,7 @@ class CaptureBridge(private val activity: ComponentActivity, private val webView
     }
 
     @JavascriptInterface
-    fun retryHighRes() {
+    fun retryHighRes() { // conservé pour compatibilité (la haute résolution est le mode par défaut depuis v6.8)
         activity.runOnUiThread { process(true) }
     }
 
@@ -79,7 +79,7 @@ class CaptureBridge(private val activity: ComponentActivity, private val webView
         if (f.absolutePath != cacheFile.absolutePath) {
             try { f.copyTo(cacheFile, overwrite = true); f.delete() } catch (_: Exception) { }
         }
-        process(false)
+        process(true)
     }
 
     /** Image choisie dans le sélecteur : copie immédiate (l'autorisation d'accès est temporaire). */
@@ -93,7 +93,7 @@ class CaptureBridge(private val activity: ComponentActivity, private val webView
                     } != null
                 } catch (_: Exception) { false }
             }
-            if (ok) process(false)
+            if (ok) process(true)
             else send(JSONObject().put("status", "error").put("message", "Impossible d'ouvrir l'image"))
         }
     }
@@ -105,7 +105,7 @@ class CaptureBridge(private val activity: ComponentActivity, private val webView
 
     // ───────── OCR ─────────
 
-    private fun process(hiRes: Boolean) {
+    private fun process(hiRes: Boolean = true) {
         if (!cacheFile.exists()) {
             send(JSONObject().put("status", "error").put("message", "Aucune capture à relire"))
             return
@@ -113,7 +113,8 @@ class CaptureBridge(private val activity: ComponentActivity, private val webView
         send(JSONObject().put("status", "loading").put("hi", hiRes))
         scope.launch {
             val json = try {
-                recognize(hiRes)
+                try { recognize(hiRes) }
+                catch (e: OutOfMemoryError) { System.gc(); recognize(false) } // mémoire insuffisante → résolution réduite
             } catch (e: OutOfMemoryError) {
                 JSONObject().put("status", "error").put("message", "Image trop grande pour la mémoire disponible")
             } catch (e: Exception) {
@@ -131,12 +132,13 @@ class CaptureBridge(private val activity: ComponentActivity, private val webView
         if (w <= 0 || h <= 0) throw IllegalStateException("Format d'image non reconnu")
 
         // Échelle : petite capture → agrandie à ~1 080 px de large ; mode « meilleure résolution » → ×2
-        var scale = if (w < 900) 1080f / w else 1f
-        if (hiRes) scale *= 2f
-        scale = min(scale, 2600f / w).coerceAtLeast(1f)
+        // v6.8 — Haute résolution par défaut : chaque bande est agrandie jusqu'à ~3 000 px (MAX_DIM),
+        // comme scaleBitmapToHighRes() ; jamais réduite. Mode « secours » (hiRes = false) si la mémoire manque.
+        val maxDim = if (hiRes) MAX_DIM else 1600f
+        val scale = (maxDim / w).coerceIn(1f, if (hiRes) 3f else 1.5f)
 
-        // Bandes de ~1 600 px (après mise à l'échelle) avec recouvrement pour ne couper aucune ligne
-        val tile = max(400, (1600f / scale).roundToInt())
+        // Bandes carrées d'environ maxDim px après agrandissement, avec recouvrement pour ne couper aucune ligne
+        val tile = max(400, (maxDim / scale).roundToInt())
         val overlap = min(160, tile / 4)
         val step = tile - overlap
 
@@ -237,6 +239,7 @@ class CaptureBridge(private val activity: ComponentActivity, private val webView
     private companion object {
         val IGNORE_POIDS = listOf("standard", "sans graisse", "controle", "suggestion", "ideal", "objectif",
             "cible", "masse", "muscle", "maigre")
+        const val MAX_DIM = 3000f
         val KG_REGEX = Regex("(\\d{2,3}(?:[.,]\\d{1,2})?)\\s*kg", RegexOption.IGNORE_CASE)
     }
 
