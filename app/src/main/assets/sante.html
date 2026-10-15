@@ -2,6 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
+<meta name="color-scheme" content="dark light">
 <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
 <meta name="theme-color" content="#1a1a2e">
 <title>Santé</title>
@@ -98,6 +99,32 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
 .nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:1px;padding:3px 2px;cursor:pointer;border:none;background:none;color:#6b6a75;font-size:9px;font-weight:600}
 .nav-btn.active{color:var(--acc)}
 .nav-btn span{font-size:15px}
+
+/* v7.0 — Thème clair automatique (mode jour du téléphone) */
+@media (prefers-color-scheme: light){
+html,body{background:#f2f2f6;color:#1a1a22}
+:root{--card:#ffffff;--bd:#e2e2ea;--t2:#4f4d58;--t3:#7d7b87}
+.mini{background:#f2f2f6}
+.track{background:#e2e2ea}
+.goal-line{border-top:1.5px dashed rgba(0,0,0,0.28)}
+.ptab.active{color:var(--txt,#1a1a22)}
+.goal-tag{background:#f2f2f6}
+.dbtn.on{background:#f2f2f6;color:var(--t1,#1a1a22)}
+.deficit-input{background:#f2f2f6}
+.deficit-input input{background:#ffffff;color:#1a1a22}
+.strat-row b{color:#1a1a22}
+.strat-today{background:#f2f2f6}
+.strat-today b{color:#1a1a22}
+.bar-col.sel .bar{box-shadow:0 0 0 1.5px rgba(0,0,0,0.44)}
+#tip{background:#ffffff;border:1px solid #d0d0da}
+#tip:after{border-top-color:#ffffff}
+#tip .tl{color:#1a1a22}
+#tip .tr b{color:#1a1a22}
+#tip .tb{background:#f2f2f6}
+#bottom-nav{background:#ffffff;border-top:1px solid #e2e2ea}
+.nav-btn{color:#7d7b87}
+.card{box-shadow:0 1px 4px rgba(0,0,0,.06)}
+}
 </style>
 </head>
 <body>
@@ -239,6 +266,11 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
 </div>
 
 <script>
+/* v7.0 — thème jour/nuit : couleurs dessinées en JS adaptées au mode clair */
+var LT=false;try{LT=window.matchMedia('(prefers-color-scheme: light)').matches;}catch(e){}
+var T_MAP={'#2a2a35':'#e2e2ea','#6b6a75':'#7d7b87','#0f0f13':'#ffffff','#1a1a22':'#ffffff','#f0efec':'#1a1a22','#b0aeb8':'#4f4d58','rgba(255,255,255,.28)':'rgba(0,0,0,.25)','rgba(255,255,255,.07)':'rgba(0,0,0,.08)','rgba(240,239,236,.55)':'rgba(26,26,34,.55)','rgba(240,239,236,.3)':'rgba(26,26,34,.3)'};
+function TC(c){return LT&&T_MAP[c]?T_MAP[c]:c;}
+
 var KCAL_PER_KG=7700;
 var MOIS=['Jan','Fév','Mar','Avr','Mai','Juin','Juil','Aoû','Sep','Oct','Nov','Déc'];
 var PER_LBL={week:'cette semaine',month:'30 jours',year:String(new Date().getFullYear())};
@@ -638,7 +670,7 @@ function deficitChart(S){
   cv.width=Math.round(W*dpr);cv.height=Math.round(H*dpr);
   var g=cv.getContext('2d');g.setTransform(dpr,0,0,dpr,0,0);g.clearRect(0,0,W,H);
   const DEFICIT_REF=getDeficitCible((S[S.length-1]&&S[S.length-1].burn)||0);var pts=S.filter(function(x){return x.def!=null;});
-  if(!pts.length){g.fillStyle='#6b6a75';g.font='12px sans-serif';g.textAlign='center';g.fillText('Pas encore de calories brûlées sur 30 jours',W/2,H/2);return;}
+  if(!pts.length){g.fillStyle=TC('#6b6a75');g.font='12px sans-serif';g.textAlign='center';g.fillText('Pas encore de calories brûlées sur 30 jours',W/2,H/2);return;}
   var L=34,R=6,T=8,B=18,vs=pts.map(function(x){return x.def;}).concat([0,DEFICIT_REF]);
   var mn=Math.min.apply(null,vs),mx=Math.max.apply(null,vs),pad=(mx-mn)*0.1||100;mn-=pad;mx+=pad;
   function X(i){return L+i*(W-L-R)/29;}function Y(v){return T+(mx-v)/(mx-mn)*(H-T-B);}
@@ -647,22 +679,22 @@ function deficitChart(S){
   g.font='9px sans-serif';g.textAlign='right';g.textBaseline='middle';
   var step=Math.max(250,Math.ceil((mx-mn)/4/250)*250);
   for(var v=Math.ceil(mn/step)*step;v<=mx;v+=step){
-    g.strokeStyle=v===0?'rgba(255,255,255,.28)':'rgba(255,255,255,.07)';g.lineWidth=1;g.setLineDash([]);
+    g.strokeStyle=v===0?TC('rgba(255,255,255,.28)'):TC('rgba(255,255,255,.07)');g.lineWidth=1;g.setLineDash([]);
     g.beginPath();g.moveTo(L,Y(v));g.lineTo(W-R,Y(v));g.stroke();
-    g.fillStyle='#6b6a75';g.fillText(v===0?'0':(v>0?'':'−')+Math.abs(v),L-4,Y(v));
+    g.fillStyle=TC('#6b6a75');g.fillText(v===0?'0':(v>0?'':'−')+Math.abs(v),L-4,Y(v));
   }
   /* référence déficit dynamique (DEFICIT_REF) */
   g.strokeStyle='#66BB6A';g.lineWidth=1.2;g.setLineDash([5,4]);
   g.beginPath();g.moveTo(L,Y(DEFICIT_REF));g.lineTo(W-R,Y(DEFICIT_REF));g.stroke();
   /* libellés X : 1 sur 7 + aujourd'hui */
-  g.setLineDash([]);g.textAlign='center';g.textBaseline='top';g.fillStyle='#6b6a75';
+  g.setLineDash([]);g.textAlign='center';g.textBaseline='top';g.fillStyle=TC('#6b6a75');
   S.forEach(function(x,i){if((29-i)%7===0)g.fillText(dd(x.dt),Math.min(W-R-12,Math.max(L+12,X(i))),H-B+5);});
   /* ligne : pleine entre deux valeurs saisies, pointillée si l'une est estimée */
   var prev=null;
   S.forEach(function(x,i){
     if(x.def==null){prev=null;return;}
     if(prev){var real=prev.x.saisie&&!prev.x.estimated&&x.saisie&&!x.estimated;
-      g.strokeStyle=real?'rgba(240,239,236,.55)':'rgba(240,239,236,.3)';g.lineWidth=1.6;g.setLineDash(real?[]:[3,3]);
+      g.strokeStyle=real?TC('rgba(240,239,236,.55)'):TC('rgba(240,239,236,.3)');g.lineWidth=1.6;g.setLineDash(real?[]:[3,3]);
       g.beginPath();g.moveTo(X(prev.i),Y(prev.x.def));g.lineTo(X(i),Y(x.def));g.stroke();}
     prev={x:x,i:i};
   });
@@ -671,7 +703,7 @@ function deficitChart(S){
   S.forEach(function(x,i){
     if(x.def==null)return;var c=defColor(x.def),real=x.saisie&&!x.estimated;
     g.beginPath();g.arc(X(i),Y(x.def),real?3.4:3,0,Math.PI*2);
-    if(real){g.fillStyle=c;g.fill();}else{g.fillStyle='#1a1a22';g.fill();g.strokeStyle=c;g.lineWidth=1.6;g.stroke();}
+    if(real){g.fillStyle=c;g.fill();}else{g.fillStyle=TC('#1a1a22');g.fill();g.strokeStyle=c;g.lineWidth=1.6;g.stroke();}
     if(DEF_SEL===x.key){g.beginPath();g.arc(X(i),Y(x.def),7,0,Math.PI*2);g.strokeStyle='#fff';g.lineWidth=1.5;g.stroke();}
   });
 }
