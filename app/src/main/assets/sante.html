@@ -98,43 +98,6 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
 .nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:1px;padding:3px 2px;cursor:pointer;border:none;background:none;color:#6b6a75;font-size:9px;font-weight:600}
 .nav-btn.active{color:var(--acc)}
 .nav-btn span{font-size:15px}
-/* v6.3 — Balance Xiaomi S400 */
-.s4grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:10px}
-.s4t{background:#0f0f13;border-radius:10px;padding:8px 6px;text-align:center;cursor:pointer;min-width:0}
-.s4t:active{filter:brightness(1.3)}
-.s4l{font-size:9.5px;color:var(--t3);text-transform:uppercase;letter-spacing:.3px;line-height:1.2;min-height:23px;display:flex;align-items:center;justify-content:center}
-.s4v{font-size:16px;font-weight:800;font-variant-numeric:tabular-nums;margin-top:3px;white-space:nowrap}
-.s4v small{font-size:10px;font-weight:600;color:var(--t3);margin-left:2px}
-.s4s{display:inline-block;margin-top:4px;font-size:9.5px;font-weight:700;padding:1px 7px;border-radius:20px;border:1px solid}
-.s4d{font-size:9.5px;color:var(--t3);margin-top:2px;font-variant-numeric:tabular-nums}
-#s400-empty{font-size:12.5px;color:var(--t2);line-height:1.5;margin-top:8px}
-#s400-toast{display:none;margin-top:10px;padding:9px 12px;border-radius:10px;background:rgba(78,205,196,.12);border:1px solid rgba(78,205,196,.45);color:var(--ok);font-size:12px;font-weight:700;line-height:1.4}
-.s4ov{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.6);display:none;align-items:flex-end;justify-content:center}
-.s4ov.show{display:flex}
-.s4box{background:var(--card);width:100%;max-width:430px;max-height:92vh;border-radius:18px 18px 0 0;display:flex;flex-direction:column;border-top:1px solid var(--bd)}
-.s4hd{padding:14px 16px 10px;font-size:15px;font-weight:800;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--bd)}
-.s4hd button{border:none;background:none;color:var(--t3);font-size:20px;cursor:pointer}
-.s4bd{overflow-y:auto;padding:10px 16px}
-.s4ft{display:flex;flex-direction:column;gap:0;padding:6px 16px 16px;border-top:1px solid var(--bd)}
-.s4row{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--bd)}
-.s4row label{flex:1;font-size:12.5px;color:var(--t2);font-weight:600}
-.s4row input{width:92px;background:#0f0f13;border:1px solid var(--bd);border-radius:8px;color:#fff;font-size:15px;font-weight:700;padding:6px 8px;text-align:right;font-variant-numeric:tabular-nums}
-.s4row input[type=date]{width:150px;font-size:13px;text-align:left}
-.s4row input:focus{outline:none;border-color:var(--acc)}
-.s4row.miss input{border-color:rgba(249,168,37,.6)}
-.s4u{width:30px;font-size:10.5px;color:var(--t3)}
-.s4tag{width:46px;font-size:9.5px;font-weight:700;text-align:center;color:var(--ok)}
-.s4tag.calc{color:var(--acc2)}.s4tag.none{color:var(--warn)}
-.s4q{font-size:12.5px;font-weight:700;color:var(--ok);background:rgba(78,205,196,.1);border-radius:10px;padding:9px 11px;margin-bottom:8px;line-height:1.45}
-.s4q.warn{color:var(--warn);background:rgba(249,168,37,.1)}
-.s4q small{font-weight:600;color:var(--t2)}
-.s4raw{margin-top:10px;font-size:11px;color:var(--t3)}
-.s4raw pre{white-space:pre-wrap;font-size:10.5px;color:var(--t2);background:#0f0f13;border-radius:8px;padding:8px;margin-top:6px;max-height:200px;overflow:auto}
-.s4busy{text-align:center;padding:36px 10px;color:var(--t2);font-size:14px;font-weight:700}
-.s4busy small{display:block;font-size:11px;color:var(--t3);font-weight:600;margin-top:4px}
-.s4busy .spin{width:34px;height:34px;margin:0 auto 14px;border-radius:50%;border:3px solid var(--bd);border-top-color:var(--acc);border-right-color:var(--acc2);animation:spin .8s linear infinite}
-#s4c-svg{width:100%;height:150px;display:block;margin-top:6px}
-#s4c-info{font-size:12px;color:var(--t2);line-height:1.5;margin:8px 0 4px}
 </style>
 </head>
 <body>
@@ -251,31 +214,6 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
       <div class="bars" id="steps-bars" style="height:90px"></div>
     </div>
 
-    <!-- v6.3 — Balance Xiaomi S400 (capture Xiaomi Home lue par OCR) -->
-    <div class="card" id="s400-card">
-      <div class="card-title">⚖️ Balance S400 <b id="s400-date"></b></div>
-      <button class="btn btn-main" style="margin-top:0" onclick="s400Import()">📷 Importer une capture</button>
-      <div id="s400-empty">Aucune pesée importée. Dans <b>Xiaomi Home</b> → rapport de pesée → capture longue → <b>Partager</b> → <b>Callisthénie</b>. Ou touche le bouton ci-dessus pour choisir la capture.</div>
-      <div class="s4grid" id="s400-grid"></div>
-      <div id="s400-toast"></div>
-      <div class="note">Lecture hors ligne sur le téléphone. Le poids est ajouté automatiquement à l'onglet Poids. Touche une tuile pour sa courbe sur 30 jours.</div>
-    </div>
-
-    <!-- Composition corporelle -->
-    <div class="card">
-      <div class="card-title">⚖️ Composition corporelle</div>
-      <div class="row">
-        <div class="mini"><div class="mini-l">Poids</div><div class="mini-v" id="c-weight">—</div><div class="mini-s" id="c-weight-d">kg</div></div>
-        <div class="mini"><div class="mini-l">Masse grasse</div><div class="mini-v" id="c-fat">—</div><div class="mini-s" id="c-fat-d">%</div></div>
-      </div>
-      <div class="row" style="margin-top:8px">
-        <div class="mini"><div class="mini-l">Masse maigre</div><div class="mini-v" id="c-lean">—</div><div class="mini-s" id="c-lean-d">kg</div></div>
-        <div class="mini"><div class="mini-l">Métabolisme</div><div class="mini-v" id="c-bmr">—</div><div class="mini-s">kcal / jour</div></div>
-      </div>
-      <svg class="wchart" id="w-chart" viewBox="0 0 320 90" preserveAspectRatio="none"></svg>
-      <div class="track-l" id="w-chart-l" style="margin-top:4px"><span>Poids · 30 jours (Health Connect)</span><span id="w-chart-r"></span></div>
-    </div>
-
     <!-- Sommeil -->
     <div class="card">
       <div class="card-title">🌙 Sommeil</div>
@@ -287,47 +225,10 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
       <div class="bars" id="sl-bars" style="height:90px"></div>
     </div>
 
-    <!-- Bilan déficit -->
-    <div class="card">
-      <div class="card-title">📉 Bilan déficit <b>aujourd'hui</b></div>
-      <div class="line"><span>Calories brûlées aujourd'hui (montre)</span><span id="d-tdee">—</span></div>
-      <div class="note">La dépense de la montre inclut déjà le métabolisme de base et s'accumule au fil de la journée : le chiffre est complet le soir.</div>
-      <div class="note" style="color:var(--t2)">✏️ Saisis tes calories consommées dans la section 📉 Déficit plus haut.</div>
-      <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--bd)">
-        <div class="mini-l" style="text-align:left">Contrôle : déficit moyen d'après la courbe de poids</div>
-        <div class="deficit-v" id="d-def" style="font-size:22px">—</div>
-        <div class="note" id="d-note">Il faut au moins 2 pesées espacées de 7 jours sur les 30 derniers jours.</div>
-      </div>
-      <div class="note">Repère : 1 kg de graisse ≈ 7 700 kcal. Un déficit de 500 kcal/jour ≈ −0,5 kg/semaine.</div>
-    </div>
   </div>
 </div>
 
 <div id="tip"></div>
-
-<!-- v6.3 — Fiche de vérification S400 -->
-<div class="s4ov" id="s4v">
-  <div class="s4box">
-    <div class="s4hd">📷 Vérifier la pesée S400<button onclick="s400Cancel()">✕</button></div>
-    <div class="s4bd" id="s4v-body"></div>
-    <div class="s4ft" id="s4v-actions" style="display:none">
-      <button class="btn btn-main" id="s4v-save" onclick="s400Save()">Enregistrer</button>
-      <button class="btn btn-sec" id="s4v-retry" onclick="s400Retry()">Réessayer avec une meilleure résolution</button>
-      <button class="btn btn-sec" onclick="s400Cancel()">Annuler</button>
-    </div>
-  </div>
-</div>
-<!-- v6.3 — Courbe 30 jours d'un indicateur S400 -->
-<div class="s4ov" id="s4c" onclick="if(event.target===this)this.classList.remove('show')">
-  <div class="s4box">
-    <div class="s4hd"><span id="s4c-title"></span><button onclick="$('s4c').classList.remove('show')">✕</button></div>
-    <div class="s4bd" style="padding-bottom:20px">
-      <svg id="s4c-svg" viewBox="0 0 320 145" preserveAspectRatio="none"></svg>
-      <div id="s4c-info"></div>
-      <div class="note">Évolution sur 30 jours · source : captures Balance S400 importées.</div>
-    </div>
-  </div>
-</div>
 
 <div id="bottom-nav">
   <button class="nav-btn" onclick="navTo('programme')"><span>🏋️</span>Programme</button>
@@ -510,26 +411,6 @@ function kcalTip(b){
           ['Total',k.length?fmt(sum(k))+' kcal':'—']]};
 }
 
-/* Mini courbe de poids (SVG) */
-function weightChart(ws){
-  var svg=$('w-chart');if(!svg)return;
-  if(ws.length<2){svg.innerHTML='<text x="160" y="50" text-anchor="middle" fill="#6b6a75" font-size="12">Pas assez de pesées dans Health Connect</text>';$('w-chart-r').textContent='';return;}
-  var t0=Date.now()-30*864e5,t1=Date.now();
-  var ks=ws.map(function(w){return w.kg;}),mn=Math.min.apply(null,ks),mx=Math.max.apply(null,ks);
-  if(mx-mn<1){var c=(mx+mn)/2;mn=c-0.5;mx=c+0.5;}
-  var pad=(mx-mn)*0.15;mn-=pad;mx+=pad;
-  function X(t){return 6+(t-t0)/(t1-t0)*308;}function Y(k){return 6+(mx-k)/(mx-mn)*78;}
-  var pts=ws.map(function(w){return X(w.t).toFixed(1)+','+Y(w.kg).toFixed(1);}).join(' ');
-  var area='M'+X(ws[0].t).toFixed(1)+',84 L'+pts.split(' ').join(' L')+' L'+X(ws[ws.length-1].t).toFixed(1)+',84 Z';
-  var h='<defs><linearGradient id="wg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F9A825" stop-opacity=".35"/><stop offset="1" stop-color="#F9A825" stop-opacity="0"/></linearGradient></defs>'
-    +'<path d="'+area+'" fill="url(#wg)"/>'
-    +'<polyline points="'+pts+'" fill="none" stroke="#F9A825" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/>';
-  var l=ws[ws.length-1];h+='<circle cx="'+X(l.t).toFixed(1)+'" cy="'+Y(l.kg).toFixed(1)+'" r="3.5" fill="#F9A825"/>';
-  svg.innerHTML=h;
-  var dk=l.kg-ws[0].kg;
-  $('w-chart-r').innerHTML='<span style="color:'+(dk<=0?'var(--ok)':'var(--warn)')+';font-weight:700">'+(dk<=0?'−':'+')+fmt1(Math.abs(dk))+' kg</span> · min '+fmt1(Math.min.apply(null,ks))+' / max '+fmt1(Math.max.apply(null,ks));
-}
-
 /* Régression linéaire : pente en kg/jour */
 function slopePerDay(pts){
   if(pts.length<2)return null;
@@ -579,7 +460,7 @@ const HISTORIQUE_BASE = [
   {date:'Sat Oct 10 2026', conso:2362, brulees:3034, estimated:false},
   {date:'Sun Oct 11 2026', conso:2362, brulees:2652, estimated:false},
   {date:'Wed Oct 14 2026', conso:1697, brulees:2157, estimated:false},
-  {date:'Thu Oct 15 2026', conso:2000, brulees:3000, estimated:true},
+  {date:'Thu Oct 15 2026', conso:1636, brulees:2797, estimated:false},
   // ⚠️ Une entrée datée d'aujourd'hui est ignorée (Health Connect en temps réel) et ajoutée à partir du lendemain
 ];
 const HISTORIQUE_PRECHARGE = HISTORIQUE_BASE.filter(function(e){return e.date!==new Date().toDateString();}); // sécurité supplémentaire
@@ -815,7 +696,7 @@ function render(d){
   if(d.status==='unavailable'){showBanner("Health Connect n'est pas disponible sur ce téléphone. Installe l'appli Health Connect depuis le Play Store, puis reviens ici.",'Réessayer',refresh);return;}
   if(d.status==='update_required'){showBanner("Health Connect doit être mis à jour depuis le Play Store.",'Réessayer',refresh);return;}
   if(d.status==='error'){showBanner('Erreur de lecture Health Connect : '+(d.message||''),'Réessayer',refresh);return;}
-  if(d.status==='denied'){showBanner("Autorise Callisthénie à lire tes données (calories, pas, poids, composition, cœur, sommeil) dans Health Connect.",'Autoriser',function(){try{HealthBridge.askPermissions();}catch(e){}});return;}
+  if(d.status==='denied'){showBanner("Autorise Callisthénie à lire tes données (calories, pas, cœur, sommeil) dans Health Connect.",'Autoriser',function(){try{HealthBridge.askPermissions();}catch(e){}});return;}
   var nReq=d.requested||11,nOk=d.grantedCount!=null?d.grantedCount:(d.granted||[]).length;
   if(nOk<nReq)showBanner('Certaines données ne sont pas autorisées ('+nOk+'/'+nReq+'). Tu peux les activer dans Health Connect.','Autoriser le reste',function(){try{HealthBridge.askPermissions();}catch(e){}});
   else hideBanner();
@@ -858,18 +739,6 @@ function render(d){
   $('fl-avg').textContent=fv.length?fmt1(avg(fv)):'—';
   bars($('steps-bars'),B.map(function(b){return {key:b.key,lbl:b.lbl,v:avg(vals(b.days,'steps'))};}),'linear-gradient(180deg,#64B5F6,#42A5F5)',0,
     function(v){return v>=1000?(Math.round(v/100)/10).toLocaleString('fr-FR')+'k':Math.round(v);});
-
-  /* ── Composition ── */
-  var ws=(d.weights||[]).map(function(w){return {t:new Date(w.t).getTime(),kg:w.kg};});
-  var lw=ws.length?ws[ws.length-1]:null;
-  $('c-weight').textContent=lw?fmt1(lw.kg):'—';
-  $('c-weight-d').textContent=lw?'kg · '+ago(new Date(lw.t).toISOString()):'kg';
-  $('c-fat').textContent=d.bodyFat?fmt1(d.bodyFat.pct):'—';
-  $('c-fat-d').textContent=d.bodyFat?'% · '+ago(d.bodyFat.t):'%';
-  $('c-lean').textContent=d.leanMass?fmt1(d.leanMass.kg):'—';
-  $('c-lean-d').textContent=d.leanMass?'kg · '+ago(d.leanMass.t):'kg';
-  $('c-bmr').textContent=d.bmr?fmt(d.bmr.kcal):'—';
-  weightChart(ws);
 
   /* ── Déficit ── */
   storeBurned(days);
@@ -917,18 +786,6 @@ function render(d){
   $('sl-avg').textContent=nv.length?hm(nv.reduce(function(s,n){return s+n.v;},0)/nv.length):'—';
   bars($('sl-bars'),nights,'linear-gradient(180deg,#B39DDB,#9575CD)',0,hm);
 
-  /* ── Déficit ── */
-  $('d-tdee').textContent=t.kcal!=null?fmt(t.kcal)+' kcal':'—';
-  var src='Health Connect',pts=ws;
-  if(!slopePerDay(pts)){pts=localWeights();src='onglet Poids';}
-  var r=slopePerDay(pts);
-  if(r){
-    var perWeek=r.slope*7,def=-r.slope*KCAL_PER_KG;
-    $('d-def').textContent=(def>=0?'≈ −':'≈ +')+fmt(Math.abs(def))+' kcal/j';
-    $('d-def').style.color=def>=0?'var(--ok)':'var(--warn)';
-    $('d-note').textContent='Tendance '+(perWeek<=0?'':'+')+fmt1(perWeek).replace('-','−')+' kg/semaine sur '+Math.round(r.span)+' jours ('+r.n+' pesées, source : '+src+').'
-      +(def<0?' Surplus calorique : la courbe remonte.':'');
-  }else{$('d-def').textContent='—';$('d-def').style.color='';}
 }
 
 (function(){
@@ -972,329 +829,6 @@ function initPullToRefresh(){
     else hideRefreshIndicator();
   });
 }
-</script>
-<script>
-/* ═════════ v6.3 — Balance Xiaomi S400 : import de capture (OCR ML Kit) ═════════
-   Historique : localStorage 's400_hist' (+ copie préférences Android) = [{date:'AAAA-MM-JJ', saved:ISO, v:{clé:valeur}, calc:[clés calculées]}]
-   Le poids est aussi ajouté à l'onglet Poids (localStorage 'pesees_v3'), courbe existante intacte. */
-var S400_KEY='s400_hist',S400_TAILLE=1.89,S400_AGE=47;
-/* Indicateurs (ordre des 19 tuiles).
-   syn : libellés possibles dans Xiaomi Home (sans accents, minuscules) ; kind : 'pct' | 'kg' | autre (unité)
-   ok : plage de validité de la lecture ; ref : plage « Standard » ; good : sens favorable (-1 baisse, +1 hausse, 0 neutre) */
-var S400_DEF=[
-  {k:'poids', l:'Poids',               u:'kg',  d:1, kind:'kg',  ok:[30,250], good:-1, syn:['poids','weight']},
-  {k:'imc',   l:'IMC',                 u:'',    d:1, kind:'n',   ok:[10,60],  good:-1, ref:[18.5,25], syn:['imc','bmi','indice de masse corporelle']},
-  {k:'grasP', l:'% graisse',           u:'%',   d:1, kind:'pct', fam:'gras', ok:[3,70], good:-1, ref:[11,22], syn:['graisse corporelle','taux de graisse','taux de masse grasse','pourcentage de graisse','body fat','graisse']},
-  {k:'grasK', l:'Masse grasse',        u:'kg',  d:1, kind:'kg',  fam:'gras', ok:[1,150], good:-1, syn:['masse grasse','masse de graisse','graisse corporelle','graisse']},
-  {k:'muscP', l:'% muscle',            u:'%',   d:1, kind:'pct', fam:'musc', ok:[20,95], good:1, syn:['taux de muscle','taux musculaire','pourcentage musculaire','pourcentage de muscle']},
-  {k:'muscK', l:'Masse musculaire',    u:'kg',  d:1, kind:'kg',  fam:'musc', ok:[10,150], good:1, syn:['masse musculaire','muscle','muscles']},
-  {k:'eauP',  l:'% eau',               u:'%',   d:1, kind:'pct', fam:'eau', ok:[30,80], good:1, ref:[55,65], syn:['taux d eau','teneur en eau','eau corporelle','hydratation','pourcentage d eau','eau']},
-  {k:'eauK',  l:'Masse d\'eau',        u:'kg',  d:1, kind:'kg',  fam:'eau', ok:[10,120], good:1, syn:['masse d eau','masse hydrique','quantite d eau','eau corporelle','eau']},
-  {k:'protK', l:'Masse protéique',     u:'kg',  d:1, kind:'kg',  fam:'prot', ok:[3,40], good:1, syn:['masse proteique','masse de proteines']},
-  {k:'osK',   l:'Masse osseuse',       u:'kg',  d:1, kind:'kg',  ok:[0.5,9], good:0, syn:['masse osseuse','os','masse des os','mineraux osseux']},
-  {k:'visc',  l:'Graisse viscérale',   u:'',    d:0, kind:'n',   ok:[1,59], good:-1, ref:[1,9], syn:['graisse viscerale','indice de graisse viscerale','niveau de graisse viscerale','visceral','viscerale']},
-  {k:'bmr',   l:'Métabolisme de base', u:'kcal',d:0, kind:'kcal',ok:[800,4500], good:1, syn:['metabolisme de base','metabolisme basal','taux metabolique de base','metabolisme','bmr']},
-  {k:'age',   l:'Âge corporel',        u:'ans', d:0, kind:'ans', ok:[10,99], good:-1, ref:[10,S400_AGE], syn:['age corporel','age du corps','age metabolique','age physique']},
-  {k:'pouls', l:'Pouls',               u:'bpm', d:0, kind:'bpm', ok:[30,200], good:-1, ref:[50,90], syn:['frequence cardiaque','rythme cardiaque','pouls','battements']},
-  {k:'score', l:'Score corporel',      u:'pts', d:0, kind:'n',   ok:[1,100], good:1, syn:['score corporel','score de composition','note corporelle','score sante','score']},
-  {k:'squelK',l:'Masse squelettique',  u:'kg',  d:1, kind:'kg',  ok:[10,80], good:1, syn:['masse musculaire squelettique','muscle squelettique','muscles squelettiques','masse squelettique','squelettique']},
-  {k:'minP',  l:'% minéraux',          u:'%',   d:1, kind:'pct', fam:'min', ok:[1,12], good:0, syn:['sels mineraux','taux de mineraux','mineraux','mineral']},
-  {k:'whr',   l:'Rapport taille/hanche',u:'',   d:2, kind:'n',   ok:[0.5,1.5], good:-1, ref:[0.5,0.9], syn:['rapport taille hanche','rapport taille hanches','ratio taille hanche','taille hanche','taille hanches','whr']},
-  {k:'ffm',   l:'Poids sans graisse',  u:'kg',  d:1, kind:'kg',  ok:[20,200], good:1, syn:['poids sans graisse','masse maigre','masse non grasse','poids hors graisse','masse sans graisse','poids maigre']}
-];
-var S400_BY={};S400_DEF.forEach(function(x){S400_BY[x.k]=x;});
-/* Familles % / kg : un même libellé peut porter un % ou des kg — l'unité lue tranche */
-var S400_FAM={gras:{pct:'grasP',kg:'grasK'},musc:{pct:'muscP',kg:'muscK'},eau:{pct:'eauP',kg:'eauK'},prot:{pct:'protP',kg:'protK'},min:{pct:'minP',kg:'minK'}};
-
-function s400Norm(s){return String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[’'`]/g,' ').replace(/[^a-z0-9%.,/ ]+/g,' ').replace(/\s+/g,' ').trim();}
-/* Libellés à ne jamais confondre avec un indicateur (cibles, conseils, en-têtes) */
-var S400_STOP=['ideal','objectif','cible','controle','a perdre','a gagner','recommande','standard :','plage','historique','tendance','derniere','precedent','evaluation'];
-/* Nombres d'une ligne : [{v, unit, i}] — ignore dates (14/10), heures (08:15) et années */
-function s400Nums(t){
-  var out=[],s=String(t||'').replace(/(\d)\s+([.,])\s*(\d)/g,'$1$2$3').replace(/\b(\d{1,2})[\s\u00a0\u202f](\d{3})\b/g,'$1$2'),re=/(\d{1,4}(?:[.,]\d{1,2})?)\s*(%|kg|kcal|bpm|ans|an\b|pts|points|cal\b)?/gi,m;
-  while((m=re.exec(s))){
-    var before=s.charAt(m.index-1),after=s.charAt(m.index+m[1].length);
-    if(before==='/'||before===':'||after==='/'||after===':'||after==='h'&&/\d/.test(s.charAt(m.index+m[1].length+1)))continue;
-    var v=parseFloat(m[1].replace(',','.'));if(isNaN(v))continue;
-    var u=(m[2]||'').toLowerCase();if(u==='an')u='ans';if(u==='points')u='pts';
-    out.push({v:v,unit:u,i:m.index});
-  }
-  return out;
-}
-/* Trouve dans une ligne le libellé d'indicateur le plus long ; renvoie {fam|k, end} */
-var S400_SYN=(function(){var a=[];S400_DEF.forEach(function(x){x.syn.forEach(function(s){a.push({s:s,k:x.k});});});
-  ['proteines','proteine','taux de proteines','taux proteique'].forEach(function(s){a.push({s:s,k:'protP'});});
-  return a.sort(function(p,q){return q.s.length-p.s.length;});})();
-function s400Label(n){
-  n=n.replace(/\//g,' ');
-  for(var i=0;i<S400_STOP.length;i++)if(n.indexOf(S400_STOP[i])>=0)return null;
-  for(var j=0;j<S400_SYN.length;j++){
-    var s=S400_SYN[j].s,re=new RegExp('(^|[^a-z])'+s.replace(/[.*+?^${}()|[\]\\\/]/g,'\\$&')+'($|[^a-z])'),m=re.exec(n);
-    if(m){var k=S400_SYN[j].k;
-      if(k==='poids'&&/sans graisse|hors graisse|maigre/.test(n))continue;
-      return {k:k,end:m.index+m[0].length};}
-  }
-  return null;
-}
-/* Choisit la clé finale selon l'unité lue (famille % / kg) et vérifie la plage */
-function s400Accept(k,num){
-  var d=S400_BY[k],fam=d&&d.fam?S400_FAM[d.fam]:null;
-  if(k==='protP')fam=S400_FAM.prot;
-  if(fam){
-    if(num.unit==='%')k=fam.pct;else if(num.unit==='kg')k=fam.kg;
-    else if(k==='protP')k=fam.pct;
-  }else if(d){
-    if(num.unit==='%'&&d.kind!=='pct')return null;
-    if(num.unit==='kg'&&d.kind!=='kg')return null;
-    if(num.unit==='kcal'&&d.kind!=='kcal')return null;
-    if(num.unit==='bpm'&&d.kind!=='bpm')return null;
-  }
-  var dd=S400_BY[k],ok=dd?dd.ok:(k==='protP'?[5,35]:k==='minK'?[0.5,10]:null);
-  if(!ok||num.v<ok[0]||num.v>ok[1])return null;
-  return k;
-}
-/* Analyse OCR : lines = [{t,x,y,w,h}] (coordonnées image) → {v:{clé:valeur}, found:n, date} */
-function s400Parse(lines){
-  var L=(lines||[]).filter(function(l){return l&&l.t&&String(l.t).trim();}).map(function(l,i){
-    return {i:i,t:String(l.t),n:s400Norm(l.t),x:+l.x||0,y:+l.y||0,w:+l.w||0,h:Math.max(8,+l.h||0),nums:s400Nums(l.t),used:{}};
-  }).sort(function(a,b){return a.y-b.y||a.x-b.x;});
-  var res={},src={},used={};
-  function free(line,j){return !used[line.i+':'+j];}
-  function take(k,line,j,num){var kk=s400Accept(k,num);if(!kk||res[kk]!=null)return false;res[kk]=num.v;src[kk]=line.t;used[line.i+':'+j]=1;return true;}
-  function tryLine(k,line,fromIdx){
-    for(var j=0;j<line.nums.length;j++){var nm=line.nums[j];if(fromIdx!=null&&nm.i<fromIdx)continue;if(!free(line,j))continue;if(take(k,line,j,nm))return true;}
-    return false;
-  }
-  var labels=[];
-  L.forEach(function(line){var lb=s400Label(line.n);if(lb)labels.push({line:line,k:lb.k,end:lb.end});});
-  /* Passe 1 : valeur sur la même ligne OCR, après le libellé */
-  var pend=[];
-  labels.forEach(function(lb){
-    var idx=0,raw=lb.line.t,nn=0; // position approximative de la fin du libellé dans le texte brut
-    idx=Math.min(raw.length,Math.max(0,Math.round(lb.end*raw.length/Math.max(1,lb.line.n.length))-2));
-    if(!tryLine(lb.k,lb.line,idx))pend.push(lb);
-  });
-  /* Passe 2 : même rangée à droite, puis valeur sous le libellé OU au-dessus (présentation en grille).
-     Les deux sens sont essayés ; on garde celui qui lit le plus de valeurs avec les écarts les plus courts. */
-  function pass2(aboveFirst){
-    var r=Object.assign({},res),s=Object.assign({},src),u=Object.assign({},used),dist=0,n=0;
-    function tk(k,line,dy){
-      for(var j=0;j<line.nums.length;j++){if(u[line.i+':'+j])continue;var kk=s400Accept(k,line.nums[j]);
-        if(!kk||r[kk]!=null)continue;r[kk]=line.nums[j].v;s[kk]=line.t;u[line.i+':'+j]=1;dist+=dy;n++;return true;}
-      return false;
-    }
-    pend.forEach(function(lb){
-      var a=lb.line,cy=a.y+a.h/2,cand=[];
-      L.forEach(function(b){
-        if(b===a||!b.nums.length||s400Label(b.n))return;
-        var bcy=b.y+b.h/2,hh=Math.max(a.h,b.h),dx=b.x-(a.x+a.w),ox=Math.min(a.x+a.w,b.x+b.w)-Math.max(a.x,b.x);
-        if(Math.abs(bcy-cy)<hh*0.7&&b.x>a.x)cand.push({b:b,s:Math.abs(dx)/4,dy:0});                       // même rangée, à droite
-        else if(bcy>cy&&bcy-cy<hh*3.2&&ox>-a.h*2)cand.push({b:b,s:(aboveFirst?2000:1000)+(bcy-cy),dy:bcy-cy}); // en dessous
-        else if(bcy<cy&&cy-bcy<hh*3.2&&ox>-a.h*2)cand.push({b:b,s:(aboveFirst?1000:2000)+(cy-bcy),dy:cy-bcy}); // au-dessus
-      });
-      cand.sort(function(p,q){return p.s-q.s;});
-      for(var c=0;c<cand.length;c++)if(tk(lb.k,cand[c].b,cand[c].dy))return;
-    });
-    return {r:r,s:s,n:n,dist:n?dist/n:0};
-  }
-  var pb=pass2(false),pa=pass2(true),best=pa.n>pb.n||(pa.n===pb.n&&pa.dist<pb.dist)?pa:pb;
-  res=best.r;src=best.s;
-  /* Date de la pesée */
-  var date=null,all=L.map(function(l){return l.n;}).join(' | ');
-  var MO={janv:1,jan:1,fevr:2,fev:2,mars:3,mar:3,avr:4,avril:4,mai:5,juin:6,juil:7,aout:8,sept:9,sep:9,oct:10,nov:11,dec:12};
-  var m,re1=/(20\d\d)[\/\-](\d{1,2})[\/\-](\d{1,2})/g,re2=/(\d{1,2})[\/\-.](\d{1,2})(?:[\/\-.](20\d\d|\d\d)\b)?/g;
-  while(!date&&(m=re1.exec(all)))if(+m[2]>=1&&+m[2]<=12&&+m[3]>=1&&+m[3]<=31)date=m[1]+'-'+m[2].padStart(2,'0')+'-'+m[3].padStart(2,'0');
-  while(!date&&(m=re2.exec(all))){
-    var sep=all.charAt(m.index+m[1].length);if(sep==='.'&&!m[3])continue; // « 90.5 » n'est pas une date
-    var y=m[3]?(m[3].length===2?'20'+m[3]:m[3]):String(new Date().getFullYear());
-    if(+m[2]>=1&&+m[2]<=12&&+m[1]>=1&&+m[1]<=31)date=y+'-'+m[2].padStart(2,'0')+'-'+m[1].padStart(2,'0');}
-  if(!date&&(m=/\b(\d{1,2}) (janv|jan|fevr|fev|mars|mar|avril|avr|mai|juin|juil|aout|sept|sep|oct|nov|dec)[a-z]*\.?(?: (20\d\d))?/.exec(all)))
-    date=(m[3]||new Date().getFullYear())+'-'+String(MO[m[2]]).padStart(2,'0')+'-'+m[1].padStart(2,'0');
-  if(date&&(new Date(date+'T12:00:00')>new Date(Date.now()+864e5)||isNaN(new Date(date+'T12:00:00'))))date=null;
-  var found=S400_DEF.filter(function(d){return res[d.k]!=null;}).length;
-  return {v:res,src:src,found:found,date:date};
-}
-/* Complète les valeurs manquantes à partir des autres (marquées « calculé ») */
-function s400Derive(v){
-  var c=[],P=v.poids;function r1(x){return Math.round(x*10)/10;}
-  function set(k,val){if(v[k]==null&&val!=null&&isFinite(val)){v[k]=k==='whr'?Math.round(val*100)/100:k==='visc'||k==='bmr'||k==='age'?Math.round(val):r1(val);c.push(k);}}
-  if(P){
-    set('imc',P/(S400_TAILLE*S400_TAILLE));
-    if(v.grasP!=null)set('grasK',P*v.grasP/100);
-    if(v.grasK!=null)set('grasP',v.grasK/P*100);
-    if(v.grasK!=null)set('ffm',P-v.grasK);
-    if(v.ffm!=null){set('grasK',P-v.ffm);set('grasP',(P-v.ffm)/P*100);}
-    if(v.muscK!=null)set('muscP',v.muscK/P*100);
-    if(v.muscP!=null)set('muscK',P*v.muscP/100);
-    if(v.eauP!=null)set('eauK',P*v.eauP/100);
-    if(v.eauK!=null)set('eauP',v.eauK/P*100);
-    if(v.protP!=null)set('protK',P*v.protP/100);
-    if(v.minK!=null)set('minP',v.minK/P*100);
-  }
-  delete v.protP;delete v.minK;
-  return c;
-}
-
-/* ── Stockage ── */
-function s400Load(){
-  var a=null;try{a=JSON.parse(localStorage.getItem(S400_KEY));}catch(e){}
-  if(!a||!a.length){try{if(window.App&&App.getPref){var p=App.getPref(S400_KEY);if(p)a=JSON.parse(p);}}catch(e){}}
-  return (a||[]).filter(function(x){return x&&x.date&&x.v;}).sort(function(p,q){return p.date.localeCompare(q.date);});
-}
-function s400Store(a){var s=JSON.stringify(a);try{localStorage.setItem(S400_KEY,s);}catch(e){}try{if(window.App&&App.setPref)App.setPref(S400_KEY,s);}catch(e){}}
-/* Ajoute / met à jour la pesée dans l'onglet Poids (même format que poids.html) */
-function s400ToPoids(date,kg){
-  try{
-    var a=JSON.parse(localStorage.getItem('pesees_v3')||'[]')||[];
-    var i=a.findIndex(function(p){return p.date===date&&!p.lbl;});
-    if(i>=0)a[i].poids=kg;else a.push({date:date,poids:kg});
-    a.sort(function(p,q){return p.date.localeCompare(q.date);});
-    localStorage.setItem('pesees_v3',JSON.stringify(a));
-  }catch(e){}
-}
-
-/* ── Formatage / statuts ── */
-function s400Fmt(k,v){var d=S400_BY[k];if(v==null||isNaN(v))return '—';
-  return Number(v).toLocaleString('fr-FR',{minimumFractionDigits:d.d,maximumFractionDigits:d.d});}
-function s400Status(k,v,prev){
-  var d=S400_BY[k];
-  if(d.ref){if(v>d.ref[1])return {t:'Élevé',c:'#F9A825'};if(v<d.ref[0])return {t:'Bas',c:'#F9A825'};}
-  if(prev!=null){var eps=d.d===0?0.5:d.d===2?0.005:0.05,dv=v-prev;
-    if(Math.abs(dv)>=eps){var up=dv>0,fav=d.good===0?null:(up?d.good>0:d.good<0);
-      return {t:up?'En hausse':'En baisse',c:fav==null?'#b0aeb8':fav?'#4ECDC4':'#FF7043'};}}
-  return {t:'Standard',c:'#4ECDC4'};
-}
-
-/* ── Carte Balance S400 ── */
-function renderS400(){
-  var H=s400Load(),grid=$('s400-grid');if(!grid)return;
-  var last=H[H.length-1],prev=H.length>1?H[H.length-2]:null;
-  if(!last){
-    $('s400-date').textContent='';
-    grid.innerHTML='';
-    $('s400-empty').style.display='block';
-    return;
-  }
-  $('s400-empty').style.display='none';
-  var dt=new Date(last.date+'T12:00:00');
-  $('s400-date').textContent=JOURS_L[dt.getDay()]+' '+dd(dt)+' · '+ago(dt.toISOString());
-  var h='';
-  S400_DEF.forEach(function(d){
-    var v=last.v[d.k],pv=prev?prev.v[d.k]:null,st=v!=null?s400Status(d.k,v,pv):null;
-    var dl=v!=null&&pv!=null?v-pv:null,calc=(last.calc||[]).indexOf(d.k)>=0;
-    h+='<div class="s4t" onclick="s400Curve(\''+d.k+'\')">'
-      +'<div class="s4l">'+d.l+'</div>'
-      +'<div class="s4v">'+s400Fmt(d.k,v)+(v!=null&&d.u?'<small>'+d.u+'</small>':'')+'</div>'
-      +(st?'<div class="s4s" style="color:'+st.c+';border-color:'+st.c+'55">'+st.t+'</div>':'<div class="s4s" style="color:var(--t3)">—</div>')
-      +(dl!=null&&Math.abs(dl)>0?'<div class="s4d">'+(dl>0?'+':'−')+s400Fmt(d.k,Math.abs(dl))+(calc?' · calc.':'')+'</div>':(calc?'<div class="s4d">calculé</div>':''))
-      +'</div>';
-  });
-  grid.innerHTML=h;
-}
-
-/* ── Courbe 30 jours d'un indicateur ── */
-function s400Curve(k){
-  var d=S400_BY[k],lim=Date.now()-30*864e5;
-  var pts=s400Load().filter(function(x){return x.v[k]!=null&&new Date(x.date+'T12:00:00').getTime()>=lim;})
-    .map(function(x){return {t:new Date(x.date+'T12:00:00').getTime(),v:+x.v[k],date:x.date};});
-  $('s4c-title').textContent=d.l+(d.u?' ('+d.u+')':'');
-  var svg=$('s4c-svg'),info=$('s4c-info');
-  if(!pts.length){svg.innerHTML='<text x="160" y="70" text-anchor="middle" fill="#6b6a75" font-size="12">Aucune mesure sur 30 jours</text>';info.textContent='';}
-  else{
-    var t0=lim,t1=Date.now(),vs=pts.map(function(p){return p.v;}),mn=Math.min.apply(null,vs),mx=Math.max.apply(null,vs);
-    var span=mx-mn,minSpan=Math.max(Math.abs(mx)*0.02,d.d===0?2:d.d===2?0.02:0.4);if(span<minSpan){var c=(mx+mn)/2;mn=c-minSpan/2;mx=c+minSpan/2;}
-    var pad=(mx-mn)*0.18;mn-=pad;mx+=pad;
-    function X(t){return 30+(t-t0)/(t1-t0)*282;}function Y(v){return 10+(mx-v)/(mx-mn)*110;}
-    var h='';
-    for(var g=0;g<=2;g++){var gv=mn+(mx-mn)*(0.15+0.35*g);h+='<line x1="30" x2="312" y1="'+Y(gv).toFixed(1)+'" y2="'+Y(gv).toFixed(1)+'" stroke="rgba(255,255,255,.07)"/><text x="26" y="'+(Y(gv)+3).toFixed(1)+'" text-anchor="end" fill="#6b6a75" font-size="9">'+s400Fmt(k,gv)+'</text>';}
-    if(d.ref&&d.ref[1]<mx&&d.ref[1]>mn)h+='<line x1="30" x2="312" y1="'+Y(d.ref[1]).toFixed(1)+'" y2="'+Y(d.ref[1]).toFixed(1)+'" stroke="#F9A825" stroke-dasharray="4 4" stroke-width="1"/>';
-    var pl=pts.map(function(p){return X(p.t).toFixed(1)+','+Y(p.v).toFixed(1);}).join(' ');
-    if(pts.length>1)h+='<polyline points="'+pl+'" fill="none" stroke="#26C6A0" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>';
-    pts.forEach(function(p,i){h+='<circle cx="'+X(p.t).toFixed(1)+'" cy="'+Y(p.v).toFixed(1)+'" r="'+(i===pts.length-1?4:3)+'" fill="'+(i===pts.length-1?'#42A5F5':'#26C6A0')+'"/>';});
-    [0,15,30].forEach(function(o){var t=t1-o*864e5;h+='<text x="'+Math.min(300,Math.max(40,X(t))).toFixed(1)+'" y="136" text-anchor="middle" fill="#6b6a75" font-size="9">'+dd(new Date(t))+'</text>';});
-    svg.innerHTML=h;
-    var f=pts[0],l=pts[pts.length-1],dv=l.v-f.v;
-    info.innerHTML=pts.length<2?'Une seule mesure pour l\'instant ('+dd(new Date(l.t))+') : la courbe se construit à chaque import.'
-      :'<b>'+(dv>=0?'+':'−')+s400Fmt(k,Math.abs(dv))+' '+d.u+'</b> sur '+(function(n){return n+(n>1?' jours':' jour');})(Math.max(1,Math.round((l.t-f.t)/864e5)))+' · '+pts.length+' mesures · min '+s400Fmt(k,Math.min.apply(null,vs))+' / max '+s400Fmt(k,Math.max.apply(null,vs));
-  }
-  $('s4c').classList.add('show');
-}
-
-/* ── Fiche de vérification ── */
-var S400_CUR=null;
-function s400Sheet(show){$('s4v').classList.toggle('show',!!show);}
-function s400Busy(msg){
-  s400Sheet(true);
-  $('s4v-body').innerHTML='<div class="s4busy"><div class="spin"></div><div>'+(msg||'Lecture de la capture…')+'</div><small>OCR hors ligne sur le téléphone</small></div>';
-  $('s4v-actions').style.display='none';
-}
-function s400Import(){
-  if(typeof window.CaptureBridge==='undefined'){alert('L\'import de capture n\'est disponible que dans l\'appli Android.');return;}
-  try{CaptureBridge.pickImage();}catch(e){}
-}
-function s400Retry(){try{CaptureBridge.retryHighRes();}catch(e){}}
-window.onCaptureData=function(d){
-  if(typeof d==='string'){try{d=JSON.parse(d);}catch(e){return;}}
-  if(!d)return;
-  if(d.status==='loading'){s400Busy(d.hi?'Nouvelle lecture en haute résolution…':'Lecture de la capture…');return;}
-  if(d.status!=='ok'){s400Sheet(true);
-    $('s4v-body').innerHTML='<div class="s4busy" style="color:#EF5350">⚠️ '+(d.message||'Erreur de lecture')+'</div>';
-    $('s4v-actions').style.display='flex';$('s4v-save').style.display='none';return;}
-  if(S400_CUR&&S400_CUR.id===d.id)return; // déjà affiché
-  var p=s400Parse(d.lines||[]),v=Object.assign({},p.v),calc=s400Derive(v);
-  S400_CUR={id:d.id,v:v,calc:calc,found:p.found,date:p.date||ld(new Date()),dateLu:!!p.date,hi:!!d.hi,w:d.width,lines:d.lines||[],src:p.src};
-  s400Fill();
-};
-function s400Fill(){
-  s400Sheet(true);
-  var c=S400_CUR,weak=c.found<12||(c.w&&c.w<800),h='';
-  h+='<div class="s4q'+(weak?' warn':'')+'">'+(weak?'⚠️ ':'✅ ')+c.found+' valeur'+(c.found>1?'s':'')+' lue'+(c.found>1?'s':'')+' sur 19'
-    +(c.calc.length?' · '+c.calc.length+' calculée'+(c.calc.length>1?'s':''):'')
-    +(weak?'<br><small>Capture peut-être trop compressée : essaie « Réessayer avec une meilleure résolution » ou complète à la main.</small>':'<br><small>Vérifie et corrige si besoin avant d\'enregistrer.</small>')+'</div>';
-  h+='<div class="s4row"><label>Date de la pesée</label><input type="date" id="s4-date" value="'+c.date+'" max="'+ld(new Date())+'"><span class="s4tag">'+(c.dateLu?'lue':'auj.')+'</span></div>';
-  S400_DEF.forEach(function(d){
-    var v=c.v[d.k],tag=v==null?'—':c.calc.indexOf(d.k)>=0?'calculé':'lu';
-    h+='<div class="s4row'+(v==null?' miss':'')+'"><label for="s4-'+d.k+'">'+d.l+'</label>'
-      +'<input id="s4-'+d.k+'" inputmode="decimal" value="'+(v!=null?String(v).replace('.',','):'')+'" placeholder="—">'
-      +'<span class="s4u">'+d.u+'</span><span class="s4tag'+(tag==='calculé'?' calc':tag==='—'?' none':'')+'">'+tag+'</span></div>';
-  });
-  h+='<details class="s4raw"><summary>Texte lu par l\'OCR ('+c.lines.length+' lignes)</summary><pre>'+c.lines.map(function(l){return String(l.t).replace(/[<&]/g,function(x){return x==='<'?'&lt;':'&amp;';});}).join('\n')+'</pre></details>';
-  $('s4v-body').innerHTML=h;
-  $('s4v-actions').style.display='flex';$('s4v-save').style.display='block';
-  $('s4v-retry').classList.toggle('btn-main',weak);$('s4v-retry').classList.toggle('btn-sec',!weak);
-  $('s4v-retry').textContent=c.hi?'Réessayer (haute résolution)':'Réessayer avec une meilleure résolution';
-}
-function s400Save(){
-  var date=$('s4-date').value,v={},calc=[],err=false;
-  if(!/^\d{4}-\d{2}-\d{2}$/.test(date)){$('s4-date').style.borderColor='#EF5350';return;}
-  S400_DEF.forEach(function(d){
-    var inp=$('s4-'+d.k),raw=inp.value.trim().replace(/\s/g,'').replace(',','.');
-    inp.style.borderColor='';
-    if(raw==='')return;
-    var n=parseFloat(raw);
-    if(isNaN(n)||n<d.ok[0]||n>d.ok[1]){inp.style.borderColor='#EF5350';err=true;return;}
-    v[d.k]=n;
-    if(S400_CUR&&S400_CUR.calc.indexOf(d.k)>=0&&S400_CUR.v[d.k]===n)calc.push(d.k);
-  });
-  if(v.poids==null){$('s4-poids').style.borderColor='#EF5350';err=true;}
-  if(err)return;
-  var H=s400Load().filter(function(x){return x.date!==date;});
-  H.push({date:date,saved:new Date().toISOString(),v:v,calc:calc});
-  H.sort(function(p,q){return p.date.localeCompare(q.date);});
-  s400Store(H.slice(-400));
-  s400ToPoids(date,v.poids);
-  S400_CUR=null;s400Sheet(false);
-  renderS400();
-  var t=$('s400-toast');t.textContent='✅ Pesée du '+dd(new Date(date+'T12:00:00'))+' enregistrée · '+s400Fmt('poids',v.poids)+' kg ajouté à l\'onglet Poids';
-  t.style.display='block';clearTimeout(window._s4t);window._s4t=setTimeout(function(){t.style.display='none';},4000);
-}
-function s400Cancel(){S400_CUR=null;s400Sheet(false);}
-
-(function(){
-  renderS400();
-  if(location.hash==='#import'){s400Busy();try{history.replaceState(null,'',location.pathname);}catch(e){}}
-  try{if(window.CaptureBridge&&CaptureBridge.takePending){var p=CaptureBridge.takePending();if(p)window.onCaptureData(p);}}catch(e){}
-})();
 </script>
 </body>
 </html>
