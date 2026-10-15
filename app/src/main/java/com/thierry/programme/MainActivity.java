@@ -79,12 +79,12 @@ public class MainActivity extends ComponentActivity {
         webView.addJavascriptInterface(capture, "CaptureBridge");
 
         Intent start = getIntent();
-        webView.loadUrl(ASSETS + (isImportIntent(start) ? "sante.html#import" : isHealthIntent(start) ? "sante.html" : "programme.html"));
+        webView.loadUrl(ASSETS + (isImportIntent(start) ? "poids.html#import" : isHealthIntent(start) ? "sante.html" : "programme.html"));
         setContentView(webView);
         if (isImportIntent(start)) capture.importFile(start.getStringExtra(ImportCaptureActivity.EXTRA_PATH));
     }
 
-    /** Capture partagée depuis Xiaomi Home, relayée par ImportCaptureActivity. */
+    /** Capture partagée depuis Xiaomi Home, relayée par ImportCaptureActivity → onglet Poids (v6.4). */
     private boolean isImportIntent(Intent i) {
         return i != null && ImportCaptureActivity.ACTION_IMPORT.equals(i.getAction())
             && i.getStringExtra(ImportCaptureActivity.EXTRA_PATH) != null;
@@ -103,7 +103,7 @@ public class MainActivity extends ComponentActivity {
         super.onNewIntent(intent);
         if (isImportIntent(intent)) {
             setIntent(intent);
-            if (!currentPage.equals("sante")) webView.loadUrl(ASSETS + "sante.html#import");
+            if (!currentPage.equals("poids")) webView.loadUrl(ASSETS + "poids.html#import");
             capture.importFile(intent.getStringExtra(ImportCaptureActivity.EXTRA_PATH));
         } else if (isHealthIntent(intent)) webView.loadUrl(ASSETS + "sante.html");
     }

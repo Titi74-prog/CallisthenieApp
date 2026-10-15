@@ -15,7 +15,7 @@ import java.io.OutputStream;
 /**
  * v6.3 — Reçoit une capture partagée depuis Xiaomi Home (ACTION_SEND image/*).
  * Copie l'image dans le cache de l'appli (l'accès à l'URI partagée est temporaire),
- * puis ouvre MainActivity sur l'onglet Santé qui lance la lecture OCR.
+ * puis ouvre MainActivity sur l'onglet Poids qui lance la lecture OCR.
  */
 public class ImportCaptureActivity extends Activity {
     public static final String ACTION_IMPORT = "com.thierry.programme.IMPORT_CAPTURE";
