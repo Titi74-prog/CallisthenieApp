@@ -1,7 +1,9 @@
 package com.thierry.programme;
 
 import android.content.Intent;
+import android.content.res.Configuration;
 import android.graphics.Color;
+import android.os.Build;
 import android.os.Bundle;
 import android.view.Window;
 import android.view.WindowManager;
@@ -28,8 +30,17 @@ public class MainActivity extends ComponentActivity {
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
         webView = new WebView(this);
-        webView.setBackgroundColor(Color.parseColor("#0f0f13"));
+        // v7.0 — Thème jour/nuit automatique
+        int nightMode = getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK;
+        webView.setBackgroundColor(Color.parseColor(nightMode == Configuration.UI_MODE_NIGHT_YES ? "#0f0f13" : "#f2f2f6"));
         WebSettings s = webView.getSettings();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            // Android 10-12 : le mode sombre forcé respecte le thème CSS des pages (prefers-color-scheme).
+            // Android 13+ (targetSdk 34) : ignoré, le WebView suit directement le thème DayNight.
+            s.setForceDark(nightMode == Configuration.UI_MODE_NIGHT_YES
+                ? WebSettings.FORCE_DARK_ON
+                : WebSettings.FORCE_DARK_OFF);
+        }
         s.setJavaScriptEnabled(true);
         s.setDomStorageEnabled(true);
         s.setAllowFileAccess(true);
