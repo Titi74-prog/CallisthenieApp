@@ -141,6 +141,11 @@ class CaptureBridge(private val activity: ComponentActivity, private val webView
         val step = tile - overlap
 
         val lines = JSONArray()
+        // v6.5 — Poids réel : bloc ML Kit le plus haut (Y croissant) contenant une valeur en kg entre 50 et 200,
+        // en ignorant tout bloc dont le texte contient « standard », « sans graisse », « contrôle », « suggestion »…
+        var poidsReel: Double? = null
+        var poidsY = Float.MAX_VALUE
+        var poidsTxt = ""
         val region: BitmapRegionDecoder? = withContext(Dispatchers.IO) {
             try {
                 @Suppress("DEPRECATION")
@@ -175,6 +180,15 @@ class CaptureBridge(private val activity: ComponentActivity, private val webView
                 // On ne garde que les lignes dont le centre tombe dans la partie « propre » de la bande
                 val keepFrom = top + if (first) 0 else overlap / 2
                 val keepTo = if (last) h else bottom - overlap / 2
+                for (block in text.textBlocks) {
+                    val bb = block.boundingBox ?: continue
+                    val by = top + bb.top / scale
+                    val bcy = top + bb.exactCenterY() / scale
+                    if (bcy < keepFrom || bcy >= keepTo || by >= poidsY) continue
+                    if (estBlocIgnorePoids(block.text)) continue
+                    val v = valeurKg(block.text) ?: continue
+                    poidsReel = v; poidsY = by; poidsTxt = block.text
+                }
                 for (block in text.textBlocks) for (line in block.lines) {
                     val b = line.boundingBox ?: continue
                     val x = b.left / scale
@@ -202,6 +216,28 @@ class CaptureBridge(private val activity: ComponentActivity, private val webView
             .put("width", w).put("height", h)
             .put("hi", hiRes)
             .put("lines", lines)
+            .also { o -> poidsReel?.let { o.put("poidsReel", JSONObject().put("v", it).put("y", poidsY.roundToInt()).put("t", poidsTxt)) } }
+    }
+
+    /** Blocs à ignorer pour le poids (suggestions Xiaomi en bas du rapport). */
+    private fun estBlocIgnorePoids(t: String): Boolean {
+        val n = java.text.Normalizer.normalize(t.lowercase(), java.text.Normalizer.Form.NFD).replace(Regex("\\p{Mn}+"), "")
+        return IGNORE_POIDS.any { n.contains(it) }
+    }
+
+    /** Première valeur « xx,x kg » du bloc comprise entre 50 et 200 kg. */
+    private fun valeurKg(t: String): Double? {
+        for (m in KG_REGEX.findAll(t)) {
+            val v = m.groupValues[1].replace(',', '.').toDoubleOrNull() ?: continue
+            if (v in 50.0..200.0) return v
+        }
+        return null
+    }
+
+    private companion object {
+        val IGNORE_POIDS = listOf("standard", "sans graisse", "controle", "suggestion", "ideal", "objectif",
+            "cible", "masse", "muscle", "maigre")
+        val KG_REGEX = Regex("(\\d{2,3}(?:[.,]\\d{1,2})?)\\s*kg", RegexOption.IGNORE_CASE)
     }
 
     private suspend fun runOcr(bmp: Bitmap): Text = suspendCancellableCoroutine { cont ->
