@@ -397,7 +397,6 @@ class HealthBridge(private val activity: ComponentActivity, private val webView:
         if (has(granted, "READ_ACTIVE_CALORIES_BURNED")) safe {
             val startOfDay = today.atStartOfDay(zone).toInstant()
             val bySource = HashMap<String, Double>()
-            val countBySource = HashMap<String, Int>()
             var token: String? = null
             do {
                 val resp = client.readRecords(
@@ -410,32 +409,33 @@ class HealthBridge(private val activity: ComponentActivity, private val webView:
                 resp.records.forEach {
                     val pkg = it.metadata.dataOrigin.packageName
                     bySource[pkg] = (bySource[pkg] ?: 0.0) + it.energy.inKilocalories
-                    countBySource[pkg] = (countBySource[pkg] ?: 0) + 1
                 }
                 token = resp.pageToken
             } while (token != null)
             // v7.4 — calories actives groupées par source ; BMR et total calculés côté JS (getBMR)
-            val oneplus = bySource[PKG_ONEPLUS] ?: 0.0
-            val fitbit = bySource[PKG_FITBIT] ?: 0.0
-            val autres = bySource.filterKeys { it != PKG_ONEPLUS && it != PKG_FITBIT }.values.sum()
+            // v7.5 — détection par package réel (identifié via le debug v7.4)
+            val oneplus = bySource.filterKeys { isOnePlus(it) }.values.sum()
+            val fitbit = bySource.filterKeys { isFitbit(it) && !isOnePlus(it) }.values.sum()
+            val autres = bySource.filterKeys { !isOnePlus(it) && !isFitbit(it) }.values.sum()
             val src = JSONObject()
                 .put("oneplus", Math.round(oneplus))
                 .put("fitbit", Math.round(fitbit))
                 .put("fond", Math.round(autres))
-            // DEBUG v7.4 (temporaire) — toutes les sources détectées aujourd'hui, kcal cumulées par source
-            val dbg = JSONArray()
-            bySource.entries.sortedByDescending { it.value }.forEach { e ->
-                dbg.put(JSONObject().put("pkg", e.key).put("kcal", Math.round(e.value)).put("n", countBySource[e.key] ?: 0))
-            }
-            out.put("debugSources", dbg)
             out.put("caloriesSources", src)
         }
         return out
     }
 
     companion object {
-        private const val PKG_ONEPLUS = "com.oneplus.health"
-        private const val PKG_FITBIT = "com.fitbit.FitbitMobile"
+        // Fitbit Air : écrit via Health Connect sous un package « com.android.healthconnect.phone.<id> »
+        // (id propre au téléphone, peut changer après réinstallation) → détection par préfixe
+        private const val PKG_FITBIT_PREFIX = "com.android.healthconnect.phone."
+        // OnePlus Watch 2R : synchronisée par com.xiaomi.wearable
+        private const val PKG_ONEPLUS = "com.xiaomi.wearable"
+        fun isFitbit(pkg: String): Boolean = pkg.startsWith(PKG_FITBIT_PREFIX) || pkg == "com.fitbit.FitbitMobile"
+        fun isOnePlus(pkg: String): Boolean =
+            pkg == PKG_ONEPLUS || pkg.contains("xiaomi.wearable") ||
+            pkg.contains("oneplus.health") || pkg.contains("heytap.health")
     }
 
     /** Minutes par phase [léger, profond, paradoxal, éveillé] ; null si la session n'a pas de phases. */
