@@ -4,7 +4,7 @@ plugins {
 }
 android {
     namespace 'com.thierry.programme'
-    compileSdk 34
+    compileSdk 35  // v7.1 — requis par connect-client 1.1.0-alpha12 (targetSdk reste 34)
     defaultConfig {
         applicationId "com.thierry.programme"
         minSdk 28
