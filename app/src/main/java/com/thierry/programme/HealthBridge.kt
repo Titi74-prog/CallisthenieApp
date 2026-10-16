@@ -403,7 +403,58 @@ class HealthBridge(private val activity: ComponentActivity, private val webView:
                 }
             }
         }
+        // v7.2 — Ventilation des calories du jour par source (montre)
+        if (has(granted, "READ_ACTIVE_CALORIES_BURNED")) safe {
+            val startOfDay = today.atStartOfDay(zone).toInstant()
+            val bySource = HashMap<String, Double>()
+            var token: String? = null
+            do {
+                val resp = client.readRecords(
+                    ReadRecordsRequest(
+                        ActiveCaloriesBurnedRecord::class,
+                        TimeRangeFilter.between(startOfDay, now),
+                        ascendingOrder = true, pageSize = 1000, pageToken = token
+                    )
+                )
+                resp.records.forEach {
+                    val pkg = it.metadata.dataOrigin.packageName
+                    bySource[pkg] = (bySource[pkg] ?: 0.0) + it.energy.inKilocalories
+                }
+                token = resp.pageToken
+            } while (token != null)
+            val oneplus = bySource[PKG_ONEPLUS] ?: 0.0
+            val fitbit = bySource[PKG_FITBIT] ?: 0.0
+            val autres = bySource.filterKeys { it != PKG_ONEPLUS && it != PKG_FITBIT }.values.sum()
+            // Métabolisme de base : dernier BMR lu (sinon 1 867 kcal/j), au prorata de l'heure
+            // car le total Health Connect du jour n'inclut que le métabolisme déjà écoulé
+            val bmrDay = out.optJSONObject("bmr")?.optDouble("kcal", BMR_DEFAULT) ?: BMR_DEFAULT
+            val elapsed = Duration.between(startOfDay, now).toMinutes() / 1440.0
+            val bmr = bmrDay * elapsed.coerceIn(0.0, 1.0)
+            val todayKey = today.toString()
+            var total = 0.0
+            for (i in 0 until days.length()) {
+                val o = days.getJSONObject(i)
+                if (o.optString("date") == todayKey) total = o.optDouble("kcal", 0.0)
+            }
+            val fond = total - oneplus - fitbit - bmr
+            val src = JSONObject()
+                .put("oneplus", Math.round(oneplus))
+                .put("fitbit", Math.round(fitbit))
+                .put("bmr", Math.round(bmr))
+                .put("bmrDay", Math.round(bmrDay))
+                .put("fond", Math.round(Math.max(fond, 0.0)))
+                .put("total", Math.round(total))
+            if (autres > 0.5) src.put("autres", Math.round(autres))
+            src.put("pkgs", JSONArray(bySource.keys.toList()))
+            out.put("caloriesSources", src)
+        }
         return out
+    }
+
+    companion object {
+        private const val PKG_ONEPLUS = "com.oneplus.health"
+        private const val PKG_FITBIT = "com.fitbit.FitbitMobile"
+        private const val BMR_DEFAULT = 1867.0
     }
 
     /** Minutes par phase [léger, profond, paradoxal, éveillé] ; null si la session n'a pas de phases. */
