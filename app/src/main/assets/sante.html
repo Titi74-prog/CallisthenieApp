@@ -97,6 +97,8 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
 #tip .tl{font-size:13px;font-weight:800;color:#fff;margin-bottom:6px}
 #tip .tr{display:flex;justify-content:space-between;gap:10px;padding:2px 0}
 #tip .tr b{color:#fff;font-variant-numeric:tabular-nums}
+#tip .tsep{border-top:1px solid #3a3a48;margin:6px 0}
+#tip .tna{font-size:11px;color:var(--t3);margin-top:6px}
 #tip .tb{margin-top:8px;width:100%;padding:7px;border-radius:9px;border:1px solid var(--bd);background:#0f0f13;color:var(--t2);font-size:12px;font-weight:700}
 #banner{display:none}
 #banner .msg{font-size:13px;color:var(--t2);line-height:1.45;margin-bottom:12px}
@@ -128,6 +130,7 @@ html,body{background:#f2f2f6;color:#1a1a22}
 #tip:after{border-top-color:#ffffff}
 #tip .tl{color:#1a1a22}
 #tip .tr b{color:#1a1a22}
+#tip .tsep{border-top-color:#d0d0da}
 #tip .tb{background:#f2f2f6}
 #bottom-nav{background:#ffffff;border-top:1px solid #e2e2ea}
 .nav-btn{color:#7d7b87}
@@ -439,7 +442,8 @@ function bars(el,items,color,goal,fmtV,base){
 function showTooltip(o,col){
   hideTip();col.classList.add('sel');
   var t=$('tip'),h='<div class="tl">'+o.label+'</div>';
-  (o.rows||[]).forEach(function(r){h+='<div class="tr"><span>'+r[0]+'</span><b>'+r[1]+'</b></div>';});
+  (o.rows||[]).forEach(function(r){h+=r==='sep'?'<div class="tsep"></div>':'<div class="tr"><span>'+r[0]+'</span><b>'+r[1]+'</b></div>';});
+  if(o.note)h+='<div class="tna">'+o.note+'</div>';
   if(o.action)h+='<button class="tb" id="tip-act">'+o.action.label+'</button>';
   t.innerHTML=h;t.style.display='block';
   if(o.action)$('tip-act').onclick=function(ev){ev.stopPropagation();o.action.fn();};
@@ -459,11 +463,15 @@ function kcalTip(b){
   var kd=b.days.filter(function(x){return x.kcal!=null;}),k=kd.map(function(x){return x.kcal;});
   if(b.type==='day'){
     var x=b.days[0],dt=new Date(b.key+'T12:00:00'),p=isPadel(b.key),m=manualType(b.key),future=b.key>ld(new Date());
-    return {label:JOURS_L[dt.getDay()]+' '+dd(dt),
-      rows:[['Brûlées',x.kcal!=null?fmt(x.kcal)+' kcal':'—'],
+    var isToday=b.key===ld(new Date()),S=isToday&&LAST?LAST.caloriesSources:null;
+    return {label:'📅 '+JOURS_L[dt.getDay()]+' '+dd(dt),
+      note:future||x.kcal==null?null:S?null:'Détail par source non disponible pour les jours passés',
+      sources:S,
+      rows:[['🔥 Total',x.kcal!=null?fmt(x.kcal)+' kcal':'—'],
             ['Objectif',fmt(goalFor(b.key))+' kcal'],
             ['Type',goalLabel(goalFor(b.key))+(m==null?' · auto':' · manuel')]]
-            .concat(x.kcal!=null&&!future?[['Atteint',x.kcal>=goalFor(b.key)?'✅ oui':'❌ non']]:[]),
+            .concat(x.kcal!=null&&!future?[['Atteint',x.kcal>=goalFor(b.key)?'✅ oui':'❌ non']]:[])
+            .concat(S?sourceRows(S):[]),
       action:future?null:{label:p?'Marquer callisthénie 🏋️':'Marquer padel 🎾',fn:function(){toggleDay(b.key);}}};
   }
   var hit=kd.filter(function(x){return x.kcal>=goalFor(x.date);}).length;
@@ -471,6 +479,17 @@ function kcalTip(b){
     rows:[['Moyenne',k.length?fmt(avg(k))+' kcal / jour':'—'],
           ['Objectifs atteints',hit+' jour'+(hit>1?'s':'')+' / '+kd.length],
           ['Total',k.length?fmt(sum(k))+' kcal':'—']]};
+}
+
+/* v7.2 — Ventilation des calories du jour par source (Health Connect) */
+function sourceRows(s){
+  var r=['sep'];
+  if(s.oneplus>0)r.push(['⌚ OnePlus Watch 2R',fmt(s.oneplus)+' kcal']);
+  if(s.fitbit>0)r.push(['⌚ Fitbit Air',fmt(s.fitbit)+' kcal']);
+  if(s.autres>0)r.push(['📱 Autres sources',fmt(s.autres)+' kcal']);
+  if(s.fond>0)r.push(['🚶 Activité de fond',fmt(s.fond)+' kcal']);
+  r.push(['💤 Métabolisme de base',fmt(s.bmr)+' kcal']);
+  return r;
 }
 
 /* Régression linéaire : pente en kg/jour */
