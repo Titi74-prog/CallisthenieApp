@@ -464,14 +464,18 @@ function kcalTip(b){
   if(b.type==='day'){
     var x=b.days[0],dt=new Date(b.key+'T12:00:00'),p=isPadel(b.key),m=manualType(b.key),future=b.key>ld(new Date());
     var isToday=b.key===ld(new Date()),S=isToday&&LAST?LAST.caloriesSources:null;
+    if(S){ // v7.3 — jour en cours : ventilation par source
+      var obj=getObjectifBrulees(S.total),ok=S.total>=obj;
+      return {label:'📅 '+JOURS_L[dt.getDay()]+' '+dd(dt),rows:sourceRows(S).concat(['sep',['🎯 Objectif',fmt(obj)+' kcal '+(ok?'✅':'❌')]]),
+        action:{label:p?'Marquer callisthénie 🏋️':'Marquer padel 🎾',fn:function(){toggleDay(b.key);}}};
+    }
     return {label:'📅 '+JOURS_L[dt.getDay()]+' '+dd(dt),
       note:future||x.kcal==null?null:S?null:'Détail par source non disponible pour les jours passés',
       sources:S,
       rows:[['🔥 Total',x.kcal!=null?fmt(x.kcal)+' kcal':'—'],
             ['Objectif',fmt(goalFor(b.key))+' kcal'],
             ['Type',goalLabel(goalFor(b.key))+(m==null?' · auto':' · manuel')]]
-            .concat(x.kcal!=null&&!future?[['Atteint',x.kcal>=goalFor(b.key)?'✅ oui':'❌ non']]:[])
-            .concat(S?sourceRows(S):[]),
+            .concat(x.kcal!=null&&!future?[['Atteint',x.kcal>=goalFor(b.key)?'✅ oui':'❌ non']]:[]),
       action:future?null:{label:p?'Marquer callisthénie 🏋️':'Marquer padel 🎾',fn:function(){toggleDay(b.key);}}};
   }
   var hit=kd.filter(function(x){return x.kcal>=goalFor(x.date);}).length;
@@ -482,13 +486,12 @@ function kcalTip(b){
 }
 
 /* v7.2 — Ventilation des calories du jour par source (Health Connect) */
+/* v7.3 — ordre : total, séparateur, BMR (balance Xiaomi), OnePlus, Fitbit, fond */
 function sourceRows(s){
-  var r=['sep'];
+  var r=[['🔥 Total',fmt(s.total)+' kcal'],'sep',['💤 Métabolisme de base'+(s.bmrXiaomi?' ⚖️':''),fmt(s.bmr)+' kcal']];
   if(s.oneplus>0)r.push(['⌚ OnePlus Watch 2R',fmt(s.oneplus)+' kcal']);
   if(s.fitbit>0)r.push(['⌚ Fitbit Air',fmt(s.fitbit)+' kcal']);
-  if(s.autres>0)r.push(['📱 Autres sources',fmt(s.autres)+' kcal']);
   if(s.fond>0)r.push(['🚶 Activité de fond',fmt(s.fond)+' kcal']);
-  r.push(['💤 Métabolisme de base',fmt(s.bmr)+' kcal']);
   return r;
 }
 
