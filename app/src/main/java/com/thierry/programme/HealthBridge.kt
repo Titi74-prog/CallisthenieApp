@@ -6,10 +6,15 @@ import android.webkit.WebView
 import androidx.activity.ComponentActivity
 import androidx.activity.result.ActivityResultLauncher
 import androidx.health.connect.client.HealthConnectClient
+import androidx.health.connect.client.HealthConnectFeatures
 import androidx.health.connect.client.PermissionController
 import androidx.health.connect.client.permission.HealthPermission
 import androidx.health.connect.client.aggregate.AggregateMetric
 import androidx.health.connect.client.records.TotalCaloriesBurnedRecord
+// v7.1 — Fitbit Air : HRV, température cutanée, calories actives (séance callisthénie)
+import androidx.health.connect.client.records.ActiveCaloriesBurnedRecord
+import androidx.health.connect.client.records.HeartRateVariabilityRmssdRecord
+import androidx.health.connect.client.records.SkinTemperatureRecord
 import androidx.health.connect.client.records.BasalMetabolicRateRecord
 import androidx.health.connect.client.records.BodyFatRecord
 import androidx.health.connect.client.records.LeanBodyMassRecord
@@ -54,7 +59,7 @@ class HealthBridge(private val activity: ComponentActivity, private val webView:
     /** Fenêtre demandée par la page : "week" (lun → dim), "month" (30 j), "year" (année civile) */
     @Volatile private var period = "week"
 
-    private val permissions: Set<String> = setOf(
+    private val corePermissions: Set<String> = setOf(
         HealthPermission.getReadPermission(TotalCaloriesBurnedRecord::class),
         HealthPermission.getReadPermission(StepsRecord::class),
         HealthPermission.getReadPermission(WeightRecord::class),
@@ -66,8 +71,23 @@ class HealthBridge(private val activity: ComponentActivity, private val webView:
         HealthPermission.getReadPermission(RestingHeartRateRecord::class),
         HealthPermission.getReadPermission(Vo2MaxRecord::class),
         HealthPermission.getReadPermission(OxygenSaturationRecord::class),
-        HealthPermission.getReadPermission(FloorsClimbedRecord::class)
+        HealthPermission.getReadPermission(FloorsClimbedRecord::class),
+        // v7.1
+        HealthPermission.getReadPermission(ActiveCaloriesBurnedRecord::class),
+        HealthPermission.getReadPermission(HeartRateVariabilityRmssdRecord::class)
     )
+    /** v7.1 — Température cutanée : demandée seulement si Health Connect la prend en charge sur ce téléphone */
+    private val skinTempPermission = HealthPermission.getReadPermission(SkinTemperatureRecord::class)
+    @Volatile private var permissions: Set<String> = corePermissions
+
+    private fun resolvePermissions(client: HealthConnectClient): Set<String> {
+        val skinOk = try {
+            client.features.getFeatureStatus(HealthConnectFeatures.FEATURE_SKIN_TEMPERATURE) ==
+                HealthConnectFeatures.FEATURE_STATUS_AVAILABLE
+        } catch (_: Throwable) { false }
+        permissions = if (skinOk) corePermissions + skinTempPermission else corePermissions
+        return permissions
+    }
 
     private val permissionLauncher: ActivityResultLauncher<Set<String>> =
         activity.registerForActivityResult(
@@ -90,6 +110,7 @@ class HealthBridge(private val activity: ComponentActivity, private val webView:
             scope.launch {
                 try {
                     val client = HealthConnectClient.getOrCreate(activity)
+                    val permissions = resolvePermissions(client)
                     val granted = client.permissionController.getGrantedPermissions()
                     if (!granted.containsAll(permissions) && !askedThisSession) {
                         askedThisSession = true
@@ -146,6 +167,7 @@ class HealthBridge(private val activity: ComponentActivity, private val webView:
 
     private suspend fun readAll(): JSONObject {
         val client = HealthConnectClient.getOrCreate(activity)
+        val permissions = resolvePermissions(client)
         val granted = client.permissionController.getGrantedPermissions()
         val out = JSONObject()
         out.put("status", if (granted.isEmpty()) "denied" else "ok")
@@ -250,7 +272,7 @@ class HealthBridge(private val activity: ComponentActivity, private val webView:
                     .put("kcal", Math.round(it.basalMetabolicRate.inKilocaloriesPerDay)))
             }
         }
-        // Sommeil : sessions des 8 dernières nuits
+        // Sommeil : sessions des 8 dernières nuits (+ phases v7.1)
         if (has(granted, "READ_SLEEP")) safe {
             val recs = client.readRecords(
                 ReadRecordsRequest(
@@ -261,12 +283,30 @@ class HealthBridge(private val activity: ComponentActivity, private val webView:
             ).records
             val arr = JSONArray()
             recs.forEach {
-                arr.put(JSONObject()
+                val o = JSONObject()
                     .put("start", it.startTime.toString())
                     .put("end", it.endTime.toString())
-                    .put("min", Duration.between(it.startTime, it.endTime).toMinutes()))
+                    .put("min", Duration.between(it.startTime, it.endTime).toMinutes())
+                val st = stageMinutes(it)
+                if (st != null) {
+                    o.put("light", st[0]).put("deep", st[1]).put("rem", st[2]).put("awake", st[3])
+                }
+                arr.put(o)
             }
             out.put("sleep", arr)
+            // Phases de la dernière nuit : sessions se terminant le même jour que la plus récente
+            recs.lastOrNull()?.let { last ->
+                val wake = last.endTime.atZone(zone).toLocalDate()
+                val tot = longArrayOf(0, 0, 0, 0)
+                var any = false
+                recs.filter { it.endTime.atZone(zone).toLocalDate() == wake }.forEach { r ->
+                    stageMinutes(r)?.let { st -> any = true; for (i in 0..3) tot[i] += st[i] }
+                }
+                if (any) {
+                    out.put("sleepLight", tot[0]).put("sleepDeep", tot[1])
+                        .put("sleepRem", tot[2]).put("sleepAwake", tot[3])
+                }
+            }
         }
         // FC max du jour
         if (has(granted, "READ_HEART_RATE")) safe {
@@ -302,7 +342,86 @@ class HealthBridge(private val activity: ComponentActivity, private val webView:
             recs.forEach { arr.put(JSONObject().put("t", it.time.toString()).put("pct", round1(it.percentage.value))) }
             out.put("spo2", arr)
         }
+        // v7.1 — HRV (RMSSD, ms) : dernière valeur + moyenne par jour sur 7 jours
+        if (has(granted, "READ_HEART_RATE_VARIABILITY")) safe {
+            val from7 = today.minusDays(6)
+            val recs = client.readRecords(
+                ReadRecordsRequest(
+                    HeartRateVariabilityRmssdRecord::class,
+                    TimeRangeFilter.between(from7.atStartOfDay(zone).toInstant(), now),
+                    ascendingOrder = true, pageSize = 1000
+                )
+            ).records
+            recs.lastOrNull()?.let {
+                out.put("hrv", Math.round(it.heartRateVariabilityMillis))
+                out.put("hrvTime", it.time.toString())
+            }
+            val perDay = linkedMapOf<LocalDate, MutableList<Double>>()
+            recs.forEach { perDay.getOrPut(it.time.atZone(zone).toLocalDate()) { mutableListOf() }.add(it.heartRateVariabilityMillis) }
+            val arr = JSONArray()
+            var dd = from7
+            while (!dd.isAfter(today)) {
+                val o = JSONObject().put("date", dd.toString())
+                perDay[dd]?.let { l -> o.put("ms", Math.round(l.average())) }
+                arr.put(o)
+                dd = dd.plusDays(1)
+            }
+            out.put("hrvDays", arr)
+        }
+        // v7.1 — Température cutanée : dernière mesure sur 7 jours
+        // Health Connect stocke une référence (optionnelle) + des écarts : absolue = référence + dernier écart
+        if (has(granted, "READ_SKIN_TEMPERATURE")) safe {
+            client.readRecords(
+                ReadRecordsRequest(
+                    SkinTemperatureRecord::class,
+                    TimeRangeFilter.between(now.minus(Duration.ofDays(7)), now),
+                    ascendingOrder = false, pageSize = 20
+                )
+            ).records.firstOrNull { it.deltas.isNotEmpty() || it.baseline != null }?.let { r ->
+                val delta = r.deltas.maxByOrNull { it.time }?.delta?.inCelsius
+                val base = r.baseline?.inCelsius
+                if (base != null) out.put("skinTemp", round1(base + (delta ?: 0.0)))
+                if (delta != null) out.put("skinTempDelta", Math.round(delta * 100.0) / 100.0)
+                out.put("skinTempTime", r.endTime.toString())
+            }
+        }
+        // v7.1 — Calories actives de la séance callisthénie (aujourd'hui, 7h00 → 8h30)
+        if (has(granted, "READ_ACTIVE_CALORIES_BURNED")) safe {
+            val sevenAM = today.atTime(7, 0).atZone(zone).toInstant()
+            val eightThirtyAM = today.atTime(8, 30).atZone(zone).toInstant()
+            if (now.isAfter(sevenAM)) {
+                val end = if (now.isBefore(eightThirtyAM)) now else eightThirtyAM
+                val res = client.aggregate(
+                    AggregateRequest(
+                        metrics = setOf(ActiveCaloriesBurnedRecord.ACTIVE_CALORIES_TOTAL),
+                        timeRangeFilter = TimeRangeFilter.between(sevenAM, end)
+                    )
+                )
+                res[ActiveCaloriesBurnedRecord.ACTIVE_CALORIES_TOTAL]?.let {
+                    val k = Math.round(it.inKilocalories)
+                    if (k > 0) out.put("callisthenieKcal", k)
+                }
+            }
+        }
         return out
+    }
+
+    /** Minutes par phase [léger, profond, paradoxal, éveillé] ; null si la session n'a pas de phases. */
+    private fun stageMinutes(r: SleepSessionRecord): LongArray? {
+        if (r.stages.isEmpty()) return null
+        val m = longArrayOf(0, 0, 0, 0)
+        r.stages.forEach { st ->
+            val min = Duration.between(st.startTime, st.endTime).toMinutes()
+            when (st.stage) {
+                SleepSessionRecord.STAGE_TYPE_LIGHT, SleepSessionRecord.STAGE_TYPE_SLEEPING -> m[0] += min
+                SleepSessionRecord.STAGE_TYPE_DEEP -> m[1] += min
+                SleepSessionRecord.STAGE_TYPE_REM -> m[2] += min
+                SleepSessionRecord.STAGE_TYPE_AWAKE, SleepSessionRecord.STAGE_TYPE_AWAKE_IN_BED,
+                SleepSessionRecord.STAGE_TYPE_OUT_OF_BED -> m[3] += min
+                else -> { }
+            }
+        }
+        return m
     }
 
     /** Agrégation jour par jour, par tranches de 31 jours (requêtes légères même sur 1 an). */
