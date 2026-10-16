@@ -182,8 +182,6 @@ html,body{background:#f2f2f6;color:#1a1a22}
       <div class="note">Objectif automatique selon les calories brûlées : callisthénie seule 2 100 kcal · + force 2 200 kcal (≥ 2 100 brûlées) · + padel 1h 2 600 kcal (≥ 2 400) · + padel 1h30 2 700 kcal (≥ 2 800). Les boutons forcent le type du jour ; retouche le bouton actif pour revenir en auto. Touche une barre pour le détail.</div>
     </div>
 
-    <div id="debug-sources"></div>
-
     <!-- Déficit journalier -->
     <div class="card" id="deficit-card">
       <div class="card-title">📉 Déficit <b>30 jours</b></div>
@@ -499,19 +497,11 @@ function getBMR(){return storedBMR()||1867;} // fallback
 function withBMR(s){if(!s)return null;var bmr=getBMR();
   return {oneplus:s.oneplus||0,fitbit:s.fitbit||0,fond:s.fond||0,bmr:bmr,bmrXiaomi:storedBMR()!=null,
     total:bmr+(s.oneplus||0)+(s.fitbit||0)+(s.fond||0)};}
-/* DEBUG v7.4 (temporaire) — sources Health Connect détectées pour les calories actives du jour */
-function renderDebugSources(d){
-  var el=$('debug-sources');if(!el)return;
-  if(!d.debugSources||!d.debugSources.length){el.innerHTML=d.status==='ok'?'<div style="font-size:10px;color:#888;padding:0 8px 8px">🔍 Aucune source de calories actives aujourd\'hui</div>':'';return;}
-  var h='<div style="font-size:10px;color:#888;padding:0 8px 8px;line-height:1.5">🔍 Sources détectées :<br>';
-  d.debugSources.forEach(function(s){h+='• '+String(s.pkg).replace(/[<&]/g,'')+' : '+s.kcal+' kcal'+(s.n?' ('+s.n+' enr.)':'')+'<br>';});
-  el.innerHTML=h+'</div>';
-}
 /* v7.3 — ordre : total, séparateur, BMR (balance Xiaomi), OnePlus, Fitbit, fond */
 function sourceRows(s){
   var r=[['🔥 Total',fmt(s.total)+' kcal'],'sep',['💤 Métabolisme de base'+(s.bmrXiaomi?' ⚖️':''),fmt(s.bmr)+' kcal']];
-  if(s.oneplus>0)r.push(['⌚ OnePlus Watch 2R',fmt(s.oneplus)+' kcal']);
   if(s.fitbit>0)r.push(['⌚ Fitbit Air',fmt(s.fitbit)+' kcal']);
+  if(s.oneplus>0)r.push(['⌚ OnePlus Watch 2R',fmt(s.oneplus)+' kcal']);
   if(s.fond>0)r.push(['🚶 Activité de fond',fmt(s.fond)+' kcal']);
   return r;
 }
@@ -887,7 +877,6 @@ function render(d){
   if(d.status==='error'){showBanner('Erreur de lecture Health Connect : '+(d.message||''),'Réessayer',refresh);return;}
   if(d.status==='denied'){showBanner("Autorise Callisthénie à lire tes données (calories, pas, cœur, sommeil) dans Health Connect.",'Autoriser',function(){try{HealthBridge.askPermissions();}catch(e){}});return;}
   storeSkinTemp(d);
-  renderDebugSources(d);
   var nReq=d.requested||14,nOk=d.grantedCount!=null?d.grantedCount:(d.granted||[]).length;
   if(nOk<nReq)showBanner('Certaines données ne sont pas autorisées ('+nOk+'/'+nReq+'). Tu peux les activer dans Health Connect.','Autoriser le reste',function(){try{HealthBridge.askPermissions();}catch(e){}});
   else hideBanner();
