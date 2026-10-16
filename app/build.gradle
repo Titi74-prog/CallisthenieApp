@@ -9,8 +9,8 @@ android {
         applicationId "com.thierry.programme"
         minSdk 28
         targetSdk 34
-        versionCode 49
-        versionName "7.0"
+        versionCode 50
+        versionName "7.1"
     }
     // Clé de signature FIXE : chaque nouvel APK s'installe par-dessus le précédent
     // (sans désinstaller) → les données (courbe de poids) sont conservées.
@@ -45,7 +45,8 @@ dependencies {
     implementation 'com.google.android.material:material:1.11.0'
     implementation 'androidx.core:core:1.12.0'
     implementation 'androidx.activity:activity:1.8.2'
-    implementation 'androidx.health.connect:connect-client:1.1.0-alpha07'
+    // v7.1 — alpha12 : SkinTemperatureRecord + API de disponibilité des fonctionnalités
+    implementation 'androidx.health.connect:connect-client:1.1.0-alpha12'
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3'
     // v6.3 — OCR hors ligne des captures Xiaomi S400 (modèle latin intégré, ~4 Mo)
     implementation 'com.google.mlkit:text-recognition:16.0.0'
