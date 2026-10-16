@@ -15,7 +15,6 @@ import androidx.health.connect.client.records.TotalCaloriesBurnedRecord
 import androidx.health.connect.client.records.ActiveCaloriesBurnedRecord
 import androidx.health.connect.client.records.HeartRateVariabilityRmssdRecord
 import androidx.health.connect.client.records.SkinTemperatureRecord
-import androidx.health.connect.client.records.BasalMetabolicRateRecord
 import androidx.health.connect.client.records.BodyFatRecord
 import androidx.health.connect.client.records.LeanBodyMassRecord
 import androidx.health.connect.client.records.SleepSessionRecord
@@ -65,7 +64,6 @@ class HealthBridge(private val activity: ComponentActivity, private val webView:
         HealthPermission.getReadPermission(WeightRecord::class),
         HealthPermission.getReadPermission(BodyFatRecord::class),
         HealthPermission.getReadPermission(LeanBodyMassRecord::class),
-        HealthPermission.getReadPermission(BasalMetabolicRateRecord::class),
         HealthPermission.getReadPermission(SleepSessionRecord::class),
         HealthPermission.getReadPermission(HeartRateRecord::class),
         HealthPermission.getReadPermission(RestingHeartRateRecord::class),
@@ -263,26 +261,7 @@ class HealthBridge(private val activity: ComponentActivity, private val webView:
                 out.put("leanMass", JSONObject().put("t", it.time.toString()).put("kg", round1(it.mass.inKilograms)))
             }
         }
-        // Métabolisme de base (kcal/jour) — v7.3 : priorité à la balance Xiaomi (dernière pesée), sinon dernière valeur toutes sources
-        if (has(granted, "READ_BASAL_METABOLIC_RATE")) safe {
-            val recs = ArrayList<BasalMetabolicRateRecord>()
-            var token: String? = null
-            do {
-                val resp = client.readRecords(
-                    ReadRecordsRequest(BasalMetabolicRateRecord::class, last30, ascendingOrder = true, pageSize = 1000, pageToken = token)
-                )
-                recs.addAll(resp.records)
-                token = resp.pageToken
-            } while (token != null)
-            val rec = recs.lastOrNull { isXiaomi(it.metadata.dataOrigin.packageName) } ?: recs.lastOrNull()
-            rec?.let {
-                out.put("bmr", JSONObject().put("t", it.time.toString())
-                    .put("kcal", Math.round(it.basalMetabolicRate.inKilocaloriesPerDay))
-                    .put("src", it.metadata.dataOrigin.packageName)
-                    .put("xiaomi", isXiaomi(it.metadata.dataOrigin.packageName)))
-            }
-        }
-        out.put("basalMetabolicRate", out.optJSONObject("bmr")?.optLong("kcal", BMR_DEFAULT.toLong()) ?: BMR_DEFAULT.toLong())
+        // v7.4 — Métabolisme de base : plus lu dans Health Connect (géré en JS depuis la dernière pesée Xiaomi S400)
         // Sommeil : sessions des 8 dernières nuits (+ phases v7.1)
         if (has(granted, "READ_SLEEP")) safe {
             val recs = client.readRecords(
@@ -418,6 +397,7 @@ class HealthBridge(private val activity: ComponentActivity, private val webView:
         if (has(granted, "READ_ACTIVE_CALORIES_BURNED")) safe {
             val startOfDay = today.atStartOfDay(zone).toInstant()
             val bySource = HashMap<String, Double>()
+            val countBySource = HashMap<String, Int>()
             var token: String? = null
             do {
                 val resp = client.readRecords(
@@ -430,24 +410,24 @@ class HealthBridge(private val activity: ComponentActivity, private val webView:
                 resp.records.forEach {
                     val pkg = it.metadata.dataOrigin.packageName
                     bySource[pkg] = (bySource[pkg] ?: 0.0) + it.energy.inKilocalories
+                    countBySource[pkg] = (countBySource[pkg] ?: 0) + 1
                 }
                 token = resp.pageToken
             } while (token != null)
-            // v7.3 — uniquement les calories actives, groupées par source (pas de doublon avec le total Health Connect)
+            // v7.4 — calories actives groupées par source ; BMR et total calculés côté JS (getBMR)
             val oneplus = bySource[PKG_ONEPLUS] ?: 0.0
             val fitbit = bySource[PKG_FITBIT] ?: 0.0
             val autres = bySource.filterKeys { it != PKG_ONEPLUS && it != PKG_FITBIT }.values.sum()
-            val bmr = out.optDouble("basalMetabolicRate", BMR_DEFAULT)
-            // Total = BMR + calories actives toutes sources
-            val totalCalc = bmr + oneplus + fitbit + autres
             val src = JSONObject()
                 .put("oneplus", Math.round(oneplus))
                 .put("fitbit", Math.round(fitbit))
                 .put("fond", Math.round(autres))
-                .put("bmr", Math.round(bmr))
-                .put("bmrXiaomi", out.optJSONObject("bmr")?.optBoolean("xiaomi", false) ?: false)
-                .put("total", Math.round(totalCalc))
-                .put("pkgs", JSONArray(bySource.keys.toList()))
+            // DEBUG v7.4 (temporaire) — toutes les sources détectées aujourd'hui, kcal cumulées par source
+            val dbg = JSONArray()
+            bySource.entries.sortedByDescending { it.value }.forEach { e ->
+                dbg.put(JSONObject().put("pkg", e.key).put("kcal", Math.round(e.value)).put("n", countBySource[e.key] ?: 0))
+            }
+            out.put("debugSources", dbg)
             out.put("caloriesSources", src)
         }
         return out
@@ -456,12 +436,6 @@ class HealthBridge(private val activity: ComponentActivity, private val webView:
     companion object {
         private const val PKG_ONEPLUS = "com.oneplus.health"
         private const val PKG_FITBIT = "com.fitbit.FitbitMobile"
-        private const val BMR_DEFAULT = 1867.0
-        private const val PKG_XIAOMI_1 = "com.mi.health"
-        private const val PKG_XIAOMI_2 = "com.xiaomi.haylou"
-        fun isXiaomi(pkg: String): Boolean =
-            pkg == PKG_XIAOMI_1 || pkg == PKG_XIAOMI_2 ||
-            pkg.contains("xiaomi") || pkg.contains("mi.health") || pkg.contains("haylou")
     }
 
     /** Minutes par phase [léger, profond, paradoxal, éveillé] ; null si la session n'a pas de phases. */
