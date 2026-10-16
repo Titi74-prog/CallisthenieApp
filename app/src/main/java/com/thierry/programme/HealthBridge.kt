@@ -263,15 +263,26 @@ class HealthBridge(private val activity: ComponentActivity, private val webView:
                 out.put("leanMass", JSONObject().put("t", it.time.toString()).put("kg", round1(it.mass.inKilograms)))
             }
         }
-        // Métabolisme de base (kcal/jour)
+        // Métabolisme de base (kcal/jour) — v7.3 : priorité à la balance Xiaomi (dernière pesée), sinon dernière valeur toutes sources
         if (has(granted, "READ_BASAL_METABOLIC_RATE")) safe {
-            client.readRecords(
-                ReadRecordsRequest(BasalMetabolicRateRecord::class, last30, ascendingOrder = false, pageSize = 1)
-            ).records.firstOrNull()?.let {
+            val recs = ArrayList<BasalMetabolicRateRecord>()
+            var token: String? = null
+            do {
+                val resp = client.readRecords(
+                    ReadRecordsRequest(BasalMetabolicRateRecord::class, last30, ascendingOrder = true, pageSize = 1000, pageToken = token)
+                )
+                recs.addAll(resp.records)
+                token = resp.pageToken
+            } while (token != null)
+            val rec = recs.lastOrNull { isXiaomi(it.metadata.dataOrigin.packageName) } ?: recs.lastOrNull()
+            rec?.let {
                 out.put("bmr", JSONObject().put("t", it.time.toString())
-                    .put("kcal", Math.round(it.basalMetabolicRate.inKilocaloriesPerDay)))
+                    .put("kcal", Math.round(it.basalMetabolicRate.inKilocaloriesPerDay))
+                    .put("src", it.metadata.dataOrigin.packageName)
+                    .put("xiaomi", isXiaomi(it.metadata.dataOrigin.packageName)))
             }
         }
+        out.put("basalMetabolicRate", out.optJSONObject("bmr")?.optLong("kcal", BMR_DEFAULT.toLong()) ?: BMR_DEFAULT.toLong())
         // Sommeil : sessions des 8 dernières nuits (+ phases v7.1)
         if (has(granted, "READ_SLEEP")) safe {
             val recs = client.readRecords(
@@ -422,30 +433,21 @@ class HealthBridge(private val activity: ComponentActivity, private val webView:
                 }
                 token = resp.pageToken
             } while (token != null)
+            // v7.3 — uniquement les calories actives, groupées par source (pas de doublon avec le total Health Connect)
             val oneplus = bySource[PKG_ONEPLUS] ?: 0.0
             val fitbit = bySource[PKG_FITBIT] ?: 0.0
             val autres = bySource.filterKeys { it != PKG_ONEPLUS && it != PKG_FITBIT }.values.sum()
-            // Métabolisme de base : dernier BMR lu (sinon 1 867 kcal/j), au prorata de l'heure
-            // car le total Health Connect du jour n'inclut que le métabolisme déjà écoulé
-            val bmrDay = out.optJSONObject("bmr")?.optDouble("kcal", BMR_DEFAULT) ?: BMR_DEFAULT
-            val elapsed = Duration.between(startOfDay, now).toMinutes() / 1440.0
-            val bmr = bmrDay * elapsed.coerceIn(0.0, 1.0)
-            val todayKey = today.toString()
-            var total = 0.0
-            for (i in 0 until days.length()) {
-                val o = days.getJSONObject(i)
-                if (o.optString("date") == todayKey) total = o.optDouble("kcal", 0.0)
-            }
-            val fond = total - oneplus - fitbit - bmr
+            val bmr = out.optDouble("basalMetabolicRate", BMR_DEFAULT)
+            // Total = BMR + calories actives toutes sources
+            val totalCalc = bmr + oneplus + fitbit + autres
             val src = JSONObject()
                 .put("oneplus", Math.round(oneplus))
                 .put("fitbit", Math.round(fitbit))
+                .put("fond", Math.round(autres))
                 .put("bmr", Math.round(bmr))
-                .put("bmrDay", Math.round(bmrDay))
-                .put("fond", Math.round(Math.max(fond, 0.0)))
-                .put("total", Math.round(total))
-            if (autres > 0.5) src.put("autres", Math.round(autres))
-            src.put("pkgs", JSONArray(bySource.keys.toList()))
+                .put("bmrXiaomi", out.optJSONObject("bmr")?.optBoolean("xiaomi", false) ?: false)
+                .put("total", Math.round(totalCalc))
+                .put("pkgs", JSONArray(bySource.keys.toList()))
             out.put("caloriesSources", src)
         }
         return out
@@ -455,6 +457,11 @@ class HealthBridge(private val activity: ComponentActivity, private val webView:
         private const val PKG_ONEPLUS = "com.oneplus.health"
         private const val PKG_FITBIT = "com.fitbit.FitbitMobile"
         private const val BMR_DEFAULT = 1867.0
+        private const val PKG_XIAOMI_1 = "com.mi.health"
+        private const val PKG_XIAOMI_2 = "com.xiaomi.haylou"
+        fun isXiaomi(pkg: String): Boolean =
+            pkg == PKG_XIAOMI_1 || pkg == PKG_XIAOMI_2 ||
+            pkg.contains("xiaomi") || pkg.contains("mi.health") || pkg.contains("haylou")
     }
 
     /** Minutes par phase [léger, profond, paradoxal, éveillé] ; null si la session n'a pas de phases. */
