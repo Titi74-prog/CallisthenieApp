@@ -200,6 +200,16 @@ html,body{background:#f2f2f6;color:#1a1a22}
       <div class="note">Lecture hors ligne sur le téléphone. Le poids est ajouté automatiquement à la courbe. Touche une tuile pour sa courbe sur 30 jours.</div>
     </div>
 
+    <!-- v7.1 — Température cutanée (Fitbit Air → Health Connect) -->
+    <div class="card" id="temp-card">
+      <div class="card-title">🌡️ Température cutanée <b id="temp-date"></b></div>
+      <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap">
+        <div id="temp-v" style="font-size:30px;font-weight:800;font-variant-numeric:tabular-nums">—</div>
+        <div id="temp-st" style="font-size:13px;font-weight:700"></div>
+      </div>
+      <div class="note" id="temp-note">Mesurée la nuit par la montre. Plage normale 35,5 – 37,5 °C. Une hausse inhabituelle peut signaler fatigue ou début de maladie : allège la séance.</div>
+    </div>
+
     <div id="historique-title">Historique</div>
     <div id="historique"></div>
     <button id="btn-reset" onclick="openReset()">↺ Remettre à zéro la courbe</button>
@@ -524,6 +534,45 @@ function doRestore(){
 loadSaved();
 render();
 window.addEventListener('resize',drawChart);
+</script>
+<script>
+/* ═════════ v7.1 — Température cutanée (Health Connect, mémorisée par l'onglet Santé) ═════════ */
+function getTempStatus(temp) {
+    if (temp >= 35.5 && temp <= 37.5) return '✅ Normale';
+    if (temp > 37.5) return '⚠️ Élevée';
+    return '⚠️ Basse';
+}
+function renderSkinTemp(t){
+  var v=document.getElementById('temp-v'),st=document.getElementById('temp-st'),dt=document.getElementById('temp-date');if(!v)return;
+  if(!t||(t.temp==null&&t.delta==null)){v.textContent='—';st.textContent='';dt.textContent='';return;}
+  var f=function(n,d){return n.toLocaleString('fr-FR',{minimumFractionDigits:d,maximumFractionDigits:d});};
+  if(t.temp!=null){
+    v.textContent=f(t.temp,1)+' °C';
+    var s=getTempStatus(t.temp);st.textContent=s+(t.delta!=null?' · écart '+(t.delta>0?'+':'')+f(t.delta,1)+' °C':'');
+    st.style.color=s.indexOf('✅')===0?'#1baf7a':'#EF5350';
+  }else{ // pas de référence absolue : seul l'écart à la référence personnelle est connu
+    v.textContent=(t.delta>0?'+':'')+f(t.delta,1)+' °C';
+    var hi=t.delta>1,lo=t.delta<-1;
+    st.textContent=hi?'⚠️ Élevée (écart à ta référence)':lo?'⚠️ Basse (écart à ta référence)':'✅ Normale (écart à ta référence)';
+    st.style.color=hi||lo?'#EF5350':'#1baf7a';
+  }
+  dt.textContent=t.t?ago(t.t):'';
+}
+document.addEventListener('DOMContentLoaded',function(){ // après tous les <script> (ago() est défini plus bas)
+  var c=null;try{c=JSON.parse(localStorage.getItem('hc_skinTemp'));}catch(e){}
+  renderSkinTemp(c);
+  /* Lecture fraîche si le pont Health Connect est disponible (ne remplace pas un autre gestionnaire) */
+  if(typeof window.HealthBridge!=='undefined'&&!window.onHealthData){
+    window.onHealthData=function(d){
+      if(typeof d==='string'){try{d=JSON.parse(d);}catch(e){return;}}
+      if(!d||d.status!=='ok'||(d.skinTemp==null&&d.skinTempDelta==null))return;
+      var o={temp:d.skinTemp!=null?d.skinTemp:null,delta:d.skinTempDelta!=null?d.skinTempDelta:null,t:d.skinTempTime||d.updated||null};
+      try{localStorage.setItem('hc_skinTemp',JSON.stringify(o));}catch(e){}
+      renderSkinTemp(o);
+    };
+    setTimeout(function(){try{HealthBridge.requestDataForPeriod('week');}catch(e){}},600);
+  }
+});
 </script>
 <script>
 /* v6.4 — utilitaires pour la carte Balance S400 */

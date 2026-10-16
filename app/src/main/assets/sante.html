@@ -56,6 +56,14 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
 .bars.dense{gap:2px}
 .bars.dense .bar{border-radius:3px 3px 1px 1px}
 .wchart{width:100%;height:90px;display:block;margin-top:12px}
+/* v7.1 — Sommeil : barres empilées par phase */
+.stk{width:100%;display:flex;flex-direction:column-reverse;border-radius:6px 6px 2px 2px;overflow:hidden;min-height:2px;transition:height .5s}
+.stk i{display:block;width:100%}
+.ph-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--bd);font-size:12.5px}
+.ph-row:last-child{border-bottom:none}
+.ph-row span:first-child{color:var(--t2)}
+.ph-row b{font-variant-numeric:tabular-nums}
+.ph-row small{color:var(--t3);font-weight:600;margin-left:6px}
 /* Déficit */
 .deficit-input{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:#0f0f13;border-radius:10px;padding:10px}
 .deficit-input label{flex:1 1 100%;font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px}
@@ -181,6 +189,7 @@ html,body{background:#f2f2f6;color:#1a1a22}
       </div>
       <div class="row" style="margin-top:8px">
         <div class="mini"><div class="mini-l">Brûlées</div><div class="mini-v" id="df-burn">—</div><div class="mini-s">kcal · montre</div></div>
+        <div class="mini"><div class="mini-l">Callisthénie</div><div class="mini-v" id="df-cal">—</div><div class="mini-s" id="df-cal-s">kcal · 7h-8h30</div></div>
         <div class="mini"><div class="mini-l">Déficit du jour</div><div class="mini-v" id="df-today">—</div><div class="mini-s" id="df-today-s">kcal</div></div>
       </div>
       <canvas id="def-canvas"></canvas>
@@ -222,6 +231,12 @@ html,body{background:#f2f2f6;color:#1a1a22}
         <div class="mini"><div class="mini-l">Max</div><div class="mini-v" id="hr-mx">—</div><div class="mini-s">bpm</div></div>
       </div>
       <div class="bars" id="hr-bars" style="height:80px"></div>
+      <div class="row" style="margin-top:12px">
+        <div class="mini"><div class="mini-l">HRV (RMSSD)</div><div class="mini-v" id="hrv">—</div><div class="mini-s" id="hrv-s">ms</div></div>
+        <div class="mini"><div class="mini-l">HRV moy. 7 j</div><div class="mini-v" id="hrv-avg">—</div><div class="mini-s" id="hrv-avg-s">ms</div></div>
+      </div>
+      <div class="bars" id="hrv-bars" style="height:80px"></div>
+      <div class="note" id="hrv-note">HRV ≥ 50 ms : excellente récupération · 35-50 ms : bonne · &lt; 35 ms : récupération insuffisante.</div>
       <div class="note" id="hr-note">Une FC repos qui baisse régulièrement signe une meilleure forme.</div>
     </div>
 
@@ -249,7 +264,9 @@ html,body{background:#f2f2f6;color:#1a1a22}
         <div class="mini"><div class="mini-l">Moyenne 7 nuits</div><div class="mini-v" id="sl-avg">—</div><div class="mini-s">par nuit</div></div>
         <div class="mini" id="spo2-box" style="display:none"><div class="mini-l">SpO2 nuit</div><div class="mini-v" id="spo2">—</div><div class="mini-s" id="spo2-d">%</div></div>
       </div>
-      <div class="bars" id="sl-bars" style="height:90px"></div>
+      <div class="bars" id="sl-bars" style="height:110px"></div>
+      <div class="leg" id="sl-leg"></div>
+      <div id="sl-phases" style="margin-top:10px"></div>
     </div>
 
   </div>
@@ -648,6 +665,11 @@ function renderDeficit(){
   inp.placeholder=t.burn!=null?'estimé '+fmt(getDefaultConso(t.burn)):'ex: 1 850';
   $('conso-source').textContent=t.saisie?(t.estimated?'📊 Estimé':'✏️ Saisie'):'📊 Estimé';
   $('df-burn').textContent=fmt(t.burn);
+  /* v7.1 — kcal callisthénie : donnée réelle Fitbit Air (7h-8h30) sinon estimation fixe */
+  var calReal=LAST&&LAST.callisthenieKcal!=null?LAST.callisthenieKcal:null;
+  const calActiv = calReal || CAL_KCAL_FALLBACK;
+  $('df-cal').textContent=fmt(calActiv);
+  $('df-cal-s').textContent=calReal?'kcal · réel 7h-8h30':'kcal · estimé';
   $('df-today').textContent=sgn(t.def);$('df-today').style.color=t.def!=null?defColor(t.def):'';
   $('df-today-s').textContent=t.def==null?'kcal':(t.def>=0?'kcal · déficit':'kcal · surplus')+(t.saisie?'':' (estimé)');
   var v30=S.filter(function(x){return x.def!=null;}),v7=S.slice(-7).filter(function(x){return x.def!=null;});
@@ -770,6 +792,50 @@ window.onHealthData=function(d){
   render(d);
 };
 
+/* ═════════ v7.1 — Fitbit Air : HRV, phases de sommeil, température cutanée, kcal callisthénie ═════════ */
+var CAL_KCAL_FALLBACK=225; // estimation si aucune donnée réelle 7h-8h30
+function getHRVStatus(hrv) {
+    if (hrv >= 50) return {label: 'Excellente récupération ✅', color: '#1baf7a'};
+    if (hrv >= 35) return {label: 'Bonne récupération 🟡', color: '#eda100'};
+    return {label: 'Récupération insuffisante ⚠️', color: '#EF5350'};
+}
+var SLEEP_PHASES=[
+  {k:'deep', label:'Profond 😴',  color:'#1a237e', goal:[15,20]},
+  {k:'light',label:'Léger 💤',    color:'#3949ab', goal:[50,60]},
+  {k:'rem',  label:'Paradoxal 🌀',color:'#7e57c2', goal:[20,25]},
+  {k:'awake',label:'Éveillé 👁️',  color:'#EF5350', goal:null}
+];
+/* Barres empilées (une barre = une nuit, segments = phases) */
+function stackBars(el,items,fmtV){
+  var max=Math.max.apply(null,items.map(function(i){return i.v||0;}).concat([1]))*1.1,todayKey=ld(new Date()),h='';
+  items.forEach(function(it){
+    var pct=it.v?Math.max(2,it.v/max*100):0,seg='';
+    if(it.ph){SLEEP_PHASES.forEach(function(p){var m=it.ph[p.k]||0;if(m>0)seg+='<i style="height:'+(m/it.v*100)+'%;background:'+p.color+'"></i>';});}
+    else if(it.v)seg='<i style="height:100%;background:linear-gradient(180deg,#B39DDB,#9575CD)"></i>';
+    h+='<div class="bar-col"><div class="bar-v">'+(it.v?fmtV(it.v):'')+'</div>'
+      +'<div class="stk" style="height:'+pct+'%">'+seg+'</div>'
+      +'<div class="bar-d'+(it.key===todayKey?' today':'')+'">'+it.lbl+'</div></div>';
+  });
+  el.classList.remove('dense');el.innerHTML=h;
+  el.querySelectorAll('.bar-col').forEach(function(col,i){var it=items[i];if(!it||!it.tip)return;
+    col.addEventListener('click',function(ev){ev.stopPropagation();if(col.classList.contains('sel')){hideTip();return;}showTooltip(it.tip(),col);});});
+}
+function phaseRows(ph){
+  var tot=SLEEP_PHASES.reduce(function(s,p){return s+(ph[p.k]||0);},0);if(!tot)return '';
+  var asleep=tot-(ph.awake||0),h='';
+  SLEEP_PHASES.forEach(function(p){
+    var m=ph[p.k]||0,base=p.k==='awake'?tot:asleep,pc=base?Math.round(m/base*100):0,st='';
+    if(p.goal)st=pc<p.goal[0]?' <span style="color:var(--warn)">▼ obj. '+p.goal[0]+'-'+p.goal[1]+' %</span>':pc>p.goal[1]?' <span style="color:var(--warn)">▲ obj. '+p.goal[0]+'-'+p.goal[1]+' %</span>':' <span style="color:var(--ok)">✅</span>';
+    h+='<div class="ph-row"><span><i style="display:inline-block;width:8px;height:8px;border-radius:50%;background:'+p.color+';margin-right:6px"></i>'+p.label+'</span><span><b>'+hm(m)+'</b><small>'+pc+' %</small>'+st+'</span></div>';
+  });
+  return h;
+}
+/* Mémorise la température cutanée pour l'onglet Poids */
+function storeSkinTemp(d){
+  if(d.skinTemp==null&&d.skinTempDelta==null)return;
+  try{localStorage.setItem('hc_skinTemp',JSON.stringify({temp:d.skinTemp!=null?d.skinTemp:null,delta:d.skinTempDelta!=null?d.skinTempDelta:null,t:d.skinTempTime||d.updated||null}));}catch(e){}
+}
+
 function render(d){
   if(!d)return;
   LAST=d;
@@ -777,7 +843,8 @@ function render(d){
   if(d.status==='update_required'){showBanner("Health Connect doit être mis à jour depuis le Play Store.",'Réessayer',refresh);return;}
   if(d.status==='error'){showBanner('Erreur de lecture Health Connect : '+(d.message||''),'Réessayer',refresh);return;}
   if(d.status==='denied'){showBanner("Autorise Callisthénie à lire tes données (calories, pas, cœur, sommeil) dans Health Connect.",'Autoriser',function(){try{HealthBridge.askPermissions();}catch(e){}});return;}
-  var nReq=d.requested||11,nOk=d.grantedCount!=null?d.grantedCount:(d.granted||[]).length;
+  storeSkinTemp(d);
+  var nReq=d.requested||14,nOk=d.grantedCount!=null?d.grantedCount:(d.granted||[]).length;
   if(nOk<nReq)showBanner('Certaines données ne sont pas autorisées ('+nOk+'/'+nReq+'). Tu peux les activer dans Health Connect.','Autoriser le reste',function(){try{HealthBridge.askPermissions();}catch(e){}});
   else hideBanner();
   if(d.updated){var u=new Date(d.updated);$('kcal-upd').textContent='màj '+String(u.getHours()).padStart(2,'0')+':'+String(u.getMinutes()).padStart(2,'0');}
@@ -848,6 +915,17 @@ function render(d){
   $('vo2').textContent=d.vo2max?fmt1(d.vo2max.v):'—';
   $('vo2-d').textContent=d.vo2max?'ml/kg/min · '+ago(d.vo2max.t):'ml/kg/min';
 
+  /* ── v7.1 HRV ── */
+  if(d.hrv!=null){var hs=getHRVStatus(d.hrv);
+    $('hrv').textContent=d.hrv;$('hrv').style.color=hs.color;
+    $('hrv-s').innerHTML='ms · <span style="color:'+hs.color+';font-weight:700">'+hs.label+'</span>'+(d.hrvTime?'<br>'+ago(d.hrvTime):'');}
+  else{$('hrv').textContent='—';$('hrv').style.color='';$('hrv-s').textContent='ms';}
+  var hd=(d.hrvDays||[]),hv=vals(hd,'ms');
+  var hA=avg(hv);$('hrv-avg').textContent=hA!=null?Math.round(hA):'—';
+  if(hv.length>=2){var hD=hv[hv.length-1]-hv[0];$('hrv-avg-s').textContent='ms · '+(hD>0?'▲ +':hD<0?'▼ −':'= ')+Math.abs(hD)+' sur 7 j';}else $('hrv-avg-s').textContent='ms';
+  bars($('hrv-bars'),hd.map(function(x){var dt=new Date(x.date+'T12:00:00');return {key:x.date,lbl:JOURS[dt.getDay()],v:x.ms!=null?x.ms:null};}),
+    function(v){return v==null?'transparent':getHRVStatus(v).color;},0,function(v){return Math.round(v);});
+
   /* ── SpO2 : moyenne des mesures de la dernière nuit (21h → 11h) ── */
   var sp=(d.spo2||[]).filter(function(x){var h=new Date(x.t).getHours();return h>=21||h<11;});
   if(sp.length){
@@ -857,14 +935,21 @@ function render(d){
   }else $('spo2-box').style.display='none';
 
   /* ── Sommeil : regroupé par date de réveil ── */
-  var sl={};(d.sleep||[]).forEach(function(s){var k=ld(new Date(s.end));sl[k]=(sl[k]||0)+s.min;});
-  var nights=[];for(var i=6;i>=0;i--){var dt=new Date();dt.setDate(dt.getDate()-i);var k=ld(dt);nights.push({key:k,lbl:JOURS[dt.getDay()],v:sl[k]||0});}
+  var sl={},sp7={};(d.sleep||[]).forEach(function(s){var k=ld(new Date(s.end));sl[k]=(sl[k]||0)+s.min;
+    if(s.light!=null||s.deep!=null||s.rem!=null||s.awake!=null){var o=sp7[k]||(sp7[k]={light:0,deep:0,rem:0,awake:0});
+      o.light+=s.light||0;o.deep+=s.deep||0;o.rem+=s.rem||0;o.awake+=s.awake||0;}});
+  var nights=[];for(var i=6;i>=0;i--){var dt=new Date();dt.setDate(dt.getDate()-i);var k=ld(dt);
+    (function(k,dt){var ph=sp7[k]||null;nights.push({key:k,lbl:JOURS[dt.getDay()],v:sl[k]||0,ph:ph,
+      tip:sl[k]?function(){var r=[['Durée',hm(sl[k])]];if(ph)SLEEP_PHASES.forEach(function(p){r.push([p.label,hm(ph[p.k]||0)]);});return {label:'Nuit → '+JOURS_L[dt.getDay()]+' '+dd(dt),rows:r};}:null});})(k,dt);}
   var lastS=(d.sleep||[]).slice(-1)[0];
   $('sl-last').textContent=lastS?hm(sl[ld(new Date(lastS.end))]):'—';
   $('sl-last-d').textContent=lastS?ago(lastS.end):'';
   var nv=nights.filter(function(n){return n.v>0;});
   $('sl-avg').textContent=nv.length?hm(nv.reduce(function(s,n){return s+n.v;},0)/nv.length):'—';
-  bars($('sl-bars'),nights,'linear-gradient(180deg,#B39DDB,#9575CD)',0,hm);
+  stackBars($('sl-bars'),nights,hm);
+  var lastPh=d.sleepDeep!=null||d.sleepLight!=null||d.sleepRem!=null?{light:d.sleepLight||0,deep:d.sleepDeep||0,rem:d.sleepRem||0,awake:d.sleepAwake||0}:null;
+  $('sl-leg').innerHTML=lastPh||Object.keys(sp7).length?SLEEP_PHASES.map(function(p){return '<span><i style="background:'+p.color+'"></i>'+p.label+'</span>';}).join(''):'';
+  $('sl-phases').innerHTML=lastPh?'<div class="mini-l" style="margin-bottom:4px">Phases dernière nuit · objectifs : profond 15-20 % · paradoxal 20-25 % · léger 50-60 %</div>'+phaseRows(lastPh):'';
 
 }
 
