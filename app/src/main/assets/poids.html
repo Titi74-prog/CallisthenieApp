@@ -1066,6 +1066,7 @@ function s400Save(){
   H.push({date:date,saved:new Date().toISOString(),v:v,calc:calc});
   H.sort(function(p,q){return p.date.localeCompare(q.date);});
   s400Store(H.slice(-400));
+  s400SaveBMR(H);
   s400ToPoids(date,v.poids);
   S400_CUR=null;s400Sheet(false);
   renderS400();
@@ -1073,8 +1074,17 @@ function s400Save(){
   t.style.display='block';clearTimeout(window._s4t);window._s4t=setTimeout(function(){t.style.display='none';},4000);
 }
 function s400Cancel(){S400_CUR=null;s400Sheet(false);}
+/* v7.4 — BMR fixe : métabolisme de base de la dernière pesée S400 (par date), lu par l'onglet Santé */
+function s400SaveBMR(H){
+  var last=null;(H||[]).forEach(function(x){if(x.v&&x.v.bmr>1000)last=x;}); // H trié par date
+  if(!last)return;
+  var s=String(Math.round(last.v.bmr));
+  try{localStorage.setItem('bmrXiaomi',s);}catch(e){}
+  try{if(window.App&&App.setPref)App.setPref('bmrXiaomi',s);}catch(e){}
+}
 
 (function(){
+  try{s400SaveBMR(s400Load());}catch(e){} // reprend le BMR des pesées déjà importées
   renderS400();
   try{drawChart();}catch(e){} // points S400 sur la courbe (le 1er tracé a lieu avant le chargement de ce script)
   document.addEventListener('click',function(e){if(!e.target.closest('#comp-panel')&&e.target.id!=='chart')hideCompositionPanel();});
