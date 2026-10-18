@@ -191,7 +191,7 @@ html,body{background:#f2f2f6;color:#1a1a22}
         <div class="mini"><div class="mini-l">Moyenne</div><div class="mini-v" id="kcal-avg">—</div><div class="mini-s">kcal / jour</div></div>
         <div class="mini"><div class="mini-l">Objectif</div><div class="mini-v" id="kcal-hit">—</div><div class="mini-s">jours atteints</div></div>
       </div>
-      <div class="note">Calcul : total Fitbit Air lu dans Google Health (métabolisme + activité, identique à l'appli Fitbit) + calories actives des séances OnePlus. Le BMR de la balance n'est plus ajouté (affiché pour information). Objectif : 2 100 kcal · force 2 200 (≥ 2 100) · padel 1h 2 600 (≥ 2 400) · padel 1h30 2 700 (≥ 2 800). Les boutons forcent le type du jour ; retouche le bouton actif pour revenir en auto. Touche une barre pour le détail.</div>
+      <div class="note">Calcul : énergie dépensée totale de Health Connect (métabolisme + activité Fitbit Air, identique à l'écran « Énergie dépensée ») + calories actives des séances OnePlus. Le BMR de la balance n'est plus ajouté (affiché pour information). Objectif : 2 100 kcal · force 2 200 (≥ 2 100) · padel 1h 2 600 (≥ 2 400) · padel 1h30 2 700 (≥ 2 800). Les boutons forcent le type du jour ; retouche le bouton actif pour revenir en auto. Touche une barre pour le détail.</div>
     </div>
 
     <!-- Déficit -->
@@ -297,7 +297,7 @@ html,body{background:#f2f2f6;color:#1a1a22}
 </div>
 
 <script>
-/* ═══════════════ Santé v8.3 ═══════════════
+/* ═══════════════ Santé v8.4 ═══════════════
    Les calories sont calculées dans HealthBridge.kt (days[i].cal) ; la page ne fait qu'afficher.
    Stockage conservé : deficitHist, sante_padel_days, sante_period, healthCache_<période>, hc_skinTemp.
    Nouveau : santeBurnV8 { 'AAAA-MM-JJ': total kcal du modèle v8 } (jours passés). */
@@ -334,6 +334,7 @@ var PERIOD=lsGet('sante_period')||'week';
 var LAST=null;      // dernière réponse affichée (période courante)
 var TODAY_CAL=null; // modèle calories d'aujourd'hui (quelle que soit la période reçue)
 var BMR24=null;
+var TODAY_DIAG=null; // v8.4 — sources TotalCaloriesBurned du jour quand aucune n'est reconnue
 
 /* ═════════ Calories : stockage par jour ═════════ */
 var BURN8_KEY='santeBurnV8';
@@ -387,7 +388,7 @@ function srcLbl(s){return s==='oneplus'?'⌚ OnePlus':'⌚ Fitbit Air';}
 /* v8.3 — Total = Fitbit Air via Google Health (BMR + activité, tout inclus) + sessions OnePlus */
 function calRows(c,isToday){
   var r=[];
-  r.push({l:'⌚ Fitbit Air (BMR + activité)',s:'Google Health'+(isToday?' · jusqu\'à maintenant':''),v:c.googleHealth});
+  r.push({l:'⌚ Fitbit Air (BMR + activité)',s:(c.googleSrc==='healthconnect'||!c.googleSrc?'Health Connect · Énergie dépensée':pkgShort(c.googleSrc))+(isToday?' · jusqu\'à maintenant':''),v:c.googleHealth});
   var ss=(c.sessions||[]).filter(function(s){return (s.source||s.src)==='oneplus';}).slice().sort(function(a,b){return a.start<b.start?-1:1;});
   ss.forEach(function(s){
     var lbl=s.type||s.label;if(lbl==='🏃 Activité'&&s.title)lbl='🏃 '+s.title;
@@ -395,6 +396,9 @@ function calRows(c,isToday){
   });
   return r;
 }
+/* v8.4 — diagnostic : TotalCaloriesBurned de chaque package Health Connect aujourd'hui */
+function pkgShort(p){return p==='com.google.android.apps.healthdata'?'Google Health':p==='com.google.android.apps.fitness'?'Google Fit':p.indexOf('com.android.healthconnect.phone.')===0?'HC phone ('+p.slice(32)+')':p.indexOf('xiaomi.wearable')>=0?'OnePlus (xiaomi.wearable)':p;}
+function diagRows(list,used){return (list||[]).map(function(x){return {l:'🔍 '+pkgShort(x.pkg)+(x.pkg===used?' ✔':''),s:'TotalCaloriesBurned · '+x.pkg,v:x.kcal};});}
 function bmrRefRow(){return {l:'💤 BMR ref'+(BMR24&&BMR24.src==='xiaomi'?' ⚖️':''),s:'informatif · non ajouté au total',v:BMR24?fmt(BMR24.v)+' kcal/24h':'—'};}
 function rowsHtml(r){return r.map(function(x){
   return '<div class="src-row'+(x.dup?' dup':'')+(x.cls?' '+x.cls:'')+'"><span>'+x.l+(x.s?'<small>'+x.s+'</small>':'')+'</span><b>'+(typeof x.v==='string'?x.v:fmt(x.v)+' kcal')+'</b></div>';}).join('');}
@@ -437,7 +441,10 @@ function renderCalories(days,per,tk){
     var r=[{l:'🔥 Total jusqu\'ici',v:c.total,cls:'tot'}].concat(calRows(c,true));
     r.push(bmrRefRow());
     var p=projMinuit(c);if(p!=null)r.push({l:'📈 Projection minuit',s:'si aucune autre activité',v:p,cls:'proj'});
+    r=r.concat(diagRows(c.diag,c.googleSrc));
     $('kcal-src').innerHTML=rowsHtml(r);$('kcal-src').style.display='block';
+  }else if(TODAY_DIAG&&TODAY_DIAG.length){
+    $('kcal-src').innerHTML=rowsHtml([{l:'⚠️ Aucune donnée Fitbit Air reconnue',s:'sources TotalCaloriesBurned trouvées :',v:'',cls:'tot'}].concat(diagRows(TODAY_DIAG)));$('kcal-src').style.display='block';
   }else $('kcal-src').style.display='none';
 
   var B=buckets(days,per);
@@ -833,7 +840,7 @@ function showCacheBadge(d){
 function receive(d,fromCache){
   if(d.status==='ok'){
     if(d.bmr24)BMR24={v:d.bmr24,src:d.bmrSource};
-    var t=todayOf(d);if(t&&t.cal)TODAY_CAL=t.cal;
+    var t=todayOf(d);TODAY_CAL=t&&t.cal?t.cal:null;TODAY_DIAG=t&&t.calDiag?t.calDiag:null;
     storeModel(d.days);
   }
   if(d.period&&d.period!==PERIOD){renderDeficit();return;} // pré-chargement 30 j ou autre onglet
