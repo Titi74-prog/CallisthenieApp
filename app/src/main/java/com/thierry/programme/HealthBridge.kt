@@ -16,6 +16,8 @@ import androidx.health.connect.client.records.ActiveCaloriesBurnedRecord
 import androidx.health.connect.client.records.HeartRateVariabilityRmssdRecord
 import androidx.health.connect.client.records.SkinTemperatureRecord
 import androidx.health.connect.client.records.BodyFatRecord
+// v7.6 — sessions sportives (OnePlus Watch 2R : toutes ; Fitbit Air : callisthénie, marche)
+import androidx.health.connect.client.records.ExerciseSessionRecord
 import androidx.health.connect.client.records.LeanBodyMassRecord
 import androidx.health.connect.client.records.SleepSessionRecord
 import androidx.health.connect.client.records.HeartRateRecord
@@ -72,7 +74,9 @@ class HealthBridge(private val activity: ComponentActivity, private val webView:
         HealthPermission.getReadPermission(FloorsClimbedRecord::class),
         // v7.1
         HealthPermission.getReadPermission(ActiveCaloriesBurnedRecord::class),
-        HealthPermission.getReadPermission(HeartRateVariabilityRmssdRecord::class)
+        HealthPermission.getReadPermission(HeartRateVariabilityRmssdRecord::class),
+        // v7.6
+        HealthPermission.getReadPermission(ExerciseSessionRecord::class)
     )
     /** v7.1 — Température cutanée : demandée seulement si Health Connect la prend en charge sur ce téléphone */
     private val skinTempPermission = HealthPermission.getReadPermission(SkinTemperatureRecord::class)
@@ -393,35 +397,95 @@ class HealthBridge(private val activity: ComponentActivity, private val webView:
                 }
             }
         }
-        // v7.2 — Ventilation des calories du jour par source (montre)
+        // v7.6 — Ventilation des calories actives du jour : sessions sportives + fond, par montre
+        // Filtre données résiduelles (OnePlus) : tout record commencé avant minuit est ignoré
         if (has(granted, "READ_ACTIVE_CALORIES_BURNED")) safe {
-            val startOfDay = today.atStartOfDay(zone).toInstant()
-            val bySource = HashMap<String, Double>()
+            val debutAujourdhui = today.atStartOfDay(zone).toInstant()
+
+            // 1. Calories actives du jour (toutes sources)
+            val actives = ArrayList<ActiveCaloriesBurnedRecord>()
             var token: String? = null
             do {
                 val resp = client.readRecords(
                     ReadRecordsRequest(
                         ActiveCaloriesBurnedRecord::class,
-                        TimeRangeFilter.between(startOfDay, now),
+                        TimeRangeFilter.between(debutAujourdhui, now),
                         ascendingOrder = true, pageSize = 1000, pageToken = token
                     )
                 )
-                resp.records.forEach {
-                    val pkg = it.metadata.dataOrigin.packageName
-                    bySource[pkg] = (bySource[pkg] ?: 0.0) + it.energy.inKilocalories
-                }
+                resp.records.forEach { if (!it.startTime.isBefore(debutAujourdhui)) actives.add(it) }
                 token = resp.pageToken
             } while (token != null)
-            // v7.4 — calories actives groupées par source ; BMR et total calculés côté JS (getBMR)
-            // v7.5 — détection par package réel (identifié via le debug v7.4)
-            val oneplus = bySource.filterKeys { isOnePlus(it) }.values.sum()
-            val fitbit = bySource.filterKeys { isFitbit(it) && !isOnePlus(it) }.values.sum()
-            val autres = bySource.filterKeys { !isOnePlus(it) && !isFitbit(it) }.values.sum()
+
+            // 2. Sessions sportives du jour (OnePlus : toutes ; Fitbit Air : callisthénie, marche…)
+            val sessions = ArrayList<ExerciseSessionRecord>()
+            if (has(granted, "READ_EXERCISE")) safe {
+                var t2: String? = null
+                do {
+                    val resp = client.readRecords(
+                        ReadRecordsRequest(
+                            ExerciseSessionRecord::class,
+                            TimeRangeFilter.between(debutAujourdhui, now),
+                            ascendingOrder = true, pageSize = 200, pageToken = t2
+                        )
+                    )
+                    resp.records.forEach { if (!it.startTime.isBefore(debutAujourdhui)) sessions.add(it) }
+                    t2 = resp.pageToken
+                } while (t2 != null)
+            }
+
+            // 3. Calories de chaque session = calories actives de la même source, comprises dans la plage
+            var calsExOnePlus = 0.0
+            var calsExFitbit = 0.0
+            val sessionsList = JSONArray()
+            val sessionRanges = ArrayList<LongArray>()
+            for (s in sessions) {
+                val pkg = s.metadata.dataOrigin.packageName
+                val op = isOnePlus(pkg)
+                val fb = !op && isFitbit(pkg)
+                if (!op && !fb) continue
+                val sStart = s.startTime.epochSecond
+                val sEnd = s.endTime.epochSecond
+                sessionRanges.add(longArrayOf(sStart, sEnd))
+                var sKcal = 0.0
+                for (r in actives) {
+                    if (r.metadata.dataOrigin.packageName != pkg) continue
+                    if (r.startTime.epochSecond >= sStart && r.endTime.epochSecond <= sEnd) {
+                        sKcal += r.energy.inKilocalories
+                    }
+                }
+                sessionsList.put(JSONObject()
+                    .put("type", getExerciseLabel(s.exerciseType))
+                    .put("kcal", Math.round(sKcal))
+                    .put("source", if (op) "oneplus" else "fitbit")
+                    .put("start", s.startTime.toString())
+                    .put("end", s.endTime.toString()))
+                if (op) calsExOnePlus += sKcal else calsExFitbit += sKcal
+            }
+
+            // 4. Calories de fond = calories actives hors plages des sessions (déduplication)
+            var fondOnePlus = 0.0
+            var fondFitbit = 0.0
+            for (r in actives) {
+                val pkg = r.metadata.dataOrigin.packageName
+                val rStart = r.startTime.epochSecond
+                val rEnd = r.endTime.epochSecond
+                val duringSession = sessionRanges.any { rStart >= it[0] && rEnd <= it[1] }
+                if (duringSession) continue
+                val kcal = r.energy.inKilocalories
+                if (isOnePlus(pkg)) fondOnePlus += kcal
+                else if (isFitbit(pkg)) fondFitbit += kcal
+            }
+
+            // BMR et total calculés côté JS (getBMRProgressif)
             val src = JSONObject()
-                .put("oneplus", Math.round(oneplus))
-                .put("fitbit", Math.round(fitbit))
-                .put("fond", Math.round(autres))
+                .put("oneplusExercise", Math.round(calsExOnePlus))
+                .put("fitbitExercise", Math.round(calsExFitbit))
+                .put("oneplusFond", Math.round(fondOnePlus))
+                .put("fitbitFond", Math.round(fondFitbit))
+                .put("totalActives", Math.round(calsExOnePlus + calsExFitbit + fondOnePlus + fondFitbit))
             out.put("caloriesSources", src)
+            out.put("exerciseSessions", sessionsList)
         }
         return out
     }
@@ -436,6 +500,22 @@ class HealthBridge(private val activity: ComponentActivity, private val webView:
         fun isOnePlus(pkg: String): Boolean =
             pkg == PKG_ONEPLUS || pkg.contains("xiaomi.wearable") ||
             pkg.contains("oneplus.health") || pkg.contains("heytap.health")
+    }
+
+    /** v7.6 — Libellé du type d'exercice (sessions Health Connect) */
+    private fun getExerciseLabel(type: Int): String = when (type) {
+        ExerciseSessionRecord.EXERCISE_TYPE_TENNIS -> "🎾 Padel/Tennis"
+        ExerciseSessionRecord.EXERCISE_TYPE_BADMINTON -> "🏸 Badminton"
+        ExerciseSessionRecord.EXERCISE_TYPE_SKIING -> "🎿 Ski"
+        ExerciseSessionRecord.EXERCISE_TYPE_BIKING -> "🚴 Vélo"
+        ExerciseSessionRecord.EXERCISE_TYPE_HIKING -> "🥾 Randonnée"
+        ExerciseSessionRecord.EXERCISE_TYPE_RUNNING -> "🏃 Course"
+        ExerciseSessionRecord.EXERCISE_TYPE_WALKING -> "🚶 Marche"
+        ExerciseSessionRecord.EXERCISE_TYPE_SWIMMING_POOL -> "🏊 Natation"
+        ExerciseSessionRecord.EXERCISE_TYPE_STRENGTH_TRAINING -> "💪 Force"
+        ExerciseSessionRecord.EXERCISE_TYPE_CALISTHENICS,
+        ExerciseSessionRecord.EXERCISE_TYPE_OTHER_WORKOUT -> "🏋️ Callisthénie"
+        else -> "🏃 Activité"
     }
 
     /** Minutes par phase [léger, profond, paradoxal, éveillé] ; null si la session n'a pas de phases. */
