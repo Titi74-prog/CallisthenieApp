@@ -191,7 +191,7 @@ html,body{background:#f2f2f6;color:#1a1a22}
         <div class="mini"><div class="mini-l">Moyenne</div><div class="mini-v" id="kcal-avg">—</div><div class="mini-s">kcal / jour</div></div>
         <div class="mini"><div class="mini-l">Objectif</div><div class="mini-v" id="kcal-hit">—</div><div class="mini-s">jours atteints</div></div>
       </div>
-      <div class="note">Calcul : énergie dépensée totale de Health Connect (métabolisme + activité Fitbit Air, identique à l'écran « Énergie dépensée ») + calories actives des séances OnePlus. Le BMR de la balance n'est plus ajouté (affiché pour information). Objectif : 2 100 kcal · force 2 200 (≥ 2 100) · padel 1h 2 600 (≥ 2 400) · padel 1h30 2 700 (≥ 2 800). Les boutons forcent le type du jour ; retouche le bouton actif pour revenir en auto. Touche une barre pour le détail.</div>
+      <div class="note">Calcul : énergie dépensée totale écrite par l'appli Fitbit dans Health Connect (métabolisme + activité Fitbit Air ; à défaut, total Health Connect) + calories actives des séances OnePlus. Le BMR de la balance n'est plus ajouté (affiché pour information). Objectif : 2 100 kcal · force 2 200 (≥ 2 100) · padel 1h 2 600 (≥ 2 400) · padel 1h30 2 700 (≥ 2 800). Les boutons forcent le type du jour ; retouche le bouton actif pour revenir en auto. Touche une barre pour le détail.</div>
     </div>
 
     <!-- Déficit -->
@@ -297,7 +297,7 @@ html,body{background:#f2f2f6;color:#1a1a22}
 </div>
 
 <script>
-/* ═══════════════ Santé v8.4 ═══════════════
+/* ═══════════════ Santé v8.5 ═══════════════
    Les calories sont calculées dans HealthBridge.kt (days[i].cal) ; la page ne fait qu'afficher.
    Stockage conservé : deficitHist, sante_padel_days, sante_period, healthCache_<période>, hc_skinTemp.
    Nouveau : santeBurnV8 { 'AAAA-MM-JJ': total kcal du modèle v8 } (jours passés). */
@@ -397,7 +397,7 @@ function calRows(c,isToday){
   return r;
 }
 /* v8.4 — diagnostic : TotalCaloriesBurned de chaque package Health Connect aujourd'hui */
-function pkgShort(p){return p==='com.google.android.apps.healthdata'?'Google Health':p==='com.google.android.apps.fitness'?'Google Fit':p.indexOf('com.android.healthconnect.phone.')===0?'HC phone ('+p.slice(32)+')':p.indexOf('xiaomi.wearable')>=0?'OnePlus (xiaomi.wearable)':p;}
+function pkgShort(p){return p==='com.fitbit.FitbitMobile'?'Appli Fitbit':p==='com.google.android.apps.healthdata'?'Google Health':p==='com.google.android.apps.fitness'?'Google Fit':p.indexOf('com.android.healthconnect.phone.')===0?'HC phone ('+p.slice(32)+')':p.indexOf('xiaomi.wearable')>=0?'OnePlus (xiaomi.wearable)':p;}
 function diagRows(list,used){return (list||[]).map(function(x){return {l:'🔍 '+pkgShort(x.pkg)+(x.pkg===used?' ✔':''),s:'TotalCaloriesBurned · '+x.pkg,v:x.kcal};});}
 function bmrRefRow(){return {l:'💤 BMR ref'+(BMR24&&BMR24.src==='xiaomi'?' ⚖️':''),s:'informatif · non ajouté au total',v:BMR24?fmt(BMR24.v)+' kcal/24h':'—'};}
 function rowsHtml(r){return r.map(function(x){
