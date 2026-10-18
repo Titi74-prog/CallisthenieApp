@@ -350,7 +350,7 @@ function loadCache(p){
 }
 /* Données valides = Health Connect renvoie quelque chose pour aujourd'hui (calories ou pas) */
 function todayOf(d){var k=ld(new Date());return (d&&d.days||[]).filter(function(x){return x.date===k;})[0]||null;}
-function hasToday(d){var t=todayOf(d);return !!(t&&(((t.kcalHC!==undefined?t.kcalHC:t.kcal)||0)>0||(t.steps||0)>0));} // v7.6 — kcalHC : valeur Health Connect brute (le BMR progressif est toujours > 0)
+function hasToday(d){var t=todayOf(d);return !!(t&&((t.kcal||0)>0||(t.steps||0)>0));}
 function showCacheBadge(d){
   var b=$('cache-badge');if(!d){b.style.display='none';return;}
   var u=d.updated?new Date(d.updated):null;
@@ -497,16 +497,14 @@ function getBMR(){return storedBMR()||1867;} // fallback (BMR 24 h)
 function heuresEcoulees(){var n=new Date();return n.getHours()+n.getMinutes()/60;}
 function getBMRProgressif(){return Math.round(getBMR()*heuresEcoulees()/24);}
 /* Total du jour = BMR progressif + calories actives (sessions + fond, toutes montres) */
-function totalActives(s){if(!s)return 0;
-  if(s.totalActives!=null)return s.totalActives;
-  return (s.oneplusExercise||0)+(s.fitbitExercise||0)+(s.oneplusFond||0)+(s.fitbitFond||0);}
+function totalActives(s){return s&&s.totalActives||0;}
 function withBMR(s,sessions){if(!s)return null;var bmr=getBMRProgressif(),act=totalActives(s),total=bmr+act;
   return {src:s,sessions:sessions||[],bmr:bmr,bmr24:getBMR(),bmrXiaomi:storedBMR()!=null,actives:act,total:total,
     projMinuit:Math.round(total+getBMR()*(24-heuresEcoulees())/24)};}
 /* v7.6 — ordre : total, BMR progressif, sessions OnePlus, sessions Fitbit, fond OnePlus, fond Fitbit */
 function sourceRows(S){
   var s=S.src,r=[['🔥 Total',fmt(S.total)+' kcal'],'sep',
-    ['💤 Métabolisme'+(S.bmrXiaomi?' ⚖️':''),fmt(S.bmr)+' kcal <span style="color:var(--t3);font-weight:600">('+fmt(S.bmr24)+'/24h)</span>']];
+    ['💤 Métabolisme',fmt(S.bmr)+' kcal ('+fmt(S.bmr24)+' kcal/24h)']];
   S.sessions.filter(function(x){return x.source==='oneplus';}).forEach(function(x){r.push([x.type+' (⌚ OnePlus)',fmt(x.kcal)+' kcal']);});
   S.sessions.filter(function(x){return x.source==='fitbit';}).forEach(function(x){r.push([x.type+' (⌚ Fitbit Air)',fmt(x.kcal)+' kcal']);});
   if(s.oneplusFond>0)r.push(['🚶 Fond OnePlus',fmt(s.oneplusFond)+' kcal']);
@@ -821,7 +819,7 @@ window.onHealthData=function(d){
   $('btn-refresh').textContent='↻ Actualiser';hideRefreshIndicator();
   /* v7.6 — calories brûlées du jour = BMR progressif + calories actives (jamais data.basalMetabolicRate) */
   if(d.status==='ok'&&d.days&&d.caloriesSources){var tdk=todayOf(d);
-    if(tdk){var bmr=getBMRProgressif(),totalBrulees=bmr+totalActives(d.caloriesSources);tdk.kcalHC=tdk.kcal;tdk.kcal=totalBrulees;}}
+    if(tdk){var bmr=getBMRProgressif(),totalBrulees=bmr+totalActives(d.caloriesSources);tdk.kcal=totalBrulees;}}
   if(d.status==='ok'&&d.days){var td=todayOf(d);if(td&&td.kcal!=null&&td.kcal>0)LIVE_TODAY_KCAL=td.kcal;storeBurned(d.days);} // calories brûlées mémorisées pour la courbe déficit, quelle que soit la période
   if(d.period&&d.period!==PERIOD){renderDeficit();return;} // réponse d'un autre onglet / pré-chargement 30 j
   if(d.status==='ok')setTimeout(preloadMonthBurned,400);
