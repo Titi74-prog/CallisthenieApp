@@ -191,7 +191,7 @@ html,body{background:#f2f2f6;color:#1a1a22}
         <div class="mini"><div class="mini-l">Moyenne</div><div class="mini-v" id="kcal-avg">—</div><div class="mini-s">kcal / jour</div></div>
         <div class="mini"><div class="mini-l">Objectif</div><div class="mini-v" id="kcal-hit">—</div><div class="mini-s">jours atteints</div></div>
       </div>
-      <div class="note">Calcul : métabolisme de base de la balance (au prorata des heures écoulées aujourd'hui) + séances OnePlus + séances Fitbit Air (total de la séance − métabolisme de sa durée) + activité de fond Fitbit Air hors séances. Le fond OnePlus est ignoré ; une séance Fitbit déjà enregistrée par la OnePlus n'est comptée qu'une fois. Objectif : 2 100 kcal · force 2 200 (≥ 2 100) · padel 1h 2 600 (≥ 2 400) · padel 1h30 2 700 (≥ 2 800). Les boutons forcent le type du jour ; retouche le bouton actif pour revenir en auto. Touche une barre pour le détail.</div>
+      <div class="note">Calcul : total Fitbit Air lu dans Google Health (métabolisme + activité, identique à l'appli Fitbit) + calories actives des séances OnePlus. Le BMR de la balance n'est plus ajouté (affiché pour information). Objectif : 2 100 kcal · force 2 200 (≥ 2 100) · padel 1h 2 600 (≥ 2 400) · padel 1h30 2 700 (≥ 2 800). Les boutons forcent le type du jour ; retouche le bouton actif pour revenir en auto. Touche une barre pour le détail.</div>
     </div>
 
     <!-- Déficit -->
@@ -297,7 +297,7 @@ html,body{background:#f2f2f6;color:#1a1a22}
 </div>
 
 <script>
-/* ═══════════════ Santé v8.0 ═══════════════
+/* ═══════════════ Santé v8.3 ═══════════════
    Les calories sont calculées dans HealthBridge.kt (days[i].cal) ; la page ne fait qu'afficher.
    Stockage conservé : deficitHist, sante_padel_days, sante_period, healthCache_<période>, hc_skinTemp.
    Nouveau : santeBurnV8 { 'AAAA-MM-JJ': total kcal du modèle v8 } (jours passés). */
@@ -384,22 +384,22 @@ function getTypeJour(b){if(b>=3000)return '🎾 Padel intense';if(b>=2600)return
 
 /* ═════════ Détail calories d'un jour (lignes) ═════════ */
 function srcLbl(s){return s==='oneplus'?'⌚ OnePlus':'⌚ Fitbit Air';}
+/* v8.3 — Total = Fitbit Air via Google Health (BMR + activité, tout inclus) + sessions OnePlus */
 function calRows(c,isToday){
   var r=[];
-  r.push({l:'💤 Métabolisme'+(BMR24&&BMR24.src==='xiaomi'?' ⚖️':''),s:isToday?fmt(BMR24?BMR24.v:null)+' kcal/24h · au prorata de l\'heure':(BMR24&&BMR24.src!=='xiaomi'?'valeur par défaut (pas de pesée S400)':'balance Xiaomi S400'),v:c.bmr});
-  var ss=(c.sessions||[]).slice().sort(function(a,b){return a.start<b.start?-1:1;});
+  r.push({l:'⌚ Fitbit Air (BMR + activité)',s:'Google Health'+(isToday?' · jusqu\'à maintenant':''),v:c.googleHealth});
+  var ss=(c.sessions||[]).filter(function(s){return (s.source||s.src)==='oneplus';}).slice().sort(function(a,b){return a.start<b.start?-1:1;});
   ss.forEach(function(s){
-    var t=s.title&&s.label.indexOf(s.title)<0?' · '+s.title:'';
-    var lbl=s.label==='🏃 Activité'&&s.title?'🏃 '+s.title:s.label;if(lbl!==s.label)t='';
-    r.push({l:lbl+' ('+srcLbl(s.src)+')',s:hhmm(s.start)+' · '+hm(s.min)+t+(s.dup?' · doublon OnePlus, non compté':''),v:s.kcal,dup:s.dup});
+    var lbl=s.type||s.label;if(lbl==='🏃 Activité'&&s.title)lbl='🏃 '+s.title;
+    r.push({l:lbl+' (⌚ OnePlus)',s:s.start?hhmm(s.start)+' · '+hm(s.min):'',v:s.kcal});
   });
-  r.push({l:'🚶 Fond Fitbit Air',s:'activité hors séances',v:c.fitbitFond});
   return r;
 }
+function bmrRefRow(){return {l:'💤 BMR ref'+(BMR24&&BMR24.src==='xiaomi'?' ⚖️':''),s:'informatif · non ajouté au total',v:BMR24?fmt(BMR24.v)+' kcal/24h':'—'};}
 function rowsHtml(r){return r.map(function(x){
   return '<div class="src-row'+(x.dup?' dup':'')+(x.cls?' '+x.cls:'')+'"><span>'+x.l+(x.s?'<small>'+x.s+'</small>':'')+'</span><b>'+(typeof x.v==='string'?x.v:fmt(x.v)+' kcal')+'</b></div>';}).join('');}
 function projMinuit(c){if(!BMR24)return null;var n=new Date(),min=n.getHours()*60+n.getMinutes();return c.total+BMR24.v*(1440-min)/1440;}
-function sportKcal(c){return c?sum((c.sessions||[]).filter(function(s){return !s.dup;}).map(function(s){return s.kcal;})):null;}
+function sportKcal(c){return c?sum((c.sessions||[]).map(function(s){return s.kcal;})):null;}
 
 /* ═════════ Rendu ═════════ */
 function redraw(){if(LAST)render(LAST);else{paintDayType();renderDeficit();}}
@@ -435,6 +435,7 @@ function renderCalories(days,per,tk){
   paintDayType();
   if(c){
     var r=[{l:'🔥 Total jusqu\'ici',v:c.total,cls:'tot'}].concat(calRows(c,true));
+    r.push(bmrRefRow());
     var p=projMinuit(c);if(p!=null)r.push({l:'📈 Projection minuit',s:'si aucune autre activité',v:p,cls:'proj'});
     $('kcal-src').innerHTML=rowsHtml(r);$('kcal-src').style.display='block';
   }else $('kcal-src').style.display='none';
@@ -461,8 +462,9 @@ function kcalTip(b){
     var x=b.days[0],dt=dkey(b.key),isT=b.key===tk,c=isT?TODAY_CAL:x.cal,k=KCAL_DAY[b.key],g=goalFor(b.key),m=manualType(b.key);
     var rows=[];
     if(k!=null)rows.push(['🔥 Total',fmt(k)+' kcal']);
-    if(c&&!BASE_BY_KEY[b.key]){rows.push('sep');calRows(c,isT).forEach(function(r){rows.push([r.l+(r.dup?' ✖':''),fmt(r.v)+' kcal']);});}
+    if(c&&!BASE_BY_KEY[b.key]){rows.push('sep');calRows(c,isT).forEach(function(r){rows.push([r.l,fmt(r.v)+' kcal']);});}
     rows.push('sep');
+    var br=bmrRefRow();rows.push([br.l,br.v]);
     rows.push(['🎯 Objectif',fmt(g)+' kcal '+(k!=null?(k>=g?'✅':'❌'):'')]);
     rows.push(['Type',goalLabel(g)+(m==null?' · auto':' · manuel')]);
     if(isT&&c){var p=projMinuit(c);if(p!=null)rows.push(['📈 Projection minuit',fmt(p)+' kcal']);}
@@ -521,6 +523,7 @@ const HISTORIQUE_BASE = [
   {date:'Wed Oct 14 2026', conso:1697, brulees:2157, estimated:false},
   {date:'Thu Oct 15 2026', conso:1636, brulees:2797, estimated:false},
   {date:'Sat Oct 17 2026', conso:2310, brulees:2847, estimated:false},
+  {date:'Sun Oct 18 2026', conso:2012, brulees:2220, estimated:true},
   // ⚠️ Une entrée datée d'aujourd'hui est ignorée (Health Connect en temps réel) et ajoutée à partir du lendemain
 ];
 var BASE_BY_KEY={};HISTORIQUE_BASE.forEach(function(e){var d=new Date(e.date);if(!isNaN(d))BASE_BY_KEY[ld(d)]=e;});
@@ -573,7 +576,7 @@ function renderDeficit(){
   inp.placeholder=t.burn!=null?'estimé '+fmt(getDefaultConso(t.burn)):'ex: 1 850';
   $('conso-source').textContent=t.saisie?'✏️ Saisie':'📊 Estimé';
   $('df-burn').textContent=fmt(t.burn);
-  var sp=sportKcal(TODAY_CAL),ns=TODAY_CAL?(TODAY_CAL.sessions||[]).filter(function(s){return !s.dup;}).length:0;
+  var sp=sportKcal(TODAY_CAL),ns=TODAY_CAL?(TODAY_CAL.sessions||[]).length:0;
   $('df-sport').textContent=TODAY_CAL?fmt(sp):'—';
   $('df-sport-s').textContent=TODAY_CAL?'kcal · '+ns+' séance'+(ns>1?'s':''):'kcal · sport';
   $('df-today').textContent=sgn(t.def);$('df-today').style.color=t.def!=null?defColor(t.def):'';
