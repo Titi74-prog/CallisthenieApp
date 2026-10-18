@@ -460,27 +460,28 @@ class HealthBridge(private val activity: ComponentActivity, private val webView:
             val sessionRanges = ArrayList<LongArray>()
             for (s in sessions) sessionRanges.add(longArrayOf(s.startTime.epochSecond, s.endTime.epochSecond))
 
-            // 4. Calories de fond = calories actives hors plages des sessions (déduplication)
-            var fondOnePlus = 0.0
+            // 4. Calories de fond = calories actives Fitbit Air hors plages sessions
+            // OnePlus ignorée : portée uniquement pour les sessions déclarées,
+            // ses données résiduelles (sync tardive) ne sont pas fiables comme fond.
             var fondFitbit = 0.0
             for (r in actives) {
                 val pkg = r.metadata.dataOrigin.packageName
+                if (isOnePlus(pkg)) continue  // fond OnePlus toujours ignoré
                 val rStart = r.startTime.epochSecond
                 val rEnd = r.endTime.epochSecond
                 val duringSession = sessionRanges.any { rStart >= it[0] && rEnd <= it[1] }
                 if (duringSession) continue
                 val kcal = r.energy.inKilocalories
-                if (isOnePlus(pkg)) fondOnePlus += kcal
-                else if (isFitbit(pkg)) fondFitbit += kcal
+                if (isFitbit(pkg)) fondFitbit += kcal
             }
 
             // BMR et total calculés côté JS (getBMRProgressif)
             val src = JSONObject()
                 .put("oneplusExercise", Math.round(calsExOnePlus))
                 .put("fitbitExercise", Math.round(calsExFitbit))
-                .put("oneplusFond", Math.round(fondOnePlus))
+                .put("oneplusFond", 0L)  // toujours 0 — données résiduelles non fiables
                 .put("fitbitFond", Math.round(fondFitbit))
-                .put("totalActives", Math.round(calsExOnePlus + calsExFitbit + fondOnePlus + fondFitbit))
+                .put("totalActives", Math.round(calsExOnePlus + calsExFitbit + fondFitbit))
             out.put("caloriesSources", src)
             out.put("exerciseSessions", sessionsList)
         }
