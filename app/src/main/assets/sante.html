@@ -136,6 +136,17 @@ html,body{background:#f2f2f6;color:#1a1a22}
 .nav-btn{color:#7d7b87}
 .card{box-shadow:0 1px 4px rgba(0,0,0,.06)}
 }
+/* v8.0 — détail des calories du jour */
+.src-list{margin-top:12px;background:#0f0f13;border-radius:10px;padding:4px 10px}
+.src-row{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:7px 0;border-bottom:1px solid var(--bd);font-size:12.5px}
+.src-row:last-child{border-bottom:none}
+.src-row span{color:var(--t2)}
+.src-row small{display:block;color:var(--t3);font-size:10.5px;margin-top:1px}
+.src-row b{font-variant-numeric:tabular-nums;white-space:nowrap}
+.src-row.dup span,.src-row.dup b{color:var(--t3);text-decoration:line-through}
+.src-row.tot span{color:var(--t1,#fff);font-weight:700}
+.src-row.proj span,.src-row.proj b{color:var(--t3)}
+@media (prefers-color-scheme: light){.src-list{background:#f2f2f6}.src-row.tot span{color:#1a1a22}}
 </style>
 </head>
 <body>
@@ -143,7 +154,7 @@ html,body{background:#f2f2f6;color:#1a1a22}
   <div id="header">
     <div>
       <h1>📊 <span>Santé</span></h1>
-      <div class="h-sub" id="h-sub">Health Connect<span class="app-ver"></span></div>
+      <div class="h-sub">Health Connect<span class="app-ver"></span></div>
     </div>
     <button id="btn-refresh" onclick="refresh()">↻ Actualiser</button>
   </div>
@@ -157,9 +168,9 @@ html,body{background:#f2f2f6;color:#1a1a22}
       <button class="btn btn-sec" id="banner-btn2" onclick="openHC()">Réglages Health Connect</button>
     </div>
 
-    <!-- Calories brûlées (total) -->
+    <!-- Calories brûlées -->
     <div class="card">
-      <div class="ptabs" id="ptabs">
+      <div class="ptabs">
         <button class="ptab" data-p="week" onclick="setPeriod('week')">Semaine</button>
         <button class="ptab" data-p="month" onclick="setPeriod('month')">Mois</button>
         <button class="ptab" data-p="year" onclick="setPeriod('year')">Année</button>
@@ -167,32 +178,33 @@ html,body{background:#f2f2f6;color:#1a1a22}
       <div class="card-title">🔥 Calories brûlées <b id="kcal-upd"></b></div>
       <div class="big" id="kcal-today">—<small>kcal</small></div>
       <div class="track"><div class="fill" id="kcal-fill" style="width:0;background:linear-gradient(90deg,#FF7043,#FFB74D)"></div></div>
-      <div class="track-l"><span id="kcal-pct">Aujourd'hui</span><span id="kcal-goal">Objectif — · métabolisme + activité</span></div>
+      <div class="track-l"><span id="kcal-pct">Aujourd'hui</span><span id="kcal-goal">Objectif —</span></div>
       <div class="dtype">
         <button class="dbtn" id="dt-cal" onclick="setDayType(false)">🏋️ Callisthénie · 2 100-2 200</button>
         <button class="dbtn" id="dt-pad" onclick="setDayType(true)">🎾 Padel · 2 600-2 700</button>
       </div>
       <span class="goal-tag" id="kcal-daytype">—</span>
+      <div class="src-list" id="kcal-src"></div>
       <div class="bars" id="kcal-bars"></div>
       <div class="row" style="margin-top:12px">
-        <div class="mini"><div class="mini-l">Total</div><div class="mini-v" id="kcal-week">—</div><div class="mini-s" id="kcal-week-s">kcal · cette semaine</div></div>
+        <div class="mini"><div class="mini-l">Total</div><div class="mini-v" id="kcal-tot">—</div><div class="mini-s" id="kcal-tot-s">kcal</div></div>
         <div class="mini"><div class="mini-l">Moyenne</div><div class="mini-v" id="kcal-avg">—</div><div class="mini-s">kcal / jour</div></div>
         <div class="mini"><div class="mini-l">Objectif</div><div class="mini-v" id="kcal-hit">—</div><div class="mini-s">jours atteints</div></div>
       </div>
-      <div class="note">Objectif automatique selon les calories brûlées : callisthénie seule 2 100 kcal · + force 2 200 kcal (≥ 2 100 brûlées) · + padel 1h 2 600 kcal (≥ 2 400) · + padel 1h30 2 700 kcal (≥ 2 800). Les boutons forcent le type du jour ; retouche le bouton actif pour revenir en auto. Touche une barre pour le détail.</div>
+      <div class="note">Calcul : métabolisme de base de la balance (au prorata des heures écoulées aujourd'hui) + séances OnePlus + séances Fitbit Air (total de la séance − métabolisme de sa durée) + activité de fond Fitbit Air hors séances. Le fond OnePlus est ignoré ; une séance Fitbit déjà enregistrée par la OnePlus n'est comptée qu'une fois. Objectif : 2 100 kcal · force 2 200 (≥ 2 100) · padel 1h 2 600 (≥ 2 400) · padel 1h30 2 700 (≥ 2 800). Les boutons forcent le type du jour ; retouche le bouton actif pour revenir en auto. Touche une barre pour le détail.</div>
     </div>
 
-    <!-- Déficit journalier -->
-    <div class="card" id="deficit-card">
+    <!-- Déficit -->
+    <div class="card">
       <div class="card-title">📉 Déficit <b>30 jours</b></div>
       <div class="deficit-input">
         <label for="inp-conso">Calories consommées aujourd'hui</label>
-        <input type="number" id="inp-conso" inputmode="numeric" placeholder="ex: 1 850" onchange="saveConsoAndRefresh()">
+        <input type="number" id="inp-conso" inputmode="numeric" placeholder="ex: 1 850" onchange="saveConso()">
         <span id="conso-source"></span>
       </div>
       <div class="row" style="margin-top:8px">
-        <div class="mini"><div class="mini-l">Brûlées</div><div class="mini-v" id="df-burn">—</div><div class="mini-s">kcal · montre</div></div>
-        <div class="mini"><div class="mini-l">Callisthénie</div><div class="mini-v" id="df-cal">—</div><div class="mini-s" id="df-cal-s">kcal · 7h-8h30</div></div>
+        <div class="mini"><div class="mini-l">Brûlées</div><div class="mini-v" id="df-burn">—</div><div class="mini-s">kcal · jusqu'ici</div></div>
+        <div class="mini"><div class="mini-l">Séances</div><div class="mini-v" id="df-sport">—</div><div class="mini-s" id="df-sport-s">kcal · sport</div></div>
         <div class="mini"><div class="mini-l">Déficit du jour</div><div class="mini-v" id="df-today">—</div><div class="mini-s" id="df-today-s">kcal</div></div>
       </div>
       <canvas id="def-canvas"></canvas>
@@ -202,11 +214,11 @@ html,body{background:#f2f2f6;color:#1a1a22}
         <div class="mini"><div class="mini-l">Moy. 30 j</div><div class="mini-v" id="df-avg30">—</div><div class="mini-s">kcal / jour</div></div>
         <div class="mini"><div class="mini-l">≥ 400 kcal</div><div class="mini-v" id="df-hit">—</div><div class="mini-s">jours / 30</div></div>
       </div>
-      <div class="note" id="df-note">Sans saisie, la consommation est estimée : 2 100 kcal un jour padel (&gt; 2 400 kcal brûlées), 1 850 kcal sinon. Les calories brûlées du jour sont complètes le soir.</div>
+      <div class="note" id="df-note"></div>
     </div>
 
-    <!-- Stratégie nutritionnelle -->
-    <div class="card strat">
+    <!-- Stratégie -->
+    <div class="card">
       <div class="card-title">🎯 Stratégie <b>reprendre la baisse</b></div>
       <div class="strat-row"><span>🍽️ Jour normal</span><span>Vise <b>~1 650 kcal</b> consommées, déficit cible <b>~400 kcal</b></span></div>
       <div class="strat-row"><span>🏋️ Jour force</span><span>Vise <b>~1 700 kcal</b> consommées, déficit cible <b>~500 kcal</b></span></div>
@@ -215,8 +227,8 @@ html,body{background:#f2f2f6;color:#1a1a22}
       <div class="strat-row"><span>🥩 Protéines</span><span><b>145 g / jour</b> — naturellement via skyr, œufs, jambon, poisson</span></div>
       <div class="strat-row"><span>🍫 Barre de récup</span><span>Uniquement après padel</span></div>
       <div class="strat-row"><span>🧱 Whey / barres</span><span>Uniquement si &lt; 120 g constatés en fin de journée</span></div>
-      <div class="strat-row"><span>💪 Séance soir</span><span>Lun / Mer / Ven — +68 kcal × 3 ≈ <b>+200 kcal / semaine</b></span></div>
-      <div class="strat-row"><span>📉 Déficit cible</span><span><b id="strat-def">—</b> — calculé en temps réel selon les calories brûlées du jour</span></div>
+      <div class="strat-row"><span>💪 Séance soir</span><span>Lun / Mer / Ven — haltères 8 kg, 3 tours × 15</span></div>
+      <div class="strat-row"><span>📉 Déficit cible</span><span><b id="strat-def">—</b> — selon les calories brûlées du jour</span></div>
       <div class="strat-today" id="strat-today"></div>
     </div>
 
@@ -239,7 +251,7 @@ html,body{background:#f2f2f6;color:#1a1a22}
         <div class="mini"><div class="mini-l">HRV moy. 7 j</div><div class="mini-v" id="hrv-avg">—</div><div class="mini-s" id="hrv-avg-s">ms</div></div>
       </div>
       <div class="bars" id="hrv-bars" style="height:80px"></div>
-      <div class="note" id="hrv-note">HRV ≥ 50 ms : excellente récupération · 35-50 ms : bonne · &lt; 35 ms : récupération insuffisante.</div>
+      <div class="note">HRV ≥ 50 ms : excellente récupération · 35-50 ms : bonne · &lt; 35 ms : insuffisante.</div>
       <div class="note" id="hr-note">Une FC repos qui baisse régulièrement signe une meilleure forme.</div>
     </div>
 
@@ -252,7 +264,7 @@ html,body{background:#f2f2f6;color:#1a1a22}
         <div class="mini"><div class="mini-l">Moyenne</div><div class="mini-v" id="steps-avg">—</div><div class="mini-s">pas / jour</div></div>
       </div>
       <div class="row" style="margin-top:8px">
-        <div class="mini"><div class="mini-l">Étages aujourd'hui</div><div class="mini-v" id="fl-today">—</div><div class="mini-s" id="fl-kcal">étages</div></div>
+        <div class="mini"><div class="mini-l">Étages aujourd'hui</div><div class="mini-v" id="fl-today">—</div><div class="mini-s">étages</div></div>
         <div class="mini"><div class="mini-l">Total</div><div class="mini-v" id="fl-tot">—</div><div class="mini-s">étages</div></div>
         <div class="mini"><div class="mini-l">Moyenne</div><div class="mini-v" id="fl-avg">—</div><div class="mini-s">étages / jour</div></div>
       </div>
@@ -271,7 +283,6 @@ html,body{background:#f2f2f6;color:#1a1a22}
       <div class="leg" id="sl-leg"></div>
       <div id="sl-phases" style="margin-top:10px"></div>
     </div>
-
   </div>
 </div>
 
@@ -286,254 +297,201 @@ html,body{background:#f2f2f6;color:#1a1a22}
 </div>
 
 <script>
-/* v7.0 — thème jour/nuit : couleurs dessinées en JS adaptées au mode clair */
+/* ═══════════════ Santé v8.0 ═══════════════
+   Les calories sont calculées dans HealthBridge.kt (days[i].cal) ; la page ne fait qu'afficher.
+   Stockage conservé : deficitHist, sante_padel_days, sante_period, healthCache_<période>, hc_skinTemp.
+   Nouveau : santeBurnV8 { 'AAAA-MM-JJ': total kcal du modèle v8 } (jours passés). */
+
+/* ── Utilitaires ── */
 var LT=false;try{LT=window.matchMedia('(prefers-color-scheme: light)').matches;}catch(e){}
-var T_MAP={'#2a2a35':'#e2e2ea','#6b6a75':'#7d7b87','#0f0f13':'#ffffff','#1a1a22':'#ffffff','#f0efec':'#1a1a22','#b0aeb8':'#4f4d58','rgba(255,255,255,.28)':'rgba(0,0,0,.25)','rgba(255,255,255,.07)':'rgba(0,0,0,.08)','rgba(240,239,236,.55)':'rgba(26,26,34,.55)','rgba(240,239,236,.3)':'rgba(26,26,34,.3)'};
+var T_MAP={'#6b6a75':'#7d7b87','#1a1a22':'#ffffff','rgba(255,255,255,.28)':'rgba(0,0,0,.25)','rgba(255,255,255,.07)':'rgba(0,0,0,.08)','rgba(240,239,236,.55)':'rgba(26,26,34,.55)','rgba(240,239,236,.3)':'rgba(26,26,34,.3)','#fff':'#1a1a22'};
 function TC(c){return LT&&T_MAP[c]?T_MAP[c]:c;}
-
-var KCAL_PER_KG=7700;
-var MOIS=['Jan','Fév','Mar','Avr','Mai','Juin','Juil','Aoû','Sep','Oct','Nov','Déc'];
-var PER_LBL={week:'cette semaine',month:'30 jours',year:String(new Date().getFullYear())};
-var PERIOD='week';try{PERIOD=localStorage.getItem('sante_period')||'week';}catch(e){}
-/* Type de jour : détection automatique (> 2 400 kcal brûlées → padel ; objectifs : 2 100 / 2 200 / 2 600 / 2 700 selon getObjectifBrulees),
-   un choix manuel sur le jour reste prioritaire. Stockage manuel : { 'AAAA-MM-JJ': 1 (padel) | 0 (callisthénie) } ;
-   jour absent = auto. Préférences Android (fiable) + copie localStorage (secours / migration). */
-var PADEL_KEY='sante_padel_days',PADEL_AUTO=2400;
-var KCAL_DAY={}; // kcal brûlées par date (rempli à chaque rendu)
-function prefGet(){var v=null;try{if(window.App&&App.getPref)v=App.getPref(PADEL_KEY);}catch(e){}
-  if(v==null){try{v=localStorage.getItem(PADEL_KEY);}catch(e){}}return v;}
-function prefSet(v){try{if(window.App&&App.setPref)App.setPref(PADEL_KEY,v);}catch(e){}try{localStorage.setItem(PADEL_KEY,v);}catch(e){}}
-function padelDays(){try{return JSON.parse(prefGet())||{};}catch(e){return {};}}
-function manualType(date){var p=padelDays();return date in p?!!p[date]:null;}
-function autoPadel(date){var k=KCAL_DAY[date];return k!=null&&k>PADEL_AUTO;}
-function isPadel(date){var m=manualType(date);return m!=null?m:autoPadel(date);}
-/* v6.9 — Objectif calories brûlées selon le type de jour (détecté via les calories brûlées) */
-function getObjectifBrulees(brulees) {
-    if (brulees >= 2800) return 2700; // padel 1h30
-    if (brulees >= 2400) return 2600; // padel 1h
-    if (brulees >= 2100) return 2200; // force
-    return 2100;                       // normal
-}
-/* Auto : barème ci-dessus. Manuel padel → 2 600 / 2 700 ; manuel callisthénie → 2 100 / 2 200. */
-function goalFor(date){var k=KCAL_DAY[date]||0,m=manualType(date);
-  if(m===true)return k>=2800?2700:2600;
-  if(m===false)return k>=2100?2200:2100;
-  return getObjectifBrulees(k);}
-function goalLabel(g){return g>=2700?'Padel 1h30 🎾🔥':g>=2600?'Padel 1h 🎾':g>=2200?'Force 💪':'Callisthénie 🏋️';}
-/* on = true/false force le type ; on = null revient en auto. Si le choix égale l'auto, on reste en auto. */
-function setPadel(date,on){var p=padelDays();if(on==null||on===autoPadel(date))delete p[date];else p[date]=on?1:0;prefSet(JSON.stringify(p));}
-var LAST=null;
-function setDayType(padel){var d=ld(new Date());
-  setPadel(d,manualType(d)===padel?null:padel); // retoucher le bouton actif → retour en auto
-  if(LAST)render(LAST);else paintDayType();}
-function paintDayType(){var d=ld(new Date()),p=isPadel(d),m=manualType(d);
-  $('dt-pad').classList.toggle('on',p);$('dt-cal').classList.toggle('on',!p);
-  $('kcal-daytype').textContent='Jour '+goalLabel(goalFor(d))+' · objectif '+fmt(goalFor(d))+(m==null?' · auto':' · manuel');}
-function toggleDay(date){if(date>ld(new Date()))return;setPadel(date,!isPadel(date));hideTip();if(LAST)render(LAST);}
-function setPeriod(p){
-  PERIOD=p;try{localStorage.setItem('sante_period',p);}catch(e){}
-  paintTabs();hideTip();
-  var c=loadCache(p);
-  if(c)render(c);
-  refresh();
-}
-/* ── Cache du jour (par période) : sert quand la montre est en charge / déconnectée ── */
-function saveCache(data){
-  try{localStorage.setItem('healthCache_'+(data.period||'week'),JSON.stringify({data:data,date:new Date().toDateString()}));}catch(e){}
-}
-function loadCache(p){
-  try{
-    var c=JSON.parse(localStorage.getItem('healthCache_'+(p||PERIOD)));
-    if(c&&c.date===new Date().toDateString())return c.data; // cache d'un autre jour : ignoré
-  }catch(e){}
-  return null;
-}
-/* Données valides = Health Connect renvoie quelque chose pour aujourd'hui (calories ou pas) */
-function todayOf(d){var k=ld(new Date());return (d&&d.days||[]).filter(function(x){return x.date===k;})[0]||null;}
-function hasToday(d){var t=todayOf(d);return !!(t&&((t.kcal||0)>0||(t.steps||0)>0));}
-function showCacheBadge(d){
-  var b=$('cache-badge');if(!d){b.style.display='none';return;}
-  var u=d.updated?new Date(d.updated):null;
-  $('cache-time').textContent=u?'Dernière lecture valide à '+String(u.getHours()).padStart(2,'0')+':'+String(u.getMinutes()).padStart(2,'0'):'';
-  b.style.display='block';
-}
-function paintTabs(){document.querySelectorAll('.ptab').forEach(function(b){b.classList.toggle('active',b.getAttribute('data-p')===PERIOD);});
-  document.querySelectorAll('.per-lbl').forEach(function(e){e.textContent=PER_LBL[PERIOD];});}
-/* Regroupe la série quotidienne en barres : jours (semaine), semaines lun→dim (mois), mois (année) */
-function dd(dt){return String(dt.getDate()).padStart(2,'0')+'/'+String(dt.getMonth()+1).padStart(2,'0');}
-function buckets(days,period){
-  var out=[];
-  if(period==='week'){
-    days.forEach(function(x){var dt=new Date(x.date+'T12:00:00');
-      out.push({key:x.date,lbl:JOURS[dt.getDay()],days:[x],type:'day'});});
-    return out;
-  }
-  if(period==='month'){
-    var map={};
-    days.forEach(function(x){var dt=new Date(x.date+'T12:00:00');
-      var mon=new Date(dt);mon.setDate(dt.getDate()-((dt.getDay()+6)%7));var k=ld(mon);
-      if(!map[k]){map[k]={key:k,lbl:dd(mon),days:[],type:'week',start:mon};out.push(map[k]);}
-      map[k].days.push(x);});
-    return out;
-  }
-  var y=days.length?+days[0].date.slice(0,4):new Date().getFullYear(),map={};
-  for(var m=0;m<12;m++){var k=y+'-'+String(m+1).padStart(2,'0');
-    var b={key:k,lbl:MOIS[m],days:[],type:'month',m:m,y:y};map[k]=b;out.push(b);}
-  days.forEach(function(x){var b=map[x.date.slice(0,7)];if(b)b.days.push(x);});
-  return out;
-}
-function vals(arr,f){return arr.map(function(x){return x[f];}).filter(function(v){return v!=null;});}
-function sum(a){return a.reduce(function(s,v){return s+v;},0);}
-function avg(a){return a.length?sum(a)/a.length:null;}
-var JOURS=['Di','Lu','Ma','Me','Je','Ve','Sa'];
-
-function navTo(p){var m={'programme':'programme.html','respiration':'respiration.html','poids':'poids.html','extra':'seance_extra.html','seance_extra':'seance_extra.html','sante':'sante.html'};if(m[p])window.location.href='file:///android_asset/'+m[p];}
 function $(id){return document.getElementById(id);}
 function fmt(n){return n==null||isNaN(n)?'—':Math.round(n).toLocaleString('fr-FR');}
 function fmt1(n){return n==null||isNaN(n)?'—':(Math.round(n*10)/10).toLocaleString('fr-FR',{minimumFractionDigits:1,maximumFractionDigits:1});}
-function hm(min){if(min==null||isNaN(min))return '—';var h=Math.floor(min/60),m=Math.round(min%60);return h+'h'+String(m).padStart(2,'0');}
+function sgn(v){return v==null?'—':(v>=0?'':'−')+fmt(Math.abs(v));}
+function hm(min){if(min==null||isNaN(min))return '—';var h=Math.floor(min/60),m=Math.round(min%60);if(m===60){h++;m=0;}return h+'h'+String(m).padStart(2,'0');}
+function hhmm(iso){var d=new Date(iso);return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');}
 function ld(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
-function ago(iso){if(!iso)return '';var d=new Date(iso),days=Math.floor((Date.now()-d.getTime())/864e5);return days<=0?"aujourd'hui":days===1?'hier':'il y a '+days+' j';}
-
-function hasBridge(){return typeof window.HealthBridge!=='undefined';}
-function refresh(){
-  if(!hasBridge()){showBanner("Le pont Health Connect n'est disponible que dans l'appli Android.",null,null);return;}
-  $('btn-refresh').textContent='… Lecture';
-  clearTimeout(window._rto);window._rto=setTimeout(function(){$('btn-refresh').textContent='↻ Actualiser';hideRefreshIndicator();},15000);
-  try{if(HealthBridge.requestDataForPeriod)HealthBridge.requestDataForPeriod(PERIOD);else HealthBridge.requestData();}catch(e){try{HealthBridge.requestData();}catch(e2){}}
-}
-function openHC(){try{HealthBridge.openSettings();}catch(e){}}
-
-function showBanner(msg,label,fn){
-  $('banner').style.display='block';$('banner-msg').textContent=msg;
-  var b=$('banner-btn1');
-  if(label){b.style.display='block';b.textContent=label;b.onclick=fn;}else b.style.display='none';
-  $('banner-btn2').style.display=hasBridge()?'block':'none';
-}
-function hideBanner(){$('banner').style.display='none';}
-
-/* Barres verticales ; goal = ligne pointillée optionnelle */
-function bars(el,items,color,goal,fmtV,base){
-  base=base||0;
-  var max=Math.max.apply(null,items.map(function(i){return i.v||0;}).concat([goal||0,1]));max=base?max+(max-base)*0.1:max*1.1;
-  var todayKey=ld(new Date()),h='',dense=items.length>12;
-  el.classList.toggle('dense',dense);
-  items.forEach(function(it){
-    var pct=it.v?Math.max(2,(it.v-base)/(max-base)*100):0;
-    var col=typeof color==='function'?color(it.v,it):color;
-    h+='<div class="bar-col">'+(it.mark!=null?'<div class="bar-p">'+it.mark+'</div>':'')+'<div class="bar-v">'+(it.v&&!dense?fmtV(it.v):'')+'</div>'
-      +'<div class="bar" style="height:'+pct+'%;background:'+col+'"></div>'
-      +'<div class="bar-d'+(it.key===todayKey?' today':'')+'">'+it.lbl+'</div></div>';
-  });
-  if(goal){
-    // zone barres = hauteur - (libellé jour ~20px) ; approximation suffisante
-    h+='<div class="goal-line" style="bottom:calc(20px + (100% - 34px) * '+(goal/max)+')"><span class="goal-lbl">'+goal+'</span></div>';
-  }
-  el.innerHTML=h;
-  el.querySelectorAll('.bar-col').forEach(function(col,i){
-    var it=items[i];if(!it||!it.tip)return;
-    col.addEventListener('click',function(ev){ev.stopPropagation();
-      if(col.classList.contains('sel')){hideTip();return;}
-      showTooltip(it.tip(),col);});
-  });
-}
-
-/* ── Tooltip : bulle sombre au-dessus de la barre touchée ── */
-function showTooltip(o,col){
-  hideTip();col.classList.add('sel');
-  var t=$('tip'),h='<div class="tl">'+o.label+'</div>';
-  (o.rows||[]).forEach(function(r){h+=r==='sep'?'<div class="tsep"></div>':'<div class="tr"><span>'+r[0]+'</span><b>'+r[1]+'</b></div>';});
-  if(o.note)h+='<div class="tna">'+o.note+'</div>';
-  if(o.action)h+='<button class="tb" id="tip-act">'+o.action.label+'</button>';
-  t.innerHTML=h;t.style.display='block';
-  if(o.action)$('tip-act').onclick=function(ev){ev.stopPropagation();o.action.fn();};
-  var bar=col.querySelector('.bar'),r=(bar&&bar.offsetHeight>4?bar:col).getBoundingClientRect();
-  var w=t.offsetWidth,hh=t.offsetHeight,cx=r.left+r.width/2,vw=document.documentElement.clientWidth;
-  var left=Math.max(8,Math.min(vw-w-8,cx-w/2)),top=r.top-hh-10;
-  if(top<8)top=8;
-  t.style.left=left+'px';t.style.top=top+'px';t.style.setProperty('--ax',(cx-left)+'px');
-}
-function hideTip(){var t=$('tip');if(t)t.style.display='none';
-  if(typeof DEF_SEL!=='undefined'&&DEF_SEL!==null){DEF_SEL=null;try{deficitChart(deficitSeries());}catch(e){}}
-  document.querySelectorAll('.bar-col.sel').forEach(function(c){c.classList.remove('sel');});}
-var JOURS_L=['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
+function dd(dt){return String(dt.getDate()).padStart(2,'0')+'/'+String(dt.getMonth()+1).padStart(2,'0');}
+function dkey(k){return new Date(k+'T12:00:00');}
+function ago(iso){if(!iso)return '';var days=Math.floor((Date.now()-new Date(iso).getTime())/864e5);return days<=0?"aujourd'hui":days===1?'hier':'il y a '+days+' j';}
+function vals(a,f){return a.map(function(x){return x[f];}).filter(function(v){return v!=null;});}
+function sum(a){return a.reduce(function(s,v){return s+v;},0);}
+function avg(a){return a.length?sum(a)/a.length:null;}
+function lsGet(k){try{return localStorage.getItem(k);}catch(e){return null;}}
+function lsSet(k,v){try{localStorage.setItem(k,v);}catch(e){}}
+function lsJSON(k,def){try{var v=JSON.parse(localStorage.getItem(k));return v==null?def:v;}catch(e){return def;}}
+function todayKey(){return ld(new Date());}
+var JOURS=['Di','Lu','Ma','Me','Je','Ve','Sa'],JOURS_L=['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
+var MOIS=['Jan','Fév','Mar','Avr','Mai','Juin','Juil','Aoû','Sep','Oct','Nov','Déc'];
 var MOIS_L=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
-/* Contenu du tooltip calories pour un groupe de jours */
-function kcalTip(b){
-  var kd=b.days.filter(function(x){return x.kcal!=null;}),k=kd.map(function(x){return x.kcal;});
-  if(b.type==='day'){
-    var x=b.days[0],dt=new Date(b.key+'T12:00:00'),p=isPadel(b.key),m=manualType(b.key),future=b.key>ld(new Date());
-    var isToday=b.key===ld(new Date()),S=isToday&&LAST?withBMR(LAST.caloriesSources,LAST.exerciseSessions):null;
-    if(S){ // v7.6 — jour en cours : BMR progressif + sessions + fond, par montre
-      var obj=getObjectifBrulees(S.total),ok=S.total>=obj;
-      return {label:'📅 '+JOURS_L[dt.getDay()]+' '+dd(dt),rows:sourceRows(S).concat(['sep',['🎯 Objectif',fmt(obj)+' kcal '+(ok?'✅':'❌')],['📈 Projection minuit',fmt(S.projMinuit)+' kcal']]),
-        action:{label:p?'Marquer callisthénie 🏋️':'Marquer padel 🎾',fn:function(){toggleDay(b.key);}}};
-    }
-    return {label:'📅 '+JOURS_L[dt.getDay()]+' '+dd(dt),
-      note:future||x.kcal==null?null:S?null:'Détail par source non disponible pour les jours passés',
-      sources:S,
-      rows:[['🔥 Total',x.kcal!=null?fmt(x.kcal)+' kcal':'—'],
-            ['Objectif',fmt(goalFor(b.key))+' kcal'],
-            ['Type',goalLabel(goalFor(b.key))+(m==null?' · auto':' · manuel')]]
-            .concat(x.kcal!=null&&!future?[['Atteint',x.kcal>=goalFor(b.key)?'✅ oui':'❌ non']]:[]),
-      action:future?null:{label:p?'Marquer callisthénie 🏋️':'Marquer padel 🎾',fn:function(){toggleDay(b.key);}}};
-  }
-  var hit=kd.filter(function(x){return x.kcal>=goalFor(x.date);}).length;
-  return {label:b.type==='week'?'Semaine du '+dd(b.start):MOIS_L[b.m]+' '+b.y,
-    rows:[['Moyenne',k.length?fmt(avg(k))+' kcal / jour':'—'],
-          ['Objectifs atteints',hit+' jour'+(hit>1?'s':'')+' / '+kd.length],
-          ['Total',k.length?fmt(sum(k))+' kcal':'—']]};
+var PER_LBL={week:'cette semaine',month:'30 jours',year:String(new Date().getFullYear())};
+function navTo(p){var m={programme:'programme.html',respiration:'respiration.html',poids:'poids.html',extra:'seance_extra.html',sante:'sante.html'};if(m[p])window.location.href='file:///android_asset/'+m[p];}
+
+/* ── État ── */
+var PERIOD=lsGet('sante_period')||'week';
+var LAST=null;      // dernière réponse affichée (période courante)
+var TODAY_CAL=null; // modèle calories d'aujourd'hui (quelle que soit la période reçue)
+var BMR24=null;
+
+/* ═════════ Calories : stockage par jour ═════════ */
+var BURN8_KEY='santeBurnV8';
+function burnStore(){return lsJSON(BURN8_KEY,{});}
+/* Jours passés du modèle v8 mémorisés (aujourd'hui jamais : valeur en direct) */
+function storeModel(days){
+  var b=burnStore(),t=todayKey(),ch=false;
+  (days||[]).forEach(function(x){if(x.cal&&x.date<t&&b[x.date]!==x.cal.total){b[x.date]=x.cal.total;ch=true;}});
+  if(!ch)return;
+  var k=Object.keys(b).sort();if(k.length>400)k.slice(0,k.length-400).forEach(function(z){delete b[z];});
+  lsSet(BURN8_KEY,JSON.stringify(b));
+}
+/* Calories brûlées d'un jour, par ordre de fiabilité :
+   aujourd'hui → modèle en direct ; historique pré-chargé (relevés réels) ; modèle v8 ; anciennes valeurs (historique / Health Connect brut) */
+function burnOf(date,x){
+  if(date===todayKey())return TODAY_CAL?TODAY_CAL.total:null;
+  var base=BASE_BY_KEY[date];if(base)return base.brulees;
+  if(x&&x.cal)return x.cal.total;
+  var b=burnStore();if(b[date]!=null)return b[date];
+  var h=histByKey()[date];if(h&&h.brulees!=null)return h.brulees;
+  var o=lsJSON('deficitBurned',{});if(o[date]!=null)return o[date];
+  return x&&x.kcalHC!=null?x.kcalHC:null;
 }
 
-/* v7.2 — Ventilation des calories du jour par source (Health Connect) */
-/* v7.4 — BMR fixe : dernière pesée Xiaomi S400 (onglet Poids), jamais Health Connect */
-function storedBMR(){
-  var v=null;try{v=localStorage.getItem('bmrXiaomi');}catch(e){}
-  if(!v){try{if(window.App&&App.getPref)v=App.getPref('bmrXiaomi');}catch(e){}}
-  var n=parseInt(v,10);return (n&&n>1000)?n:null;
-}
-function getBMR(){return storedBMR()||1867;} // fallback (BMR 24 h)
-/* v7.6 — BMR progressif : part du métabolisme de base écoulée depuis minuit (jamais data.basalMetabolicRate) */
-function heuresEcoulees(){var n=new Date();return n.getHours()+n.getMinutes()/60;}
-function getBMRProgressif(){return Math.round(getBMR()*heuresEcoulees()/24);}
-/* Total du jour = BMR progressif + calories actives (sessions + fond, toutes montres) */
-function totalActives(s){return s&&s.totalActives||0;}
-function withBMR(s,sessions){if(!s)return null;var bmr=getBMRProgressif(),act=totalActives(s),total=bmr+act;
-  return {src:s,sessions:sessions||[],bmr:bmr,bmr24:getBMR(),bmrXiaomi:storedBMR()!=null,actives:act,total:total,
-    projMinuit:Math.round(total+getBMR()*(24-heuresEcoulees())/24)};}
-/* v7.6 — ordre : total, BMR progressif, sessions OnePlus, sessions Fitbit, fond OnePlus, fond Fitbit */
-function sourceRows(S){
-  var s=S.src,r=[['🔥 Total',fmt(S.total)+' kcal'],'sep',
-    ['💤 Métabolisme',fmt(S.bmr)+' kcal ('+fmt(S.bmr24)+' kcal/24h)']];
-  S.sessions.filter(function(x){return x.source==='oneplus';}).forEach(function(x){r.push([x.type+' (⌚ OnePlus)',fmt(x.kcal)+' kcal']);});
-  S.sessions.filter(function(x){return x.source==='fitbit';}).forEach(function(x){r.push([x.type+' (⌚ Fitbit Air)',fmt(x.kcal)+' kcal']);});
-  if(s.oneplusFond>0)r.push(['🚶 Fond OnePlus',fmt(s.oneplusFond)+' kcal']);
-  if(s.fitbitFond>0)r.push(['🚶 Fond Fitbit Air',fmt(s.fitbitFond)+' kcal']);
+/* ═════════ Type de jour / objectifs ═════════ */
+var PADEL_KEY='sante_padel_days',PADEL_AUTO=2400;
+var KCAL_DAY={};
+function prefGet(k){var v=null;try{if(window.App&&App.getPref)v=App.getPref(k);}catch(e){}return v!=null?v:lsGet(k);}
+function prefSet(k,v){try{if(window.App&&App.setPref)App.setPref(k,v);}catch(e){}lsSet(k,v);}
+function padelDays(){try{return JSON.parse(prefGet(PADEL_KEY))||{};}catch(e){return {};}}
+function manualType(date){var p=padelDays();return date in p?!!p[date]:null;}
+function autoPadel(date){var k=KCAL_DAY[date];return k!=null&&k>PADEL_AUTO;}
+function isPadel(date){var m=manualType(date);return m!=null?m:autoPadel(date);}
+function getObjectifBrulees(b){if(b>=2800)return 2700;if(b>=2400)return 2600;if(b>=2100)return 2200;return 2100;}
+function goalFor(date){var k=KCAL_DAY[date]||0,m=manualType(date);
+  if(m===true)return k>=2800?2700:2600;if(m===false)return k>=2100?2200:2100;return getObjectifBrulees(k);}
+function goalLabel(g){return g>=2700?'Padel 1h30 🎾🔥':g>=2600?'Padel 1h 🎾':g>=2200?'Force 💪':'Callisthénie 🏋️';}
+function setPadel(date,on){var p=padelDays();if(on==null||on===autoPadel(date))delete p[date];else p[date]=on?1:0;prefSet(PADEL_KEY,JSON.stringify(p));}
+function setDayType(padel){var d=todayKey();setPadel(d,manualType(d)===padel?null:padel);redraw();}
+function toggleDay(date){if(date>todayKey())return;setPadel(date,!isPadel(date));hideTip();redraw();}
+function paintDayType(){var d=todayKey(),p=isPadel(d),m=manualType(d),g=goalFor(d);
+  $('dt-pad').classList.toggle('on',p);$('dt-cal').classList.toggle('on',!p);
+  $('kcal-daytype').textContent='Jour '+goalLabel(g)+' · objectif '+fmt(g)+(m==null?' · auto':' · manuel');}
+function getDeficitCible(b){if(b>=3000)return 800;if(b>=2600)return 600;if(b>=2200)return 500;return 400;}
+function getObjectifConso(b){return b-getDeficitCible(b);}
+function getLibelleJour(c){if(c>=3000)return 'Jour padel intense 🎾🔥 — déficit cible ~800 kcal max';if(c>=2600)return 'Jour padel 1h 🎾 — déficit cible ~600 kcal';if(c>=2200)return 'Jour force 💪 — déficit cible ~500 kcal';return 'Jour normal 🏋️ — déficit cible ~400 kcal';}
+function getTypeJour(b){if(b>=3000)return '🎾 Padel intense';if(b>=2600)return '🎾 Padel 1h';if(b>=2200)return '💪 Force';return '🏋️ Normal';}
+
+/* ═════════ Détail calories d'un jour (lignes) ═════════ */
+function srcLbl(s){return s==='oneplus'?'⌚ OnePlus':'⌚ Fitbit Air';}
+function calRows(c,isToday){
+  var r=[];
+  r.push({l:'💤 Métabolisme'+(BMR24&&BMR24.src==='xiaomi'?' ⚖️':''),s:isToday?fmt(BMR24?BMR24.v:null)+' kcal/24h · au prorata de l\'heure':(BMR24&&BMR24.src!=='xiaomi'?'valeur par défaut (pas de pesée S400)':'balance Xiaomi S400'),v:c.bmr});
+  var ss=(c.sessions||[]).slice().sort(function(a,b){return a.start<b.start?-1:1;});
+  ss.forEach(function(s){
+    var t=s.title&&s.label.indexOf(s.title)<0?' · '+s.title:'';
+    var lbl=s.label==='🏃 Activité'&&s.title?'🏃 '+s.title:s.label;if(lbl!==s.label)t='';
+    r.push({l:lbl+' ('+srcLbl(s.src)+')',s:hhmm(s.start)+' · '+hm(s.min)+t+(s.dup?' · doublon OnePlus, non compté':''),v:s.kcal,dup:s.dup});
+  });
+  r.push({l:'🚶 Fond Fitbit Air',s:'activité hors séances',v:c.fitbitFond});
   return r;
 }
+function rowsHtml(r){return r.map(function(x){
+  return '<div class="src-row'+(x.dup?' dup':'')+(x.cls?' '+x.cls:'')+'"><span>'+x.l+(x.s?'<small>'+x.s+'</small>':'')+'</span><b>'+(typeof x.v==='string'?x.v:fmt(x.v)+' kcal')+'</b></div>';}).join('');}
+function projMinuit(c){if(!BMR24)return null;var n=new Date(),min=n.getHours()*60+n.getMinutes();return c.total+BMR24.v*(1440-min)/1440;}
+function sportKcal(c){return c?sum((c.sessions||[]).filter(function(s){return !s.dup;}).map(function(s){return s.kcal;})):null;}
 
-/* Régression linéaire : pente en kg/jour */
-function slopePerDay(pts){
-  if(pts.length<2)return null;
-  var span=(pts[pts.length-1].t-pts[0].t)/864e5;
-  if(span<7)return null;
-  var n=pts.length,sx=0,sy=0,sxx=0,sxy=0;
-  pts.forEach(function(p){var x=(p.t-pts[0].t)/864e5;sx+=x;sy+=p.kg;sxx+=x*x;sxy+=x*p.kg;});
-  var den=n*sxx-sx*sx;if(!den)return null;
-  return {slope:(n*sxy-sx*sy)/den,span:span,n:n};
-}
-function localWeights(){
-  try{
-    var a=JSON.parse(localStorage.getItem('pesees_v3'))||[],lim=Date.now()-30*864e5;
-    return a.map(function(p){return {t:new Date(p.date+'T08:00:00').getTime(),kg:+p.poids};})
-      .filter(function(p){return p.t>=lim&&p.kg>0;}).sort(function(a,b){return a.t-b.t;});
-  }catch(e){return [];}
+/* ═════════ Rendu ═════════ */
+function redraw(){if(LAST)render(LAST);else{paintDayType();renderDeficit();}}
+
+function render(d){
+  if(!d)return;
+  if(d.status==='unavailable'){showBanner("Health Connect n'est pas disponible sur ce téléphone. Installe l'appli Health Connect depuis le Play Store, puis reviens ici.",'Réessayer',refresh);return;}
+  if(d.status==='update_required'){showBanner("Health Connect doit être mis à jour depuis le Play Store.",'Réessayer',refresh);return;}
+  if(d.status==='error'){showBanner('Erreur de lecture Health Connect : '+(d.message||''),'Réessayer',refresh);return;}
+  if(d.status==='denied'){showBanner("Autorise Callisthénie à lire tes données (calories, séances, pas, cœur, sommeil) dans Health Connect.",'Autoriser',function(){try{HealthBridge.askPermissions();}catch(e){}});return;}
+  LAST=d;
+  var nReq=d.requested||0,nOk=d.grantedCount||0;
+  if(nReq&&nOk<nReq)showBanner('Certaines données ne sont pas autorisées ('+nOk+'/'+nReq+'). Active-les dans Health Connect.','Autoriser le reste',function(){try{HealthBridge.askPermissions();}catch(e){}});
+  else hideBanner();
+  if(d.updated)$('kcal-upd').textContent='màj '+hhmm(d.updated);
+  storeSkinTemp(d);
+  hideTip();
+  var days=d.days||[],per=d.period||PERIOD,tk=todayKey();
+  days.forEach(function(x){var b=burnOf(x.date,x);if(b!=null)KCAL_DAY[x.date]=b;});
+  renderCalories(days,per,tk);
+  renderDeficit();
+  renderHeart(d,days,per);
+  renderActivity(days,per,tk);
+  renderSleep(d);
 }
 
-/* ═════════ Déficit journalier (v5.7) ═════════
-   deficitHist  : [{date:'Sun Oct 11 2026', conso:2362, brulees:2652, estimated:false}] — jours passés ; aujourd'hui : {conso, manual:true} seulement
-   deficitBurned: {'2026-10-12': 2650} — calories brûlées mémorisées depuis Health Connect (toutes périodes) */
-var HIST_KEY='deficitHist',BURN_KEY='deficitBurned';
+function renderCalories(days,per,tk){
+  var c=TODAY_CAL,G=goalFor(tk),k=c?c.total:null;
+  $('kcal-today').innerHTML=fmt(k)+'<small>kcal</small>';
+  $('kcal-fill').style.width=k?Math.min(100,k/G*100)+'%':'0';
+  $('kcal-pct').textContent="Aujourd'hui · "+(k?Math.round(k/G*100):0)+' %';
+  $('kcal-goal').textContent='Objectif '+fmt(G)+' kcal';
+  paintDayType();
+  if(c){
+    var r=[{l:'🔥 Total jusqu\'ici',v:c.total,cls:'tot'}].concat(calRows(c,true));
+    var p=projMinuit(c);if(p!=null)r.push({l:'📈 Projection minuit',s:'si aucune autre activité',v:p,cls:'proj'});
+    $('kcal-src').innerHTML=rowsHtml(r);$('kcal-src').style.display='block';
+  }else $('kcal-src').style.display='none';
+
+  var B=buckets(days,per);
+  var past=days.filter(function(x){return x.date<=tk&&KCAL_DAY[x.date]!=null;});
+  var kv=past.map(function(x){return KCAL_DAY[x.date];});
+  $('kcal-tot').textContent=kv.length?fmt(sum(kv)):'—';
+  $('kcal-tot-s').textContent='kcal · '+PER_LBL[per];
+  $('kcal-avg').textContent=fmt(avg(kv));
+  $('kcal-hit').textContent=past.length?past.filter(function(x){return KCAL_DAY[x.date]>=goalFor(x.date);}).length+'/'+past.length:'—';
+  var OK='linear-gradient(180deg,#4ECDC4,#26A69A)',KO='linear-gradient(180deg,#FF8A65,#FF7043)';
+  bars($('kcal-bars'),B.map(function(b){
+    var kd=b.days.filter(function(x){return KCAL_DAY[x.date]!=null&&x.date<=tk;});
+    var a=avg(kd.map(function(x){return KCAL_DAY[x.date];})),g=avg(kd.map(function(x){return goalFor(x.date);}));
+    return {key:b.key,lbl:b.lbl,v:a,col:a!=null&&a>=g?OK:KO,mark:per==='week'&&isPadel(b.key)?'🎾':null,
+      tip:kd.length||(per==='week'&&b.key<=tk)?function(){return kcalTip(b);}:null};
+  }),function(v,it){return it.col;},0,fmt);
+}
+
+function kcalTip(b){
+  var tk=todayKey();
+  if(b.type==='day'){
+    var x=b.days[0],dt=dkey(b.key),isT=b.key===tk,c=isT?TODAY_CAL:x.cal,k=KCAL_DAY[b.key],g=goalFor(b.key),m=manualType(b.key);
+    var rows=[];
+    if(k!=null)rows.push(['🔥 Total',fmt(k)+' kcal']);
+    if(c&&!BASE_BY_KEY[b.key]){rows.push('sep');calRows(c,isT).forEach(function(r){rows.push([r.l+(r.dup?' ✖':''),fmt(r.v)+' kcal']);});}
+    rows.push('sep');
+    rows.push(['🎯 Objectif',fmt(g)+' kcal '+(k!=null?(k>=g?'✅':'❌'):'')]);
+    rows.push(['Type',goalLabel(g)+(m==null?' · auto':' · manuel')]);
+    if(isT&&c){var p=projMinuit(c);if(p!=null)rows.push(['📈 Projection minuit',fmt(p)+' kcal']);}
+    var note=BASE_BY_KEY[b.key]?'Valeur de l\'historique saisi':(!c&&k!=null?'Détail disponible sur les 30 derniers jours':null);
+    return {label:'📅 '+JOURS_L[dt.getDay()]+' '+dd(dt),rows:rows,note:note,
+      action:{label:isPadel(b.key)?'Marquer callisthénie 🏋️':'Marquer padel 🎾',fn:function(){toggleDay(b.key);}}};
+  }
+  var kd=b.days.filter(function(x){return KCAL_DAY[x.date]!=null&&x.date<=tk;}),k=kd.map(function(x){return KCAL_DAY[x.date];});
+  var hit=kd.filter(function(x){return KCAL_DAY[x.date]>=goalFor(x.date);}).length;
+  return {label:b.type==='week'?'Semaine du '+dd(b.start):MOIS_L[b.m]+' '+b.y,
+    rows:[['Moyenne',k.length?fmt(avg(k))+' kcal / jour':'—'],['Objectifs atteints',hit+' / '+kd.length+' jours'],['Total',k.length?fmt(sum(k))+' kcal':'—']]};
+}
+
+/* Regroupe la série quotidienne : jours (semaine), semaines lun→dim (mois), mois (année) */
+function buckets(days,period){
+  var out=[];
+  if(period==='week'){days.forEach(function(x){out.push({key:x.date,lbl:JOURS[dkey(x.date).getDay()],days:[x],type:'day'});});return out;}
+  if(period==='month'){var map={};
+    days.forEach(function(x){var dt=dkey(x.date),mon=new Date(dt);mon.setDate(dt.getDate()-((dt.getDay()+6)%7));var k=ld(mon);
+      if(!map[k]){map[k]={key:k,lbl:dd(mon),days:[],type:'week',start:mon};out.push(map[k]);}map[k].days.push(x);});
+    return out;}
+  var y=days.length?+days[0].date.slice(0,4):new Date().getFullYear(),mp={};
+  for(var m=0;m<12;m++){var k=y+'-'+String(m+1).padStart(2,'0'),b={key:k,lbl:MOIS[m],days:[],type:'month',m:m,y:y};mp[k]=b;out.push(b);}
+  days.forEach(function(x){var b=mp[x.date.slice(0,7)];if(b)b.days.push(x);});
+  return out;
+}
+
+/* ═════════ Déficit 30 jours ═════════ */
+var HIST_KEY='deficitHist';
 const HISTORIQUE_BASE = [
   // Juin-juillet 2026 (dates approx, brulees estimées)
   {date:'Sun Jun 21 2026', conso:1850, brulees:2092, estimated:true},
@@ -565,151 +523,59 @@ const HISTORIQUE_BASE = [
   {date:'Sat Oct 17 2026', conso:2310, brulees:2847, estimated:false},
   // ⚠️ Une entrée datée d'aujourd'hui est ignorée (Health Connect en temps réel) et ajoutée à partir du lendemain
 ];
-const HISTORIQUE_PRECHARGE = HISTORIQUE_BASE.filter(function(e){return e.date!==new Date().toDateString();}); // sécurité supplémentaire
-// Au premier lancement uniquement (jamais d'écrasement d'un historique existant)
-try{if(!localStorage.getItem(HIST_KEY))localStorage.setItem(HIST_KEY,JSON.stringify(HISTORIQUE_PRECHARGE));}catch(e){}
-/* Migration v5.7 → v5.8 (une seule fois) : l'historique v5.7 n'avait pas les calories brûlées.
-   On complète uniquement les entrées sans « brulees » ; les consommations déjà saisies ne sont jamais modifiées,
-   les dates absentes de l'historique sont ajoutées. */
-try{if(!localStorage.getItem('deficitPreloadV2')){
-  var H=JSON.parse(localStorage.getItem(HIST_KEY)||'[]');
-  HISTORIQUE_PRECHARGE.forEach(function(p){
-    var e=H.find(function(x){return x.date===p.date;});
-    if(!e)H.push(Object.assign({},p));else if(e.brulees==null)e.brulees=p.brulees;
-  });
-  H.sort(function(a,b){return new Date(a.date)-new Date(b.date);});
-  localStorage.setItem(HIST_KEY,JSON.stringify(H));localStorage.setItem('deficitPreloadV2','1');
-}}catch(e){}
-/* v6.3 — À chaque lancement : les entrées pré-chargées des jours passés absentes de l'historique sont ajoutées
-   (une seule fois chacune, jamais d'écrasement d'une saisie existante). Les jours futurs / aujourd'hui attendent le lendemain. */
-try{(function(){
-  var APPLIED='deficitPreloadApplied',done={};try{done=JSON.parse(localStorage.getItem(APPLIED)||'{}')||{};}catch(e){}
-  var hist=JSON.parse(localStorage.getItem(HIST_KEY)||'[]'),t0=new Date();t0.setHours(0,0,0,0);var ch=false,dch=false;
+var BASE_BY_KEY={};HISTORIQUE_BASE.forEach(function(e){var d=new Date(e.date);if(!isNaN(d))BASE_BY_KEY[ld(d)]=e;});
+function loadHist(){return lsJSON(HIST_KEY,[]);}
+function saveHist(h){lsSet(HIST_KEY,JSON.stringify(h));}
+function histByKey(){var m={};loadHist().forEach(function(e){var d=new Date(e.date);if(!isNaN(d))m[ld(d)]=e;});return m;}
+/* Au lancement : entrées pré-chargées des jours passés ajoutées une seule fois chacune (jamais d'écrasement),
+   et l'entrée du jour ne garde que la consommation saisie dans l'appli. */
+(function(){
+  var hist=loadHist(),done=lsJSON('deficitPreloadApplied',{}),t0=new Date();t0.setHours(0,0,0,0);
+  var today=new Date().toDateString(),n=hist.length,ch=false,dch=false;
   HISTORIQUE_BASE.forEach(function(p){
     if(done[p.date])return;var d=new Date(p.date);if(isNaN(d)||d>=t0)return;
     if(!hist.some(function(x){return x.date===p.date;})){hist.push(Object.assign({},p));ch=true;}
     done[p.date]=1;dch=true;
   });
-  if(ch){hist.sort(function(a,b){return new Date(a.date)-new Date(b.date);});localStorage.setItem(HIST_KEY,JSON.stringify(hist));}
-  if(dch)localStorage.setItem(APPLIED,JSON.stringify(done));
-})();}catch(e){}
-/* v5.9 — À chaque lancement : le jour en cours ne vient jamais de l'historique.
-   On retire toute entrée du jour qui n'est pas une saisie manuelle faite dans l'appli (pré-chargement, ancienne v5.8),
-   et on ne garde jamais de « brulees » stockées pour aujourd'hui. */
-try{(function(){
-  var today=new Date().toDateString(),hist=JSON.parse(localStorage.getItem(HIST_KEY)||'[]'),n=hist.length,ch=false;
   hist=hist.filter(function(e){return e.date!==today||e.manual===true;});
   hist.forEach(function(e){if(e.date===today&&e.brulees!=null){delete e.brulees;ch=true;}});
-  if(ch||hist.length!==n)localStorage.setItem(HIST_KEY,JSON.stringify(hist));
-})();}catch(e){}
-/* Calories brûlées du jour : uniquement la dernière lecture Health Connect reçue pendant cette ouverture (mémoire) */
-var LIVE_TODAY_KCAL=null;
-
-function getDefaultConso(calsBrulees){return calsBrulees>PADEL_AUTO?2100:1850;}
-function loadHist(){try{return JSON.parse(localStorage.getItem(HIST_KEY)||'[]');}catch(e){return [];}}
-function loadBurned(){try{return JSON.parse(localStorage.getItem(BURN_KEY)||'{}');}catch(e){return {};}}
-/* Mémorise les calories brûlées reçues (le jour en cours est mis à jour, les autres jours complétés) */
-function storeBurned(days){
-  var b=loadBurned(),ch=false;
-  (days||[]).forEach(function(x){if(x.kcal!=null&&x.kcal>0&&b[x.date]!==x.kcal){b[x.date]=x.kcal;ch=true;}});
-  if(ch){
-    var keys=Object.keys(b).sort();if(keys.length>400)keys.slice(0,keys.length-400).forEach(function(k){delete b[k];});
-    try{localStorage.setItem(BURN_KEY,JSON.stringify(b));}catch(e){}
-  }
-  /* Jours passés : on complète « brulees » si elle manque (les valeurs pré-chargées restent prioritaires).
-     Aujourd'hui : rien n'est écrit dans l'historique — valeur Health Connect en direct uniquement. */
-  var hist=loadHist(),hch=false,todayKey=ld(new Date());
-  hist.forEach(function(e){var d=new Date(e.date);if(isNaN(d))return;var k=ld(d),hc=b[k];if(hc==null||k===todayKey)return;
-    if(e.brulees==null){e.brulees=hc;hch=true;}});
-  if(hch)try{localStorage.setItem(HIST_KEY,JSON.stringify(hist));}catch(e){}
-}
-function calcDeficit(entry){return entry.brulees-entry.conso;}
-/* v6.1 — Déficit cible dynamique selon le type de jour (détecté via les calories brûlées) */
-function getDeficitCible(calsBrulees) {
-    if (calsBrulees >= 3000) return 800;       // padel 1h30 intense
-    if (calsBrulees >= 2600) return 600;       // padel 1h
-    if (calsBrulees >= 2200) return 500;       // callisthénie + force soir
-    return 400;                                 // callisthénie seule
-}
-function getObjectifConso(calsBrulees) {
-    return calsBrulees - getDeficitCible(calsBrulees);
-}
-function getLibelleJour(c){if(c>=3000)return 'Jour padel intense 🎾🔥 — déficit cible ~800 kcal max';if(c>=2600)return 'Jour padel 1h 🎾 — déficit cible ~600 kcal';if(c>=2200)return 'Jour force 💪 — déficit cible ~500 kcal';return 'Jour normal 🏋️ — déficit cible ~400 kcal';}
-function getTypeJour(brulees) {
-    if (brulees >= 3000) return '🎾 Padel intense';
-    if (brulees >= 2600) return '🎾 Padel 1h';
-    if (brulees >= 2200) return '💪 Force';
-    return '🏋️ Normal';
-}
-function saveConsoAndRefresh(){
-  var inp=document.getElementById('inp-conso'),raw=inp.value.trim();
-  var today=new Date().toDateString(),hist=loadHist();
+  if(ch||hist.length!==n){hist.sort(function(a,b){return new Date(a.date)-new Date(b.date);});saveHist(hist);}
+  if(dch)lsSet('deficitPreloadApplied',JSON.stringify(done));
+})();
+function getDefaultConso(b){return b>PADEL_AUTO?2100:1850;}
+function saveConso(){
+  var inp=$('inp-conso'),raw=inp.value.trim(),today=new Date().toDateString(),hist=loadHist();
   var idx=hist.findIndex(function(e){return e.date===today;});
-  if(raw===''){ // champ vidé → on supprime la saisie du jour, retour à l'estimation
-    if(idx>=0)hist.splice(idx,1);
-  }else{
-    var val=parseInt(raw,10);
+  if(raw===''){if(idx>=0)hist.splice(idx,1);}
+  else{var val=parseInt(raw,10);
     if(isNaN(val)||val<300||val>8000){inp.style.borderColor='#EF5350';return;}
     inp.style.borderColor='';
-    // Seule la consommation est mémorisée pour aujourd'hui ; les brûlées restent celles de Health Connect en direct
     var entry={date:today,conso:val,estimated:false,manual:true};
-    if(idx>=0)hist[idx]=entry;else hist.push(entry);
-  }
+    if(idx>=0)hist[idx]=entry;else hist.push(entry);}
   hist.sort(function(a,b){return new Date(a.date)-new Date(b.date);});
-  hist=hist.slice(-400); // 30 jours affichés, historique plus long conservé
-  try{localStorage.setItem(HIST_KEY,JSON.stringify(hist));}catch(e){}
-  inp.blur();
-  renderDeficit();
+  saveHist(hist.slice(-400));inp.blur();renderDeficit();
 }
-/* Série des 30 derniers jours : {key, burn, conso, estimated, def} (def null si brûlées inconnues) */
+/* 30 derniers jours : {key, dt, burn, conso, saisie, estimated, def} */
 function deficitSeries(){
-  var hist={},burned=loadBurned(),out=[];
-  loadHist().forEach(function(e){var d=new Date(e.date);if(!isNaN(d))hist[ld(d)]=e;});
+  var hist=histByKey(),days={},out=[];
+  if(LAST&&LAST.days)LAST.days.forEach(function(x){days[x.date]=x;});
   for(var i=29;i>=0;i--){
-    var dt=new Date();dt.setDate(dt.getDate()-i);var k=ld(dt),e=hist[k];
-    var hc=burned[k]!=null?burned[k]:null,b=e&&e.brulees!=null?e.brulees:hc;
-    if(i===0)b=LIVE_TODAY_KCAL; // aujourd'hui : Health Connect en temps réel, jamais localStorage
+    var dt=new Date();dt.setDate(dt.getDate()-i);var k=ld(dt),e=hist[k],b=burnOf(k,days[k]);
     var conso=e?e.conso:(b!=null?getDefaultConso(b):null),est=e?!!e.estimated:true;
-    out.push({key:k,dt:dt,burn:b,conso:conso,estimated:est,saisie:!!e,def:b!=null&&conso!=null?calcDeficit({brulees:b,conso:conso}):null});
+    out.push({key:k,dt:dt,burn:b,conso:conso,estimated:est,saisie:!!e,def:b!=null&&conso!=null?b-conso:null});
   }
   return out;
 }
 function defColor(v){return v>=400?'#4ECDC4':v>=0?'#F9A825':'#EF5350';}
-function sgn(v){return v==null?'—':(v>=0?'':'−')+fmt(Math.abs(v));}
-/* Conseil du jour (stratégie nutritionnelle) */
-function renderStrategy(t){
-  var el=$('strat-today');if(!el)return;
-  var d=new Date().getDay(),padel=isPadel(ld(new Date())),soir=[1,3,5].indexOf(d)>=0;
-  var h;
-  if(t&&t.burn!=null){
-    var cible=getDeficitCible(t.burn),obj=getObjectifConso(t.burn);
-    $('strat-def').textContent='~'+fmt(cible)+' kcal aujourd\'hui';
-    h='<b>'+getLibelleJour(t.burn)+'</b><br>Aujourd\'hui ('+fmt(t.burn)+' kcal brûlées) → vise <b>~'+fmt(obj)+' kcal</b> consommées, déficit cible <b>~'+fmt(cible)+' kcal</b>, et <b>145 g</b> de protéines.';
-    if(t.def!=null&&t.saisie){
-      var ecart=t.def-cible;
-      h+='<br>Déficit actuel <b>'+sgn(t.def)+' kcal</b> → '+(ecart>=0?'✅ cible atteinte (+'+fmt(ecart)+')':'encore <b>'+fmt(-ecart)+' kcal</b> sous la cible');
-    }
-    h+='<br><span style="color:var(--t3)">Les calories brûlées montent au fil de la journée : la cible s\'ajuste en temps réel.</span>';
-  }else{
-    $('strat-def').textContent='400-800 kcal / jour';
-    h='<b>Aujourd\'hui</b> · en attente des calories brûlées Health Connect pour calculer le déficit cible. Vise <b>145 g</b> de protéines.';
-  }
-  h+=padel?'<br>🍫 Barre de récup autorisée après le padel.':'<br>🍫 Pas de barre de récup aujourd\'hui.';
-  if(soir)h+='<br>💪 Séance du soir prévue (onglet Extra).';
-  el.innerHTML=h;
-}
 function renderDeficit(){
-  var S=deficitSeries(),t=S[S.length-1];
-  var inp=$('inp-conso');
+  var S=deficitSeries(),t=S[S.length-1],inp=$('inp-conso');
   if(document.activeElement!==inp)inp.value=t.saisie?t.conso:'';
   inp.placeholder=t.burn!=null?'estimé '+fmt(getDefaultConso(t.burn)):'ex: 1 850';
-  $('conso-source').textContent=t.saisie?(t.estimated?'📊 Estimé':'✏️ Saisie'):'📊 Estimé';
+  $('conso-source').textContent=t.saisie?'✏️ Saisie':'📊 Estimé';
   $('df-burn').textContent=fmt(t.burn);
-  /* v7.1 — kcal callisthénie : donnée réelle Fitbit Air (7h-8h30) sinon estimation fixe */
-  var calReal=LAST&&LAST.callisthenieKcal!=null?LAST.callisthenieKcal:null;
-  const calActiv = calReal || CAL_KCAL_FALLBACK;
-  $('df-cal').textContent=fmt(calActiv);
-  $('df-cal-s').textContent=calReal?'kcal · réel 7h-8h30':'kcal · estimé';
+  var sp=sportKcal(TODAY_CAL),ns=TODAY_CAL?(TODAY_CAL.sessions||[]).filter(function(s){return !s.dup;}).length:0;
+  $('df-sport').textContent=TODAY_CAL?fmt(sp):'—';
+  $('df-sport-s').textContent=TODAY_CAL?'kcal · '+ns+' séance'+(ns>1?'s':''):'kcal · sport';
   $('df-today').textContent=sgn(t.def);$('df-today').style.color=t.def!=null?defColor(t.def):'';
   $('df-today-s').textContent=t.def==null?'kcal':(t.def>=0?'kcal · déficit':'kcal · surplus')+(t.saisie?'':' (estimé)');
   var v30=S.filter(function(x){return x.def!=null;}),v7=S.slice(-7).filter(function(x){return x.def!=null;});
@@ -721,23 +587,23 @@ function renderDeficit(){
   var nEst=v30.filter(function(x){return !x.saisie||x.estimated;}).length;
   $('df-note').innerHTML='Sans saisie, la consommation est estimée : 2 100 kcal un jour padel (&gt; 2 400 kcal brûlées), 1 850 kcal sinon. '
     +(v30.length?v30.length+' jours calculés sur 30'+(nEst?', dont '+nEst+' estimés':'')+'. ':'')
-    +(v30.length<30?'Ouvre l\'onglet Mois pour charger les calories brûlées des 30 jours. ':'')
-    +'Les calories brûlées du jour sont complètes le soir.';
+    +'Les calories du jour montent jusqu\'au soir.';
   deficitChart(S);
   renderStrategy(t);
 }
+var DEF_PTS=[],DEF_SEL=null;
 function deficitChart(S){
   var cv=$('def-canvas');if(!cv||!cv.getContext)return;
   var dpr=window.devicePixelRatio||1,W=cv.clientWidth||320,H=cv.clientHeight||150;
   cv.width=Math.round(W*dpr);cv.height=Math.round(H*dpr);
   var g=cv.getContext('2d');g.setTransform(dpr,0,0,dpr,0,0);g.clearRect(0,0,W,H);
-  const DEFICIT_REF=getDeficitCible((S[S.length-1]&&S[S.length-1].burn)||0);var pts=S.filter(function(x){return x.def!=null;});
+  var REF=getDeficitCible((S[S.length-1]&&S[S.length-1].burn)||0),pts=S.filter(function(x){return x.def!=null;});
+  DEF_PTS=[];
   if(!pts.length){g.fillStyle=TC('#6b6a75');g.font='12px sans-serif';g.textAlign='center';g.fillText('Pas encore de calories brûlées sur 30 jours',W/2,H/2);return;}
-  var L=34,R=6,T=8,B=18,vs=pts.map(function(x){return x.def;}).concat([0,DEFICIT_REF]);
+  var L=34,R=6,T=8,B=18,vs=pts.map(function(x){return x.def;}).concat([0,REF]);
   var mn=Math.min.apply(null,vs),mx=Math.max.apply(null,vs),pad=(mx-mn)*0.1||100;mn-=pad;mx+=pad;
   function X(i){return L+i*(W-L-R)/29;}function Y(v){return T+(mx-v)/(mx-mn)*(H-T-B);}
-  DEF_PTS=[];S.forEach(function(x,i){if(x.def!=null)DEF_PTS.push({x:X(i),y:Y(x.def),i:i,s:x});});
-  /* axes / graduations */
+  S.forEach(function(x,i){if(x.def!=null)DEF_PTS.push({x:X(i),y:Y(x.def),s:x});});
   g.font='9px sans-serif';g.textAlign='right';g.textBaseline='middle';
   var step=Math.max(250,Math.ceil((mx-mn)/4/250)*250);
   for(var v=Math.ceil(mn/step)*step;v<=mx;v+=step){
@@ -745,13 +611,9 @@ function deficitChart(S){
     g.beginPath();g.moveTo(L,Y(v));g.lineTo(W-R,Y(v));g.stroke();
     g.fillStyle=TC('#6b6a75');g.fillText(v===0?'0':(v>0?'':'−')+Math.abs(v),L-4,Y(v));
   }
-  /* référence déficit dynamique (DEFICIT_REF) */
-  g.strokeStyle='#66BB6A';g.lineWidth=1.2;g.setLineDash([5,4]);
-  g.beginPath();g.moveTo(L,Y(DEFICIT_REF));g.lineTo(W-R,Y(DEFICIT_REF));g.stroke();
-  /* libellés X : 1 sur 7 + aujourd'hui */
+  g.strokeStyle='#66BB6A';g.lineWidth=1.2;g.setLineDash([5,4]);g.beginPath();g.moveTo(L,Y(REF));g.lineTo(W-R,Y(REF));g.stroke();
   g.setLineDash([]);g.textAlign='center';g.textBaseline='top';g.fillStyle=TC('#6b6a75');
   S.forEach(function(x,i){if((29-i)%7===0)g.fillText(dd(x.dt),Math.min(W-R-12,Math.max(L+12,X(i))),H-B+5);});
-  /* ligne : pleine entre deux valeurs saisies, pointillée si l'une est estimée */
   var prev=null;
   S.forEach(function(x,i){
     if(x.def==null){prev=null;return;}
@@ -760,283 +622,273 @@ function deficitChart(S){
       g.beginPath();g.moveTo(X(prev.i),Y(prev.x.def));g.lineTo(X(i),Y(x.def));g.stroke();}
     prev={x:x,i:i};
   });
-  /* points : plein = saisi, creux = estimé */
   g.setLineDash([]);
   S.forEach(function(x,i){
     if(x.def==null)return;var c=defColor(x.def),real=x.saisie&&!x.estimated;
     g.beginPath();g.arc(X(i),Y(x.def),real?3.4:3,0,Math.PI*2);
     if(real){g.fillStyle=c;g.fill();}else{g.fillStyle=TC('#1a1a22');g.fill();g.strokeStyle=c;g.lineWidth=1.6;g.stroke();}
-    if(DEF_SEL===x.key){g.beginPath();g.arc(X(i),Y(x.def),7,0,Math.PI*2);g.strokeStyle='#fff';g.lineWidth=1.5;g.stroke();}
+    if(DEF_SEL===x.key){g.beginPath();g.arc(X(i),Y(x.def),7,0,Math.PI*2);g.strokeStyle=TC('#fff');g.lineWidth=1.5;g.stroke();}
   });
 }
-/* v6.9 — Tap sur un point de la courbe déficit → bulle de détail du jour */
-var DEF_PTS=[],DEF_SEL=null;
-function getClickedDeficitPoint(e){
-  var cv=$('def-canvas'),r=cv.getBoundingClientRect(),mx=e.clientX-r.left,my=e.clientY-r.top,best=null,bd=1e9;
-  DEF_PTS.forEach(function(p){var d=Math.abs(p.x-mx)+Math.abs(p.y-my)*0.3;if(d<bd){bd=d;best=p;}});
-  if(!best||Math.abs(best.x-mx)>18)return null; // zone de tap ~18 px autour du point
-  var x=best.s;
-  return {key:x.key,date:x.dt,brulees:x.burn,conso:x.conso,saisie:x.saisie,estimated:!x.saisie||x.estimated,cx:r.left+best.x,cy:r.top+best.y};
+function showDeficitDetail(p,cx,cy){
+  var x=p.s,cible=getDeficitCible(x.burn),c=defColor(x.def),est=!x.saisie||x.estimated;
+  hideTip();DEF_SEL=x.key;deficitChart(deficitSeries());
+  var t=$('tip');
+  t.innerHTML='<div class="tl">'+JOURS_L[x.dt.getDay()]+' '+dd(x.dt)+'</div>'
+    +'<div class="tr"><span>Brûlées</span><b>'+fmt(x.burn)+' kcal</b></div>'
+    +'<div class="tr"><span>Consommées</span><b>'+fmt(x.conso)+' kcal'+(est?' <span style="color:var(--t3);font-weight:600">(estimé)</span>':'')+'</b></div>'
+    +'<div class="tr"><span>'+(x.def>=0?'Déficit':'Surplus')+'</span><b style="color:'+c+'">'+sgn(x.def)+' kcal</b></div>'
+    +'<div class="tr"><span>Type de jour</span><b>'+getTypeJour(x.burn)+'</b></div>'
+    +'<div class="tr"><span>Cible</span><b>~'+fmt(cible)+' kcal '+(x.def>=cible?'✅':'❌')+'</b></div>';
+  placeTip(t,cx,cy);
 }
-function showDeficitDetail(pt){
-  var deficit=pt.brulees-pt.conso,cible=getDeficitCible(pt.brulees),c=defColor(deficit);
-  hideTip();DEF_SEL=pt.key;deficitChart(deficitSeries());
-  var t=$('tip'),dt=pt.date;
-  var h='<div class="tl">'+JOURS_L[dt.getDay()]+' '+dd(dt)+'</div>'
-    +'<div class="tr"><span>Brûlées</span><b>'+fmt(pt.brulees)+' kcal</b></div>'
-    +'<div class="tr"><span>Consommées</span><b>'+fmt(pt.conso)+' kcal'+(pt.estimated?' <span style="color:var(--t3);font-weight:600">(estimé)</span>':'')+'</b></div>'
-    +'<div class="tr"><span>'+(deficit>=0?'Déficit':'Surplus')+'</span><b style="color:'+c+'">'+sgn(deficit)+' kcal</b></div>'
-    +'<div class="tr"><span>Type de jour</span><b>'+getTypeJour(pt.brulees)+'</b></div>'
-    +'<div class="tr"><span>Cible</span><b>~'+fmt(cible)+' kcal '+(deficit>=cible?'✅':'❌')+'</b></div>';
-  t.innerHTML=h;t.style.display='block';
-  var w=t.offsetWidth,hh=t.offsetHeight,vw=document.documentElement.clientWidth;
-  var left=Math.max(8,Math.min(vw-w-8,pt.cx-w/2)),top=pt.cy-hh-14;if(top<8)top=8;
-  t.style.left=left+'px';t.style.top=top+'px';t.style.setProperty('--ax',(pt.cx-left)+'px');
-}
-(function(){var cv=$('def-canvas');if(!cv)return;
-  cv.addEventListener('click',function(e){
-    e.stopPropagation();
-    const pt=getClickedDeficitPoint(e);
-    if(!pt||DEF_SEL===pt.key){hideTip();return;}
-    showDeficitDetail(pt);
-  });
-})();
-window.addEventListener('resize',function(){deficitChart(deficitSeries());});
-/* Si les calories brûlées des 30 derniers jours ne sont pas toutes connues, lecture « Mois » en arrière-plan (une fois par ouverture) */
-var monthPreloaded=false;
-function preloadMonthBurned(){
-  if(monthPreloaded||PERIOD==='month'||!hasBridge()||!HealthBridge.requestDataForPeriod)return;
-  var b=loadBurned(),miss=0;
-  for(var i=1;i<30;i++){var dt=new Date();dt.setDate(dt.getDate()-i);if(b[ld(dt)]==null)miss++;}
-  if(!miss)return;
-  monthPreloaded=true;
-  try{HealthBridge.requestDataForPeriod('month');}catch(e){}
-}
-
-window.onHealthData=function(d){
-  if(typeof d==='string'){try{d=JSON.parse(d);}catch(e){return;}}
-  clearTimeout(window._rto);
-  $('btn-refresh').textContent='↻ Actualiser';hideRefreshIndicator();
-  /* v7.6 — calories brûlées du jour = BMR progressif + calories actives (jamais data.basalMetabolicRate) */
-  if(d.status==='ok'&&d.days&&d.caloriesSources){var tdk=todayOf(d);
-    if(tdk){var bmr=getBMRProgressif(),totalBrulees=bmr+totalActives(d.caloriesSources);tdk.kcal=totalBrulees;}}
-  if(d.status==='ok'&&d.days){var td=todayOf(d);if(td&&td.kcal!=null&&td.kcal>0)LIVE_TODAY_KCAL=td.kcal;storeBurned(d.days);} // calories brûlées mémorisées pour la courbe déficit, quelle que soit la période
-  if(d.period&&d.period!==PERIOD){renderDeficit();return;} // réponse d'un autre onglet / pré-chargement 30 j
-  if(d.status==='ok')setTimeout(preloadMonthBurned,400);
-  if(d.status==='ok'&&!d.period)d.period=PERIOD;
-  if(d.status==='ok'){
-    if(hasToday(d)){saveCache(d);showCacheBadge(null);}
-    else{ // Health Connect ne remonte rien pour aujourd'hui : montre en charge / déconnectée
-      var c=loadCache(d.period);
-      if(c&&hasToday(c)){render(c);showCacheBadge(c);return;}
-      showCacheBadge(null);
-    }
+function renderStrategy(t){
+  var el=$('strat-today'),d=new Date().getDay(),padel=isPadel(todayKey()),soir=[1,3,5].indexOf(d)>=0,h;
+  if(t&&t.burn!=null){
+    var cible=getDeficitCible(t.burn),obj=getObjectifConso(t.burn);
+    $('strat-def').textContent='~'+fmt(cible)+' kcal aujourd\'hui';
+    h='<b>'+getLibelleJour(t.burn)+'</b><br>Aujourd\'hui ('+fmt(t.burn)+' kcal brûlées) → vise <b>~'+fmt(obj)+' kcal</b> consommées, déficit cible <b>~'+fmt(cible)+' kcal</b>, et <b>145 g</b> de protéines.';
+    if(t.def!=null&&t.saisie){var ec=t.def-cible;h+='<br>Déficit actuel <b>'+sgn(t.def)+' kcal</b> → '+(ec>=0?'✅ cible atteinte (+'+fmt(ec)+')':'encore <b>'+fmt(-ec)+' kcal</b> sous la cible');}
+    h+='<br><span style="color:var(--t3)">Les calories brûlées montent au fil de la journée : la cible s\'ajuste en temps réel.</span>';
+  }else{
+    $('strat-def').textContent='400-800 kcal / jour';
+    h='<b>Aujourd\'hui</b> · en attente des calories Health Connect pour calculer le déficit cible. Vise <b>145 g</b> de protéines.';
   }
-  render(d);
-};
-
-/* ═════════ v7.1 — Fitbit Air : HRV, phases de sommeil, température cutanée, kcal callisthénie ═════════ */
-var CAL_KCAL_FALLBACK=225; // estimation si aucune donnée réelle 7h-8h30
-function getHRVStatus(hrv) {
-    if (hrv >= 50) return {label: 'Excellente récupération ✅', color: '#1baf7a'};
-    if (hrv >= 35) return {label: 'Bonne récupération 🟡', color: '#eda100'};
-    return {label: 'Récupération insuffisante ⚠️', color: '#EF5350'};
+  h+=padel?'<br>🍫 Barre de récup autorisée après le padel.':'<br>🍫 Pas de barre de récup aujourd\'hui.';
+  if(soir)h+='<br>💪 Séance du soir prévue (onglet Extra).';
+  el.innerHTML=h;
 }
+
+/* ═════════ Cœur ═════════ */
+function getHRVStatus(v){if(v>=50)return {label:'Excellente récupération ✅',color:'#1baf7a'};if(v>=35)return {label:'Bonne récupération 🟡',color:'#eda100'};return {label:'Récupération insuffisante ⚠️',color:'#EF5350'};}
+function renderHeart(d,days,per){
+  var B=buckets(days,per),rAll=days.filter(function(x){return x.rhr!=null;}),lastR=rAll.length?rAll[rAll.length-1]:null,rv=vals(days,'rhr');
+  $('hr-rest').textContent=lastR?lastR.rhr:'—';
+  $('hr-avg').textContent=rv.length?fmt1(avg(rv)):'—';
+  $('hr-min').textContent=rv.length?Math.min.apply(null,rv):'—';
+  $('hr-mx').textContent=rv.length?Math.max.apply(null,rv):'—';
+  var rB=B.map(function(b){return {key:b.key,lbl:b.lbl,v:avg(vals(b.days,'rhr'))};}),rBv=rB.filter(function(x){return x.v;});
+  var st=lastR?(lastR.rhr<60?['Bas ✅','var(--ok)']:lastR.rhr<=70?['Normal','var(--t2)']:['Élevé ⚠️','var(--warn)']):null;
+  if(lastR&&rBv.length>=2){
+    var delta=Math.round((rBv[rBv.length-1].v-rBv[0].v)*10)/10;
+    $('hr-rest-d').innerHTML='<span style="color:'+st[1]+';font-weight:700">'+st[0]+'</span><br>'+(delta<0?'▼ −':delta>0?'▲ +':'= ')+fmt1(Math.abs(delta))+' sur '+PER_LBL[per];
+    $('hr-note').textContent=delta<0?'FC repos en baisse sur '+PER_LBL[per]+' : bonne adaptation à l\'entraînement 📉':delta>0?'FC repos en hausse sur '+PER_LBL[per]+' : fatigue, sommeil ou récupération à surveiller.':'FC repos stable sur '+PER_LBL[per]+'.';
+  }else $('hr-rest-d').innerHTML=lastR?'<span style="color:'+st[1]+';font-weight:700">'+st[0]+'</span>':'bpm';
+  bars($('hr-bars'),rB,'linear-gradient(180deg,#EF9A9A,#E57373)',0,function(v){return Math.round(v);},rv.length?Math.min.apply(null,rv)-4:0);
+  var mx=d.hrMaxToday;$('hr-max').textContent=mx!=null?mx:'—';
+  if(mx!=null){var z=mx>170?['🔴 Maximum','#EF5350']:mx>=140?['🟠 Intense','#FF7043']:mx>=120?['🟡 Modéré','#F9A825']:['🟢 Léger','var(--ok)'];$('hr-zone').innerHTML='bpm · <span style="color:'+z[1]+';font-weight:700">'+z[0]+'</span>';}
+  else $('hr-zone').textContent='bpm';
+  $('vo2').textContent=d.vo2max?fmt1(d.vo2max.v):'—';
+  $('vo2-d').textContent=d.vo2max?'ml/kg/min · '+ago(d.vo2max.t):'ml/kg/min';
+  if(d.hrv!=null){var hs=getHRVStatus(d.hrv);$('hrv').textContent=d.hrv;$('hrv').style.color=hs.color;
+    $('hrv-s').innerHTML='ms · <span style="color:'+hs.color+';font-weight:700">'+hs.label+'</span>'+(d.hrvTime?'<br>'+ago(d.hrvTime):'');}
+  else{$('hrv').textContent='—';$('hrv').style.color='';$('hrv-s').textContent='ms';}
+  var hd=d.hrvDays||[],hv=vals(hd,'ms'),hA=avg(hv);
+  $('hrv-avg').textContent=hA!=null?Math.round(hA):'—';
+  $('hrv-avg-s').textContent=hv.length>=2?'ms · '+((hv[hv.length-1]-hv[0])>0?'▲ +':(hv[hv.length-1]-hv[0])<0?'▼ −':'= ')+Math.abs(hv[hv.length-1]-hv[0])+' sur 7 j':'ms';
+  bars($('hrv-bars'),hd.map(function(x){return {key:x.date,lbl:JOURS[dkey(x.date).getDay()],v:x.ms!=null?x.ms:null};}),
+    function(v){return v==null?'transparent':getHRVStatus(v).color;},0,function(v){return Math.round(v);});
+}
+
+/* ═════════ Activité ═════════ */
+function renderActivity(days,per,tk){
+  var t=days.filter(function(x){return x.date===tk;})[0]||{},B=buckets(days,per),sv=vals(days,'steps'),fv=vals(days,'floors');
+  $('steps-today').textContent=fmt(t.steps!=null?t.steps:null);
+  $('steps-tot').textContent=sv.length?fmt(sum(sv)):'—';
+  $('steps-avg').textContent=fmt(avg(sv));
+  $('fl-today').textContent=t.floors!=null?fmt(t.floors):'—';
+  $('fl-tot').textContent=fv.length?fmt(sum(fv)):'—';
+  $('fl-avg').textContent=fv.length?fmt1(avg(fv)):'—';
+  bars($('steps-bars'),B.map(function(b){return {key:b.key,lbl:b.lbl,v:avg(vals(b.days,'steps'))};}),'linear-gradient(180deg,#64B5F6,#42A5F5)',0,
+    function(v){return v>=1000?(Math.round(v/100)/10).toLocaleString('fr-FR')+'k':Math.round(v);});
+}
+
+/* ═════════ Sommeil ═════════ */
 var SLEEP_PHASES=[
   {k:'deep', label:'Profond 😴',  color:'#1a237e', goal:[15,20]},
   {k:'light',label:'Léger 💤',    color:'#3949ab', goal:[50,60]},
   {k:'rem',  label:'Paradoxal 🌀',color:'#7e57c2', goal:[20,25]},
   {k:'awake',label:'Éveillé 👁️',  color:'#EF5350', goal:null}
 ];
-/* Barres empilées (une barre = une nuit, segments = phases) */
+function renderSleep(d){
+  var sl={},ph={};
+  (d.sleep||[]).forEach(function(s){var k=ld(new Date(s.end));sl[k]=(sl[k]||0)+s.min;
+    if(s.light!=null||s.deep!=null||s.rem!=null||s.awake!=null){var o=ph[k]||(ph[k]={light:0,deep:0,rem:0,awake:0});
+      o.light+=s.light||0;o.deep+=s.deep||0;o.rem+=s.rem||0;o.awake+=s.awake||0;}});
+  var nights=[];
+  for(var i=6;i>=0;i--){var dt=new Date();dt.setDate(dt.getDate()-i);(function(k,dt){var p=ph[k]||null;
+    nights.push({key:k,lbl:JOURS[dt.getDay()],v:sl[k]||0,ph:p,tip:sl[k]?function(){var r=[['Durée',hm(sl[k])]];
+      if(p)SLEEP_PHASES.forEach(function(q){r.push([q.label,hm(p[q.k]||0)]);});return {label:'Nuit → '+JOURS_L[dt.getDay()]+' '+dd(dt),rows:r};}:null});})(ld(dt),dt);}
+  var lastS=(d.sleep||[]).slice(-1)[0],lastK=lastS?ld(new Date(lastS.end)):null;
+  $('sl-last').textContent=lastS?hm(sl[lastK]):'—';
+  $('sl-last-d').textContent=lastS?ago(lastS.end):'';
+  var nv=nights.filter(function(n){return n.v>0;});
+  $('sl-avg').textContent=nv.length?hm(avg(nv.map(function(n){return n.v;}))):'—';
+  stackBars($('sl-bars'),nights,hm);
+  var lp=lastK?ph[lastK]:null;
+  $('sl-leg').innerHTML=Object.keys(ph).length?SLEEP_PHASES.map(function(p){return '<span><i style="background:'+p.color+'"></i>'+p.label+'</span>';}).join(''):'';
+  $('sl-phases').innerHTML=lp?'<div class="mini-l" style="margin-bottom:4px">Phases dernière nuit · objectifs : profond 15-20 % · paradoxal 20-25 % · léger 50-60 %</div>'+phaseRows(lp):'';
+  var sp=(d.spo2||[]).filter(function(x){var h=new Date(x.t).getHours();return h>=21||h<11;});
+  if(sp.length){var a=avg(sp.map(function(x){return x.pct;})),mn=Math.min.apply(null,sp.map(function(x){return x.pct;}));
+    $('spo2-box').style.display='block';$('spo2').textContent=fmt1(a);$('spo2-d').textContent='% · min '+fmt1(mn);}
+  else $('spo2-box').style.display='none';
+}
+function phaseRows(p){
+  var tot=SLEEP_PHASES.reduce(function(s,q){return s+(p[q.k]||0);},0);if(!tot)return '';
+  var asleep=tot-(p.awake||0),h='';
+  SLEEP_PHASES.forEach(function(q){
+    var m=p[q.k]||0,base=q.k==='awake'?tot:asleep,pc=base?Math.round(m/base*100):0,st='';
+    if(q.goal)st=pc<q.goal[0]?' <span style="color:var(--warn)">▼ obj. '+q.goal[0]+'-'+q.goal[1]+' %</span>':pc>q.goal[1]?' <span style="color:var(--warn)">▲ obj. '+q.goal[0]+'-'+q.goal[1]+' %</span>':' <span style="color:var(--ok)">✅</span>';
+    h+='<div class="ph-row"><span><i style="display:inline-block;width:8px;height:8px;border-radius:50%;background:'+q.color+';margin-right:6px"></i>'+q.label+'</span><span><b>'+hm(m)+'</b><small>'+pc+' %</small>'+st+'</span></div>';
+  });
+  return h;
+}
+function storeSkinTemp(d){
+  if(d.skinTemp==null&&d.skinTempDelta==null)return;
+  lsSet('hc_skinTemp',JSON.stringify({temp:d.skinTemp!=null?d.skinTemp:null,delta:d.skinTempDelta!=null?d.skinTempDelta:null,t:d.skinTempTime||d.updated||null}));
+}
+
+/* ═════════ Graphiques ═════════ */
+function bars(el,items,color,goal,fmtV,base){
+  base=base||0;
+  var max=Math.max.apply(null,items.map(function(i){return i.v||0;}).concat([goal||0,1]));max=base?max+(max-base)*0.1:max*1.1;
+  var tk=todayKey(),h='',dense=items.length>12;
+  el.classList.toggle('dense',dense);
+  items.forEach(function(it){
+    var pct=it.v?Math.max(2,(it.v-base)/(max-base)*100):0,col=typeof color==='function'?color(it.v,it):color;
+    h+='<div class="bar-col">'+(it.mark!==undefined?'<div class="bar-p">'+(it.mark||'')+'</div>':'')+'<div class="bar-v">'+(it.v&&!dense?fmtV(it.v):'')+'</div>'
+      +'<div class="bar" style="height:'+pct+'%;background:'+col+'"></div>'
+      +'<div class="bar-d'+(it.key===tk?' today':'')+'">'+it.lbl+'</div></div>';
+  });
+  el.innerHTML=h;
+  el.querySelectorAll('.bar-col').forEach(function(col,i){var it=items[i];if(!it||!it.tip)return;
+    col.addEventListener('click',function(ev){ev.stopPropagation();if(col.classList.contains('sel')){hideTip();return;}showTooltip(it.tip(),col);});});
+}
 function stackBars(el,items,fmtV){
-  var max=Math.max.apply(null,items.map(function(i){return i.v||0;}).concat([1]))*1.1,todayKey=ld(new Date()),h='';
+  var max=Math.max.apply(null,items.map(function(i){return i.v||0;}).concat([1]))*1.1,tk=todayKey(),h='';
   items.forEach(function(it){
     var pct=it.v?Math.max(2,it.v/max*100):0,seg='';
-    if(it.ph){SLEEP_PHASES.forEach(function(p){var m=it.ph[p.k]||0;if(m>0)seg+='<i style="height:'+(m/it.v*100)+'%;background:'+p.color+'"></i>';});}
+    if(it.ph)SLEEP_PHASES.forEach(function(p){var m=it.ph[p.k]||0;if(m>0)seg+='<i style="height:'+(m/it.v*100)+'%;background:'+p.color+'"></i>';});
     else if(it.v)seg='<i style="height:100%;background:linear-gradient(180deg,#B39DDB,#9575CD)"></i>';
-    h+='<div class="bar-col"><div class="bar-v">'+(it.v?fmtV(it.v):'')+'</div>'
-      +'<div class="stk" style="height:'+pct+'%">'+seg+'</div>'
-      +'<div class="bar-d'+(it.key===todayKey?' today':'')+'">'+it.lbl+'</div></div>';
+    h+='<div class="bar-col"><div class="bar-v">'+(it.v?fmtV(it.v):'')+'</div><div class="stk" style="height:'+pct+'%">'+seg+'</div>'
+      +'<div class="bar-d'+(it.key===tk?' today':'')+'">'+it.lbl+'</div></div>';
   });
   el.classList.remove('dense');el.innerHTML=h;
   el.querySelectorAll('.bar-col').forEach(function(col,i){var it=items[i];if(!it||!it.tip)return;
     col.addEventListener('click',function(ev){ev.stopPropagation();if(col.classList.contains('sel')){hideTip();return;}showTooltip(it.tip(),col);});});
 }
-function phaseRows(ph){
-  var tot=SLEEP_PHASES.reduce(function(s,p){return s+(ph[p.k]||0);},0);if(!tot)return '';
-  var asleep=tot-(ph.awake||0),h='';
-  SLEEP_PHASES.forEach(function(p){
-    var m=ph[p.k]||0,base=p.k==='awake'?tot:asleep,pc=base?Math.round(m/base*100):0,st='';
-    if(p.goal)st=pc<p.goal[0]?' <span style="color:var(--warn)">▼ obj. '+p.goal[0]+'-'+p.goal[1]+' %</span>':pc>p.goal[1]?' <span style="color:var(--warn)">▲ obj. '+p.goal[0]+'-'+p.goal[1]+' %</span>':' <span style="color:var(--ok)">✅</span>';
-    h+='<div class="ph-row"><span><i style="display:inline-block;width:8px;height:8px;border-radius:50%;background:'+p.color+';margin-right:6px"></i>'+p.label+'</span><span><b>'+hm(m)+'</b><small>'+pc+' %</small>'+st+'</span></div>';
+function showTooltip(o,col){
+  hideTip();col.classList.add('sel');
+  var t=$('tip'),h='<div class="tl">'+o.label+'</div>';
+  (o.rows||[]).forEach(function(r){h+=r==='sep'?'<div class="tsep"></div>':'<div class="tr"><span>'+r[0]+'</span><b>'+r[1]+'</b></div>';});
+  if(o.note)h+='<div class="tna">'+o.note+'</div>';
+  if(o.action)h+='<button class="tb" id="tip-act">'+o.action.label+'</button>';
+  t.innerHTML=h;
+  if(o.action)$('tip-act').onclick=function(ev){ev.stopPropagation();o.action.fn();};
+  var bar=col.querySelector('.bar,.stk'),r=(bar&&bar.offsetHeight>4?bar:col).getBoundingClientRect();
+  placeTip(t,r.left+r.width/2,r.top);
+}
+function placeTip(t,cx,top){
+  t.style.display='block';
+  var w=t.offsetWidth,hh=t.offsetHeight,vw=document.documentElement.clientWidth;
+  var left=Math.max(8,Math.min(vw-w-8,cx-w/2)),y=top-hh-10;if(y<8)y=8;
+  t.style.left=left+'px';t.style.top=y+'px';t.style.setProperty('--ax',(cx-left)+'px');
+}
+function hideTip(){$('tip').style.display='none';
+  if(DEF_SEL!==null){DEF_SEL=null;deficitChart(deficitSeries());}
+  document.querySelectorAll('.bar-col.sel').forEach(function(c){c.classList.remove('sel');});}
+
+/* ═════════ Health Connect ═════════ */
+function hasBridge(){return typeof window.HealthBridge!=='undefined';}
+function refresh(){
+  if(!hasBridge()){showBanner("Le pont Health Connect n'est disponible que dans l'appli Android.",null,null);return;}
+  $('btn-refresh').textContent='… Lecture';
+  clearTimeout(window._rto);window._rto=setTimeout(endRefresh,20000);
+  try{HealthBridge.requestDataForPeriod(PERIOD);}catch(e){try{HealthBridge.requestData();}catch(e2){}}
+}
+function endRefresh(){$('btn-refresh').textContent='↻ Actualiser';var p=$('ptr');p.classList.remove('ready','load','drag');p.style.height='0';}
+function openHC(){try{HealthBridge.openSettings();}catch(e){}}
+function showBanner(msg,label,fn){
+  $('banner').style.display='block';$('banner-msg').textContent=msg;
+  var b=$('banner-btn1');if(label){b.style.display='block';b.textContent=label;b.onclick=fn;}else b.style.display='none';
+  $('banner-btn2').style.display=hasBridge()?'block':'none';
+}
+function hideBanner(){$('banner').style.display='none';}
+function setPeriod(p){PERIOD=p;lsSet('sante_period',p);paintTabs();hideTip();var c=loadCache(p);if(c)receive(c,true);refresh();}
+function paintTabs(){document.querySelectorAll('.ptab').forEach(function(b){b.classList.toggle('active',b.getAttribute('data-p')===PERIOD);});
+  document.querySelectorAll('.per-lbl').forEach(function(e){e.textContent=PER_LBL[PERIOD];});}
+/* Cache du jour par période : affiché quand la montre est déconnectée */
+function saveCache(d){lsSet('healthCache_'+(d.period||'week'),JSON.stringify({v:8,data:d,date:new Date().toDateString()}));}
+function loadCache(p){var c=lsJSON('healthCache_'+(p||PERIOD),null);return c&&c.v===8&&c.date===new Date().toDateString()?c.data:null;}
+function todayOf(d){var k=todayKey();return (d&&d.days||[]).filter(function(x){return x.date===k;})[0]||null;}
+function hasToday(d){var t=todayOf(d);return !!(t&&((t.steps||0)>0||(t.cal&&t.cal.actives>0)||(t.kcalHC||0)>0));}
+function showCacheBadge(d){
+  var b=$('cache-badge');if(!d){b.style.display='none';return;}
+  $('cache-time').textContent=d.updated?'Dernière lecture valide à '+hhmm(d.updated):'';b.style.display='block';
+}
+/* Intègre une réponse : modèle du jour, jours passés mémorisés, puis affichage si c'est la période courante */
+function receive(d,fromCache){
+  if(d.status==='ok'){
+    if(d.bmr24)BMR24={v:d.bmr24,src:d.bmrSource};
+    var t=todayOf(d);if(t&&t.cal)TODAY_CAL=t.cal;
+    storeModel(d.days);
+  }
+  if(d.period&&d.period!==PERIOD){renderDeficit();return;} // pré-chargement 30 j ou autre onglet
+  render(d);
+}
+window.onHealthData=function(d){
+  if(typeof d==='string'){try{d=JSON.parse(d);}catch(e){return;}}
+  clearTimeout(window._rto);endRefresh();
+  if(d.status==='ok'&&(!d.period||d.period===PERIOD)){
+    if(hasToday(d)){saveCache(d);showCacheBadge(null);}
+    else{var c=loadCache(d.period);if(c&&hasToday(c)){receive(c,true);showCacheBadge(c);return;}showCacheBadge(null);}
+  }
+  receive(d,false);
+  if(d.status==='ok')setTimeout(preloadMonth,400);
+};
+/* Le déficit couvre 30 jours : si la période courante n'est pas « Mois », lecture 30 j en arrière-plan une fois par ouverture */
+var monthDone=false;
+function preloadMonth(){
+  if(monthDone||PERIOD==='month'||!hasBridge())return;
+  monthDone=true;try{HealthBridge.requestDataForPeriod('month');}catch(e){}
+}
+
+/* ── Pull-to-refresh (défilement dans #content) ── */
+function initPullToRefresh(){
+  var sc=$('content'),ptr=$('ptr'),y0=0,on=false,TH=60;
+  sc.addEventListener('touchstart',function(e){if(sc.scrollTop<=0&&!ptr.classList.contains('load')){y0=e.touches[0].clientY;on=true;}},{passive:true});
+  sc.addEventListener('touchmove',function(e){
+    if(!on)return;var dy=e.touches[0].clientY-y0;
+    if(dy<=0||sc.scrollTop>0){ptr.style.height='0';return;}
+    hideTip();ptr.classList.add('drag');ptr.style.height=Math.min(90,dy*0.5)+'px';
+    if(!ptr.classList.contains('ready'))ptr.firstElementChild.style.transform='rotate('+(dy*3)+'deg)';
+    ptr.classList.toggle('ready',dy>TH);
+  },{passive:true});
+  sc.addEventListener('touchend',function(e){
+    if(!on)return;on=false;ptr.classList.remove('drag');ptr.firstElementChild.style.transform='';
+    if(e.changedTouches[0].clientY-y0>TH&&hasBridge()){ptr.classList.remove('ready');ptr.classList.add('load');ptr.style.height='50px';refresh();}
+    else endRefresh();
   });
-  return h;
-}
-/* Mémorise la température cutanée pour l'onglet Poids */
-function storeSkinTemp(d){
-  if(d.skinTemp==null&&d.skinTempDelta==null)return;
-  try{localStorage.setItem('hc_skinTemp',JSON.stringify({temp:d.skinTemp!=null?d.skinTemp:null,delta:d.skinTempDelta!=null?d.skinTempDelta:null,t:d.skinTempTime||d.updated||null}));}catch(e){}
 }
 
-function render(d){
-  if(!d)return;
-  LAST=d;
-  if(d.status==='unavailable'){showBanner("Health Connect n'est pas disponible sur ce téléphone. Installe l'appli Health Connect depuis le Play Store, puis reviens ici.",'Réessayer',refresh);return;}
-  if(d.status==='update_required'){showBanner("Health Connect doit être mis à jour depuis le Play Store.",'Réessayer',refresh);return;}
-  if(d.status==='error'){showBanner('Erreur de lecture Health Connect : '+(d.message||''),'Réessayer',refresh);return;}
-  if(d.status==='denied'){showBanner("Autorise Callisthénie à lire tes données (calories, pas, cœur, sommeil) dans Health Connect.",'Autoriser',function(){try{HealthBridge.askPermissions();}catch(e){}});return;}
-  storeSkinTemp(d);
-  var nReq=d.requested||14,nOk=d.grantedCount!=null?d.grantedCount:(d.granted||[]).length;
-  if(nOk<nReq)showBanner('Certaines données ne sont pas autorisées ('+nOk+'/'+nReq+'). Tu peux les activer dans Health Connect.','Autoriser le reste',function(){try{HealthBridge.askPermissions();}catch(e){}});
-  else hideBanner();
-  if(d.updated){var u=new Date(d.updated);$('kcal-upd').textContent='màj '+String(u.getHours()).padStart(2,'0')+':'+String(u.getMinutes()).padStart(2,'0');}
-
-  /* ── Calories, pas, étages sur la période ── */
-  var days=d.days||[],todayKey=ld(new Date()),per=d.period||'week';
-  days.forEach(function(x){if(x.kcal!=null)KCAL_DAY[x.date]=x.kcal;});
-  hideTip();
-  var t=days.filter(function(x){return x.date===todayKey;})[0]||{};
-  var kT=t.kcal||0,G=goalFor(todayKey);
-  $('kcal-today').innerHTML=fmt(t.kcal!=null?t.kcal:null)+'<small>kcal</small>';
-  $('kcal-fill').style.width=Math.min(100,kT/G*100)+'%';
-  $('kcal-pct').textContent="Aujourd'hui · "+Math.round(kT/G*100)+' %';
-  $('kcal-goal').textContent='Objectif '+fmt(G)+' kcal · métabolisme + activité';
-  paintDayType();
-  var kv=vals(days,'kcal');
-  $('kcal-week').textContent=kv.length?fmt(sum(kv)):'—';
-  $('kcal-week-s').textContent='kcal · '+PER_LBL[per];
-  $('kcal-avg').textContent=fmt(avg(kv));
-  var kd=days.filter(function(x){return x.kcal!=null;});
-  $('kcal-hit').textContent=kd.length?kd.filter(function(x){return x.kcal>=goalFor(x.date);}).length+'/'+kd.length:'—';
-  var B=buckets(days,per);
-  var OK='linear-gradient(180deg,#4ECDC4,#26A69A)',KO='linear-gradient(180deg,#FF8A65,#FF7043)';
-  bars($('kcal-bars'),B.map(function(b){
-      var kd=b.days.filter(function(x){return x.kcal!=null;});
-      var a=avg(kd.map(function(x){return x.kcal;})),g=avg(kd.map(function(x){return goalFor(x.date);}));
-      return {key:b.key,lbl:b.lbl,v:a,col:a!=null&&a>=g?OK:KO,
-        mark:per==='week'?(isPadel(b.key)?'🎾':''):null,
-        tip:(per==='week'||kd.length)?function(){return kcalTip(b);}:null};}),
-    function(v,it){return it.col;},0,fmt);
-
-  var sv=vals(days,'steps'),fv=vals(days,'floors');
-  $('steps-today').textContent=fmt(t.steps!=null?t.steps:null);
-  $('steps-tot').textContent=sv.length?fmt(sum(sv)):'—';
-  $('steps-avg').textContent=fmt(avg(sv));
-  $('fl-today').textContent=t.floors!=null?fmt(t.floors):'—';
-  $('fl-kcal').textContent=t.floors!=null?'étages · ~'+Math.round(t.floors*4)+' kcal':'étages';
-  $('fl-tot').textContent=fv.length?fmt(sum(fv)):'—';
-  $('fl-avg').textContent=fv.length?fmt1(avg(fv)):'—';
-  bars($('steps-bars'),B.map(function(b){return {key:b.key,lbl:b.lbl,v:avg(vals(b.days,'steps'))};}),'linear-gradient(180deg,#64B5F6,#42A5F5)',0,
-    function(v){return v>=1000?(Math.round(v/100)/10).toLocaleString('fr-FR')+'k':Math.round(v);});
-
-  /* ── Déficit ── */
-  storeBurned(days);
-  renderDeficit();
-
-  /* ── Cardiaque ── */
-  var rDaysAll=days.filter(function(x){return x.rhr!=null;});
-  var lastR=rDaysAll.length?rDaysAll[rDaysAll.length-1]:null;
-  $('hr-rest').textContent=lastR?lastR.rhr:'—';
-  var rStat=lastR?(lastR.rhr<60?['En baisse ✅','var(--ok)']:lastR.rhr<=70?['Normal','var(--t2)']:['Élevée ⚠️','var(--warn)']):null;
-  var rv=vals(days,'rhr');
-  $('hr-avg').textContent=rv.length?fmt1(avg(rv)):'—';
-  $('hr-min').textContent=rv.length?Math.min.apply(null,rv):'—';
-  $('hr-mx').textContent=rv.length?Math.max.apply(null,rv):'—';
-  var rB=B.map(function(b){return {key:b.key,lbl:b.lbl,v:avg(vals(b.days,'rhr'))};});
-  var rBv=rB.filter(function(x){return x.v;});
-  if(lastR&&rBv.length>=2){
-    var delta=Math.round((rBv[rBv.length-1].v-rBv[0].v)*10)/10;
-    $('hr-rest-d').innerHTML='<span style="color:'+rStat[1]+';font-weight:700">'+rStat[0]+'</span><br>'+(delta<0?'▼ −':delta>0?'▲ +':'= ')+fmt1(Math.abs(delta))+' sur '+PER_LBL[per];
-    $('hr-note').textContent=delta<0?'FC repos en baisse sur '+PER_LBL[per]+' : bonne adaptation à l\'entraînement 📉':delta>0?'FC repos en hausse sur '+PER_LBL[per]+' : fatigue, manque de sommeil ou récupération à surveiller.':'FC repos stable sur '+PER_LBL[per]+'.';
-  }else $('hr-rest-d').innerHTML=lastR?'<span style="color:'+rStat[1]+';font-weight:700">'+rStat[0]+'</span>':'bpm';
-  bars($('hr-bars'),rB,'linear-gradient(180deg,#EF9A9A,#E57373)',0,function(v){return Math.round(v);},rv.length?Math.min.apply(null,rv)-4:0);
-  var mx=d.hrMaxToday;
-  $('hr-max').textContent=mx!=null?mx:'—';
-  if(mx!=null){var z=mx>170?['🔴 Maximum','#EF5350']:mx>=140?['🟠 Intense','#FF7043']:mx>=120?['🟡 Modéré','#F9A825']:['🟢 Léger','var(--ok)'];$('hr-zone').innerHTML='bpm · <span style="color:'+z[1]+';font-weight:700">'+z[0]+'</span>';}
-  else $('hr-zone').textContent='bpm';
-  $('vo2').textContent=d.vo2max?fmt1(d.vo2max.v):'—';
-  $('vo2-d').textContent=d.vo2max?'ml/kg/min · '+ago(d.vo2max.t):'ml/kg/min';
-
-  /* ── v7.1 HRV ── */
-  if(d.hrv!=null){var hs=getHRVStatus(d.hrv);
-    $('hrv').textContent=d.hrv;$('hrv').style.color=hs.color;
-    $('hrv-s').innerHTML='ms · <span style="color:'+hs.color+';font-weight:700">'+hs.label+'</span>'+(d.hrvTime?'<br>'+ago(d.hrvTime):'');}
-  else{$('hrv').textContent='—';$('hrv').style.color='';$('hrv-s').textContent='ms';}
-  var hd=(d.hrvDays||[]),hv=vals(hd,'ms');
-  var hA=avg(hv);$('hrv-avg').textContent=hA!=null?Math.round(hA):'—';
-  if(hv.length>=2){var hD=hv[hv.length-1]-hv[0];$('hrv-avg-s').textContent='ms · '+(hD>0?'▲ +':hD<0?'▼ −':'= ')+Math.abs(hD)+' sur 7 j';}else $('hrv-avg-s').textContent='ms';
-  bars($('hrv-bars'),hd.map(function(x){var dt=new Date(x.date+'T12:00:00');return {key:x.date,lbl:JOURS[dt.getDay()],v:x.ms!=null?x.ms:null};}),
-    function(v){return v==null?'transparent':getHRVStatus(v).color;},0,function(v){return Math.round(v);});
-
-  /* ── SpO2 : moyenne des mesures de la dernière nuit (21h → 11h) ── */
-  var sp=(d.spo2||[]).filter(function(x){var h=new Date(x.t).getHours();return h>=21||h<11;});
-  if(sp.length){
-    var lastNight=ld(new Date(sp[sp.length-1].t));
-    var spAvg=sp.reduce(function(s,x){return s+x.pct;},0)/sp.length,mn=Math.min.apply(null,sp.map(function(x){return x.pct;}));
-    $('spo2-box').style.display='block';$('spo2').textContent=fmt1(spAvg);$('spo2-d').textContent='% · min '+fmt1(mn);
-  }else $('spo2-box').style.display='none';
-
-  /* ── Sommeil : regroupé par date de réveil ── */
-  var sl={},sp7={};(d.sleep||[]).forEach(function(s){var k=ld(new Date(s.end));sl[k]=(sl[k]||0)+s.min;
-    if(s.light!=null||s.deep!=null||s.rem!=null||s.awake!=null){var o=sp7[k]||(sp7[k]={light:0,deep:0,rem:0,awake:0});
-      o.light+=s.light||0;o.deep+=s.deep||0;o.rem+=s.rem||0;o.awake+=s.awake||0;}});
-  var nights=[];for(var i=6;i>=0;i--){var dt=new Date();dt.setDate(dt.getDate()-i);var k=ld(dt);
-    (function(k,dt){var ph=sp7[k]||null;nights.push({key:k,lbl:JOURS[dt.getDay()],v:sl[k]||0,ph:ph,
-      tip:sl[k]?function(){var r=[['Durée',hm(sl[k])]];if(ph)SLEEP_PHASES.forEach(function(p){r.push([p.label,hm(ph[p.k]||0)]);});return {label:'Nuit → '+JOURS_L[dt.getDay()]+' '+dd(dt),rows:r};}:null});})(k,dt);}
-  var lastS=(d.sleep||[]).slice(-1)[0];
-  $('sl-last').textContent=lastS?hm(sl[ld(new Date(lastS.end))]):'—';
-  $('sl-last-d').textContent=lastS?ago(lastS.end):'';
-  var nv=nights.filter(function(n){return n.v>0;});
-  $('sl-avg').textContent=nv.length?hm(nv.reduce(function(s,n){return s+n.v;},0)/nv.length):'—';
-  stackBars($('sl-bars'),nights,hm);
-  var lastPh=d.sleepDeep!=null||d.sleepLight!=null||d.sleepRem!=null?{light:d.sleepLight||0,deep:d.sleepDeep||0,rem:d.sleepRem||0,awake:d.sleepAwake||0}:null;
-  $('sl-leg').innerHTML=lastPh||Object.keys(sp7).length?SLEEP_PHASES.map(function(p){return '<span><i style="background:'+p.color+'"></i>'+p.label+'</span>';}).join(''):'';
-  $('sl-phases').innerHTML=lastPh?'<div class="mini-l" style="margin-bottom:4px">Phases dernière nuit · objectifs : profond 15-20 % · paradoxal 20-25 % · léger 50-60 %</div>'+phaseRows(lastPh):'';
-
-}
-
+/* ── Démarrage ── */
 (function(){
   try{var v=window.App&&App.version();if(v)document.querySelectorAll('.app-ver').forEach(function(e){e.textContent=' · v'+v;});}catch(e){}
-  paintTabs();
-  try{var lp=localStorage.getItem(PADEL_KEY);if(lp&&window.App&&App.getPref&&App.getPref(PADEL_KEY)==null)App.setPref(PADEL_KEY,lp);}catch(e){}
-  paintDayType();
-  ['week','month','year'].forEach(function(p){try{localStorage.removeItem('sante_cache_'+p);}catch(e){}}); // ancien cache v5.4-5.5
-  renderDeficit();
-  var c=loadCache(PERIOD);if(c)render(c);
+  try{var lp=lsGet(PADEL_KEY);if(lp&&window.App&&App.getPref&&App.getPref(PADEL_KEY)==null)App.setPref(PADEL_KEY,lp);}catch(e){}
+  paintTabs();paintDayType();
+  var c=loadCache(PERIOD);if(c)receive(c,true);else renderDeficit();
   document.addEventListener('click',function(e){if(!e.target.closest('#tip'))hideTip();});
+  $('def-canvas').addEventListener('click',function(e){
+    e.stopPropagation();var r=this.getBoundingClientRect(),mx=e.clientX-r.left,my=e.clientY-r.top,best=null,bd=1e9;
+    DEF_PTS.forEach(function(p){var d=Math.abs(p.x-mx)+Math.abs(p.y-my)*0.3;if(d<bd){bd=d;best=p;}});
+    if(!best||Math.abs(best.x-mx)>18||DEF_SEL===best.s.key){hideTip();return;}
+    showDeficitDetail(best,r.left+best.x,r.top+best.y);
+  });
   $('content').addEventListener('scroll',hideTip,{passive:true});
+  window.addEventListener('resize',function(){deficitChart(deficitSeries());});
   initPullToRefresh();
   refresh();
 })();
-
-/* ── Pull-to-refresh (le défilement se fait dans #content, pas dans window) ── */
-function showRefreshIndicator(){$('ptr').classList.add('ready');}
-function hideRefreshIndicator(){var p=$('ptr');p.classList.remove('ready','load','drag');p.style.height='0';}
-function initPullToRefresh(){
-  var sc=$('content'),ptr=$('ptr'),startY=0,pulling=false,dy=0,TH=60;
-  sc.addEventListener('touchstart',function(e){
-    if(sc.scrollTop<=0&&!ptr.classList.contains('load')){startY=e.touches[0].clientY;pulling=true;dy=0;}
-  },{passive:true});
-  sc.addEventListener('touchmove',function(e){
-    if(!pulling)return;
-    dy=e.touches[0].clientY-startY;
-    if(dy<=0||sc.scrollTop>0){ptr.style.height='0';return;}
-    hideTip();
-    ptr.classList.add('drag');
-    ptr.style.height=Math.min(90,dy*0.5)+'px';
-    var sp=ptr.firstElementChild;if(!ptr.classList.contains('ready'))sp.style.transform='rotate('+(dy*3)+'deg)';
-    if(dy>TH)showRefreshIndicator();else ptr.classList.remove('ready');
-  },{passive:true});
-  sc.addEventListener('touchend',function(e){
-    if(!pulling)return;
-    pulling=false;ptr.classList.remove('drag');
-    var d=e.changedTouches[0].clientY-startY;
-    ptr.firstElementChild.style.transform='';
-    if(d>TH&&hasBridge()){ptr.classList.remove('ready');ptr.classList.add('load');ptr.style.height='50px';refresh();}
-    else hideRefreshIndicator();
-  });
-}
 </script>
 </body>
 </html>
