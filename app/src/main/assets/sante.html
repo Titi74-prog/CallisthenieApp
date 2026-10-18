@@ -186,6 +186,7 @@ html,body{background:#f2f2f6;color:#1a1a22}
       <span class="goal-tag" id="kcal-daytype">—</span>
       <div class="src-list" id="kcal-src"></div>
       <div class="src-list" id="hc-scan" style="display:none"></div>
+      <div class="src-list" id="hc-hourly" style="display:none;overflow-x:auto"></div>
       <div class="bars" id="kcal-bars"></div>
       <div class="row" style="margin-top:12px">
         <div class="mini"><div class="mini-l">Total</div><div class="mini-v" id="kcal-tot">—</div><div class="mini-s" id="kcal-tot-s">kcal</div></div>
@@ -298,7 +299,7 @@ html,body{background:#f2f2f6;color:#1a1a22}
 </div>
 
 <script>
-/* ═══════════════ Santé v8.7 ═══════════════
+/* ═══════════════ Santé v8.8 ═══════════════
    Les calories sont calculées dans HealthBridge.kt (days[i].cal) ; la page ne fait qu'afficher.
    Stockage conservé : deficitHist, sante_padel_days, sante_period, healthCache_<période>, hc_skinTemp.
    Nouveau : santeBurnV8 { 'AAAA-MM-JJ': total kcal du modèle v8 } (jours passés). */
@@ -407,6 +408,24 @@ function projMinuit(c){if(!BMR24)return null;var n=new Date(),min=n.getHours()*6
 function sportKcal(c){return c?sum((c.sessions||[]).map(function(s){return s.kcal;})):null;}
 
 
+
+/* ═════════ v8.8 — Calories heure par heure (à comparer aux barres Google Health) ═════════ */
+function renderHourly(d){
+  var el=$('hc-hourly'),H=d&&d.hourly;
+  if(!H||!H.rows||!H.rows.length){el.style.display='none';return;}
+  var c=H.cols,tot=c.map(function(){return 0;});
+  var th='padding:4px 6px;text-align:right;white-space:nowrap;font-size:11px;opacity:.75;font-weight:500';
+  var td='padding:3px 6px;text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums';
+  var h='<div class="src-row tot"><span>🕐 Heure par heure<small>touche les barres Google Health et compare</small></span><b></b></div>';
+  h+='<table style="border-collapse:collapse;width:100%;font-size:13px"><tr><th style="'+th+';text-align:left">h</th>'+c.map(function(n){return '<th style="'+th+'">'+n.replace(' · ','<br>')+'</th>';}).join('')+'</tr>';
+  H.rows.forEach(function(r){
+    h+='<tr style="border-top:1px solid rgba(128,128,128,.15)"><td style="'+td+';text-align:left">'+String(r[0]).padStart(2,'0')+'h</td>';
+    for(var i=1;i<r.length;i++){tot[i-1]+=r[i];h+='<td style="'+td+'">'+(r[i]?fmt(r[i]):'·')+'</td>';}
+    h+='</tr>';
+  });
+  h+='<tr style="border-top:2px solid rgba(128,128,128,.4);font-weight:700"><td style="'+td+';text-align:left">Σ</td>'+tot.map(function(v){return '<td style="'+td+'">'+fmt(v)+'</td>';}).join('')+'</tr></table>';
+  el.innerHTML=h;el.style.display='block';
+}
 /* ═════════ v8.7 — Scan Health Connect ═════════
    Toutes les lectures possibles des calories du jour ; saisis la valeur Google Health pour trier par proximité. */
 var SCAN=null;
@@ -444,6 +463,7 @@ function render(d){
   days.forEach(function(x){var b=burnOf(x.date,x);if(b!=null)KCAL_DAY[x.date]=b;});
   renderCalories(days,per,tk);
   renderScan(d);
+  renderHourly(d);
   renderDeficit();
   renderHeart(d,days,per);
   renderActivity(days,per,tk);
