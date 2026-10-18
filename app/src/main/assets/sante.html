@@ -185,8 +185,6 @@ html,body{background:#f2f2f6;color:#1a1a22}
       </div>
       <span class="goal-tag" id="kcal-daytype">—</span>
       <div class="src-list" id="kcal-src"></div>
-      <div class="src-list" id="hc-scan" style="display:none"></div>
-      <div class="src-list" id="hc-hourly" style="display:none;overflow-x:auto"></div>
       <div class="bars" id="kcal-bars"></div>
       <div class="row" style="margin-top:12px">
         <div class="mini"><div class="mini-l">Total</div><div class="mini-v" id="kcal-tot">—</div><div class="mini-s" id="kcal-tot-s">kcal</div></div>
@@ -299,7 +297,7 @@ html,body{background:#f2f2f6;color:#1a1a22}
 </div>
 
 <script>
-/* ═══════════════ Santé v8.8 ═══════════════
+/* ═══════════════ Santé v8.9 ═══════════════
    Les calories sont calculées dans HealthBridge.kt (days[i].cal) ; la page ne fait qu'afficher.
    Stockage conservé : deficitHist, sante_padel_days, sante_period, healthCache_<période>, hc_skinTemp.
    Nouveau : santeBurnV8 { 'AAAA-MM-JJ': total kcal du modèle v8 } (jours passés). */
@@ -336,7 +334,6 @@ var PERIOD=lsGet('sante_period')||'week';
 var LAST=null;      // dernière réponse affichée (période courante)
 var TODAY_CAL=null; // modèle calories d'aujourd'hui (quelle que soit la période reçue)
 var BMR24=null;
-var TODAY_DIAG=null; // v8.4 — sources TotalCaloriesBurned du jour quand aucune n'est reconnue
 
 /* ═════════ Calories : stockage par jour ═════════ */
 var BURN8_KEY='santeBurnV8';
@@ -398,9 +395,7 @@ function calRows(c,isToday){
   });
   return r;
 }
-/* v8.4 — diagnostic : TotalCaloriesBurned de chaque package Health Connect aujourd'hui */
 function pkgShort(p){return p==='com.fitbit.FitbitMobile'?'Appli Fitbit':p==='com.google.android.apps.healthdata'?'Google Health':p==='com.google.android.apps.fitness'?'Google Fit':p.indexOf('com.android.healthconnect.phone.')===0?'HC phone ('+p.slice(32)+')':p.indexOf('xiaomi.wearable')>=0?'OnePlus (xiaomi.wearable)':p;}
-function diagRows(list,used){return (list||[]).map(function(x){var t=x.type||'Total';return {l:'🔍 '+pkgShort(x.pkg)+' · '+t+(x.pkg===used&&t==='Total'?' ✔':''),s:(x.n!=null?x.n+' relevés · '+(x.first?hhmm(x.first):'?')+' → '+(x.last?hhmm(x.last):'?')+' · ':'')+x.pkg,v:x.kcal};});}
 function bmrRefRow(){return {l:'💤 BMR ref'+(BMR24&&BMR24.src==='xiaomi'?' ⚖️':''),s:'informatif · non ajouté au total',v:BMR24?fmt(BMR24.v)+' kcal/24h':'—'};}
 function rowsHtml(r){return r.map(function(x){
   return '<div class="src-row'+(x.dup?' dup':'')+(x.cls?' '+x.cls:'')+'"><span>'+x.l+(x.s?'<small>'+x.s+'</small>':'')+'</span><b>'+(typeof x.v==='string'?x.v:fmt(x.v)+' kcal')+'</b></div>';}).join('');}
@@ -409,40 +404,6 @@ function sportKcal(c){return c?sum((c.sessions||[]).map(function(s){return s.kca
 
 
 
-/* ═════════ v8.8 — Calories heure par heure (à comparer aux barres Google Health) ═════════ */
-function renderHourly(d){
-  var el=$('hc-hourly'),H=d&&d.hourly;
-  if(!H||!H.rows||!H.rows.length){el.style.display='none';return;}
-  var c=H.cols,tot=c.map(function(){return 0;});
-  var th='padding:4px 6px;text-align:right;white-space:nowrap;font-size:11px;opacity:.75;font-weight:500';
-  var td='padding:3px 6px;text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums';
-  var h='<div class="src-row tot"><span>🕐 Heure par heure<small>touche les barres Google Health et compare</small></span><b></b></div>';
-  h+='<table style="border-collapse:collapse;width:100%;font-size:13px"><tr><th style="'+th+';text-align:left">h</th>'+c.map(function(n){return '<th style="'+th+'">'+n.replace(' · ','<br>')+'</th>';}).join('')+'</tr>';
-  H.rows.forEach(function(r){
-    h+='<tr style="border-top:1px solid rgba(128,128,128,.15)"><td style="'+td+';text-align:left">'+String(r[0]).padStart(2,'0')+'h</td>';
-    for(var i=1;i<r.length;i++){tot[i-1]+=r[i];h+='<td style="'+td+'">'+(r[i]?fmt(r[i]):'·')+'</td>';}
-    h+='</tr>';
-  });
-  h+='<tr style="border-top:2px solid rgba(128,128,128,.4);font-weight:700"><td style="'+td+';text-align:left">Σ</td>'+tot.map(function(v){return '<td style="'+td+'">'+fmt(v)+'</td>';}).join('')+'</tr></table>';
-  el.innerHTML=h;el.style.display='block';
-}
-/* ═════════ v8.7 — Scan Health Connect ═════════
-   Toutes les lectures possibles des calories du jour ; saisis la valeur Google Health pour trier par proximité. */
-var SCAN=null;
-function renderScan(d){
-  if(d&&d.scan)SCAN=d.scan;
-  var el=$('hc-scan');if(!SCAN||!SCAN.length){el.style.display='none';return;}
-  var tg=parseFloat(lsGet('scanTarget'))||null;
-  var list=SCAN.slice();
-  if(tg)list.sort(function(a,b){return Math.abs(a.k-tg)-Math.abs(b.k-tg);});
-  var h='<div class="src-row tot"><span>🔬 Scan Health Connect<small>valeur Google Health :</small></span><b><input id="scan-tg" type="number" inputmode="numeric" value="'+(tg||'')+'" placeholder="ex. 2414" style="width:90px;background:transparent;color:inherit;border:1px solid rgba(128,128,128,.5);border-radius:6px;padding:4px 6px;font:inherit;text-align:right"></b></div>';
-  h+=rowsHtml(list.map(function(x){
-    var dlt=tg?x.k-tg:null,near=dlt!=null&&Math.abs(dlt)<=15;
-    return {l:(near?'🎯 ':'')+x.l,s:x.g+(dlt!=null&&x.k?' · écart '+(dlt>=0?'+':'−')+fmt(Math.abs(dlt)):''),v:x.k?x.k:'—',cls:near?'tot':''};
-  }));
-  el.innerHTML=h;el.style.display='block';
-  var inp=$('scan-tg');inp.addEventListener('change',function(){lsSet('scanTarget',inp.value);renderScan(null);});
-}
 /* ═════════ Rendu ═════════ */
 function redraw(){if(LAST)render(LAST);else{paintDayType();renderDeficit();}}
 
@@ -462,8 +423,6 @@ function render(d){
   var days=d.days||[],per=d.period||PERIOD,tk=todayKey();
   days.forEach(function(x){var b=burnOf(x.date,x);if(b!=null)KCAL_DAY[x.date]=b;});
   renderCalories(days,per,tk);
-  renderScan(d);
-  renderHourly(d);
   renderDeficit();
   renderHeart(d,days,per);
   renderActivity(days,per,tk);
@@ -481,10 +440,7 @@ function renderCalories(days,per,tk){
     var r=[{l:'🔥 Total jusqu\'ici',v:c.total,cls:'tot'}].concat(calRows(c,true));
     r.push(bmrRefRow());
     var p=projMinuit(c);if(p!=null)r.push({l:'📈 Projection minuit',s:'si aucune autre activité',v:p,cls:'proj'});
-    r=r.concat(diagRows(c.diag,c.googleSrc));
     $('kcal-src').innerHTML=rowsHtml(r);$('kcal-src').style.display='block';
-  }else if(TODAY_DIAG&&TODAY_DIAG.length){
-    $('kcal-src').innerHTML=rowsHtml([{l:'⚠️ Aucune donnée Fitbit Air reconnue',s:'sources TotalCaloriesBurned trouvées :',v:'',cls:'tot'}].concat(diagRows(TODAY_DIAG)));$('kcal-src').style.display='block';
   }else $('kcal-src').style.display='none';
 
   var B=buckets(days,per);
@@ -880,7 +836,7 @@ function showCacheBadge(d){
 function receive(d,fromCache){
   if(d.status==='ok'){
     if(d.bmr24)BMR24={v:d.bmr24,src:d.bmrSource};
-    var t=todayOf(d);TODAY_CAL=t&&t.cal?t.cal:null;TODAY_DIAG=t&&t.calDiag?t.calDiag:null;
+    var t=todayOf(d);TODAY_CAL=t&&t.cal?t.cal:null;
     storeModel(d.days);
   }
   if(d.period&&d.period!==PERIOD){renderDeficit();return;} // pré-chargement 30 j ou autre onglet
