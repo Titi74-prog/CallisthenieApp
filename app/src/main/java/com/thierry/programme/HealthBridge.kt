@@ -316,6 +316,9 @@ class HealthBridge(private val activity: ComponentActivity, private val webView:
             val dStart = d.atStartOfDay(zone).toInstant()
             val dEnd = if (d == today) now else d.plusDays(1).atStartOfDay(zone).toInstant()
             val daySess = sessions.filter { !it.startTime.isBefore(dStart) && it.startTime.isBefore(dEnd) }
+                .sortedBy { it.startTime }
+            // v8.2 — plages Fitbit déjà comptées (séances Fitbit qui se chevauchent : jamais compter 2 fois la même minute)
+            val fbCounted = ArrayList<Pair<Instant, Instant>>()
             val opRanges = daySess.filter { isOnePlus(it.metadata.dataOrigin.packageName) }
                 .map { Pair(it.startTime, minOf(it.endTime, dEnd)) }
 
@@ -339,8 +342,23 @@ class HealthBridge(private val activity: ComponentActivity, private val webView:
                 } else {
                     // Doublon : la même activité déjà enregistrée par la OnePlus
                     dup = opRanges.any { overlapSec(it.first, it.second, sStart, sEnd) > 0.5 * min * 60 }
-                    val tot = proratedTotal(client, sStart, sEnd)
-                    kcal = maxOf(0.0, tot - bmr24 / 1440.0 * min)
+                    // v8.2 — partie de la séance déjà couverte par une séance Fitbit précédente → retirée
+                    val ovSegs = union(fbCounted).mapNotNull { r ->
+                        val a = maxOf(r.first, sStart); val b = minOf(r.second, sEnd)
+                        if (b.isAfter(a)) Pair(a, b) else null
+                    }
+                    val ovMin = ovSegs.sumOf { Duration.between(it.first, it.second).seconds } / 60.0
+                    val netMin = maxOf(0.0, min - ovMin)
+                    var tot = proratedTotal(client, sStart, sEnd)
+                    var act = activeKcal(client, sStart, sEnd, fitbit)
+                    for (g in ovSegs) {
+                        tot -= proratedTotal(client, g.first, g.second)
+                        act -= activeKcal(client, g.first, g.second, fitbit)
+                    }
+                    // Total − BMR Xiaomi de la durée, mais jamais moins que les calories actives écrites par le Fitbit
+                    // (le BMR interne Fitbit peut être plus bas que celui de la balance → séances courtes à 0)
+                    kcal = maxOf(0.0, tot - bmr24 / 1440.0 * netMin, act)
+                    if (!dup) fbCounted.add(Pair(sStart, sEnd))
                 }
                 ranges.add(Pair(sStart, sEnd))
                 if (!dup) { if (op) opEx += kcal else fbEx += kcal }
