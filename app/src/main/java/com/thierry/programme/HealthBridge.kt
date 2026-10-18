@@ -339,7 +339,7 @@ class HealthBridge(private val activity: ComponentActivity, private val webView:
                 } else {
                     // Doublon : la même activité déjà enregistrée par la OnePlus
                     dup = opRanges.any { overlapSec(it.first, it.second, sStart, sEnd) > 0.5 * min * 60 }
-                    val tot = proratedTotal(client, sStart, sEnd, pkg)
+                    val tot = proratedTotal(client, sStart, sEnd)
                     kcal = maxOf(0.0, tot - bmr24 / 1440.0 * min)
                 }
                 ranges.add(Pair(sStart, sEnd))
@@ -391,23 +391,28 @@ class HealthBridge(private val activity: ComponentActivity, private val webView:
         } catch (_: Exception) { 0.0 }
     }
 
-    /** Calories totales d'une source sur une plage : chaque relevé compté au prorata de sa part dans la plage. */
-    private suspend fun proratedTotal(client: HealthConnectClient, a: Instant, b: Instant, pkg: String): Double {
+    /**
+     * v8.1 — Calories totales Fitbit Air sur une plage, chaque relevé compté au prorata de sa part dans la plage.
+     * Sources acceptées : toutes celles reconnues comme Fitbit (dont Google Health / Google Fit, intermédiaires
+     * du Fitbit Air), jamais la OnePlus. Si plusieurs de ces sources écrivent la même séance, on garde la plus
+     * élevée (même montre relayée deux fois) au lieu de les additionner.
+     */
+    private suspend fun proratedTotal(client: HealthConnectClient, a: Instant, b: Instant): Double {
         if (!b.isAfter(a)) return 0.0
-        var sum = 0.0
+        val bySrc = HashMap<String, Double>()
         try {
             client.readRecords(
-                ReadRecordsRequest(
-                    TotalCaloriesBurnedRecord::class, TimeRangeFilter.between(a, b),
-                    dataOriginFilter = setOf(DataOrigin(pkg)), pageSize = 1000
-                )
+                ReadRecordsRequest(TotalCaloriesBurnedRecord::class, TimeRangeFilter.between(a, b), pageSize = 1000)
             ).records.forEach { r ->
+                val p = r.metadata.dataOrigin.packageName
+                if (!isFitbit(p) || isOnePlus(p)) return@forEach
                 val len = Duration.between(r.startTime, r.endTime).seconds
                 val ov = overlapSec(r.startTime, r.endTime, a, b)
-                sum += if (len <= 0) r.energy.inKilocalories else r.energy.inKilocalories * ov / len
+                val k = if (len <= 0) r.energy.inKilocalories else r.energy.inKilocalories * ov / len
+                bySrc[p] = (bySrc[p] ?: 0.0) + k
             }
         } catch (_: Exception) { }
-        return sum
+        return bySrc.values.maxOrNull() ?: 0.0
     }
 
     private fun overlapSec(a1: Instant, a2: Instant, b1: Instant, b2: Instant): Double {
@@ -562,7 +567,14 @@ class HealthBridge(private val activity: ComponentActivity, private val webView:
         private const val PKG_FITBIT_PREFIX = "com.android.healthconnect.phone."
         // OnePlus Watch 2R : synchronisée par com.xiaomi.wearable
         private const val PKG_ONEPLUS = "com.xiaomi.wearable"
-        fun isFitbit(pkg: String): Boolean = pkg.startsWith(PKG_FITBIT_PREFIX) || pkg == "com.fitbit.FitbitMobile"
+        // v8.1 — Google Health / Google Fit : intermédiaires qui écrivent les données du Fitbit Air
+        private const val PKG_GOOGLE_HEALTH = "com.google.android.apps.healthdata"
+        private const val PKG_GOOGLE_FIT = "com.google.android.apps.fitness"
+        fun isFitbit(pkg: String): Boolean =
+            pkg.startsWith(PKG_FITBIT_PREFIX) ||
+            pkg == "com.fitbit.FitbitMobile" ||
+            pkg == PKG_GOOGLE_HEALTH ||
+            pkg == PKG_GOOGLE_FIT
         fun isOnePlus(pkg: String): Boolean =
             pkg == PKG_ONEPLUS || pkg.contains("xiaomi.wearable") ||
             pkg.contains("oneplus.health") || pkg.contains("heytap.health")
