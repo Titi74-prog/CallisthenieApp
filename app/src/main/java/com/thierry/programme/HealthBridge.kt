@@ -443,10 +443,34 @@ class HealthBridge(private val activity: ComponentActivity, private val webView:
                 val sStart = s.startTime
                 val sEnd = s.endTime
                 var sKcal = 0.0
-                client.readRecords(
-                    ReadRecordsRequest(ActiveCaloriesBurnedRecord::class, TimeRangeFilter.between(sStart, sEnd))
-                ).records.forEach { r ->
-                    if (r.metadata.dataOrigin.packageName == pkg) sKcal += r.energy.inKilocalories
+
+                if (isFitbit(pkg)) {
+                    // v7.8 — Fitbit Air écrit les calories de session dans TotalCaloriesBurnedRecord
+                    var totalKcal = 0.0
+                    client.readRecords(
+                        ReadRecordsRequest(
+                            TotalCaloriesBurnedRecord::class,
+                            TimeRangeFilter.between(sStart, sEnd)
+                        )
+                    ).records.forEach { r ->
+                        if (r.metadata.dataOrigin.packageName == pkg)
+                            totalKcal += r.energy.inKilocalories
+                    }
+                    // TotalCaloriesBurnedRecord inclut le BMR de la session → soustrait (BMR progressif calculé côté JS)
+                    val dureeMin = Duration.between(sStart, sEnd).toMinutes()
+                    val bmrSession = (getBMRFromPref() / 1440.0) * dureeMin
+                    sKcal = maxOf(0.0, totalKcal - bmrSession)
+                } else {
+                    // OnePlus Watch 2R → ActiveCaloriesBurnedRecord
+                    client.readRecords(
+                        ReadRecordsRequest(
+                            ActiveCaloriesBurnedRecord::class,
+                            TimeRangeFilter.between(sStart, sEnd)
+                        )
+                    ).records.forEach { r ->
+                        if (r.metadata.dataOrigin.packageName == pkg)
+                            sKcal += r.energy.inKilocalories
+                    }
                 }
                 sessionsList.put(JSONObject()
                     .put("type", getExerciseLabel(s.exerciseType))
@@ -498,6 +522,12 @@ class HealthBridge(private val activity: ComponentActivity, private val webView:
         fun isOnePlus(pkg: String): Boolean =
             pkg == PKG_ONEPLUS || pkg.contains("xiaomi.wearable") ||
             pkg.contains("oneplus.health") || pkg.contains("heytap.health")
+    }
+
+    /** v7.8 — BMR 24 h depuis les SharedPreferences (même valeur que bmrXiaomi côté JS) */
+    private fun getBMRFromPref(): Double {
+        return activity.getSharedPreferences("callisthenie", ComponentActivity.MODE_PRIVATE)
+            .getString("bmrXiaomi", "1867")?.toDoubleOrNull() ?: 1867.0
     }
 
     /** v7.6 — Libellé du type d'exercice (sessions Health Connect) */
