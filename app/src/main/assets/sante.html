@@ -297,7 +297,7 @@ html,body{background:#f2f2f6;color:#1a1a22}
 </div>
 
 <script>
-/* ═══════════════ Santé v8.5 ═══════════════
+/* ═══════════════ Santé v8.6 ═══════════════
    Les calories sont calculées dans HealthBridge.kt (days[i].cal) ; la page ne fait qu'afficher.
    Stockage conservé : deficitHist, sante_padel_days, sante_period, healthCache_<période>, hc_skinTemp.
    Nouveau : santeBurnV8 { 'AAAA-MM-JJ': total kcal du modèle v8 } (jours passés). */
@@ -398,7 +398,7 @@ function calRows(c,isToday){
 }
 /* v8.4 — diagnostic : TotalCaloriesBurned de chaque package Health Connect aujourd'hui */
 function pkgShort(p){return p==='com.fitbit.FitbitMobile'?'Appli Fitbit':p==='com.google.android.apps.healthdata'?'Google Health':p==='com.google.android.apps.fitness'?'Google Fit':p.indexOf('com.android.healthconnect.phone.')===0?'HC phone ('+p.slice(32)+')':p.indexOf('xiaomi.wearable')>=0?'OnePlus (xiaomi.wearable)':p;}
-function diagRows(list,used){return (list||[]).map(function(x){return {l:'🔍 '+pkgShort(x.pkg)+(x.pkg===used?' ✔':''),s:'TotalCaloriesBurned · '+x.pkg,v:x.kcal};});}
+function diagRows(list,used){return (list||[]).map(function(x){var t=x.type||'Total';return {l:'🔍 '+pkgShort(x.pkg)+' · '+t+(x.pkg===used&&t==='Total'?' ✔':''),s:(x.n!=null?x.n+' relevés · '+(x.first?hhmm(x.first):'?')+' → '+(x.last?hhmm(x.last):'?')+' · ':'')+x.pkg,v:x.kcal};});}
 function bmrRefRow(){return {l:'💤 BMR ref'+(BMR24&&BMR24.src==='xiaomi'?' ⚖️':''),s:'informatif · non ajouté au total',v:BMR24?fmt(BMR24.v)+' kcal/24h':'—'};}
 function rowsHtml(r){return r.map(function(x){
   return '<div class="src-row'+(x.dup?' dup':'')+(x.cls?' '+x.cls:'')+'"><span>'+x.l+(x.s?'<small>'+x.s+'</small>':'')+'</span><b>'+(typeof x.v==='string'?x.v:fmt(x.v)+' kcal')+'</b></div>';}).join('');}
