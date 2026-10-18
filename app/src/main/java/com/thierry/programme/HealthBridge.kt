@@ -47,7 +47,7 @@ import java.time.Period
 import java.time.ZoneId
 
 /**
- * v8.5 — Pont Health Connect → JavaScript (réécriture).
+ * v8.6 — Pont Health Connect → JavaScript (réécriture).
  * Exposé dans la WebView sous le nom « HealthBridge » ; le résultat est renvoyé via window.onHealthData(json).
  *
  * Modèle calories v8.3 (calculé ici, la page ne fait qu'afficher) — par jour, sur les 30 derniers jours de la fenêtre :
@@ -308,11 +308,9 @@ class HealthBridge(private val activity: ComponentActivity, private val webView:
             val fbMax = fbBest?.value ?: 0.0
             val googleHealth = maxOf(hcTotal, fbMax)
             val googleSrc = if (fbBest != null && fbMax >= hcTotal) fbBest.key else "healthconnect"
-            // v8.4 — diagnostic : total TotalCaloriesBurned de chaque package (aujourd'hui uniquement)
-            val diag = JSONArray()
-            if (d == today) bySrc.entries.sortedByDescending { it.value }.forEach {
-                diag.put(JSONObject().put("pkg", it.key).put("kcal", Math.round(it.value)))
-            }
+            // v8.6 — diagnostic détaillé (aujourd'hui) : par package et par type (Total / Actives),
+            //        kcal, nb de relevés, début du premier, fin du dernier
+            val diag = if (d == today) diagToday(client, dStart, dEnd, has(granted, "READ_ACTIVE_CALORIES_BURNED")) else JSONArray()
 
             // 2. Sessions OnePlus : calories actives OnePlus pendant chaque session
             var calsOnePlus = 0.0
@@ -359,6 +357,49 @@ class HealthBridge(private val activity: ComponentActivity, private val webView:
             d = d.plusDays(1)
         }
         return todaySrc
+    }
+
+    /** v8.6 — Diagnostic : relevés Total / Actives du jour, par package (kcal brutes, nb, premier début, dernière fin). */
+    private suspend fun diagToday(client: HealthConnectClient, a: Instant, b: Instant, active: Boolean): JSONArray {
+        class Acc { var k = 0.0; var n = 0; var first: Instant? = null; var last: Instant? = null }
+        val out = JSONArray()
+        fun add(m: HashMap<String, Acc>, pkg: String, kcal: Double, st: Instant, en: Instant) {
+            val x = m.getOrPut(pkg) { Acc() }
+            x.k += kcal; x.n++
+            val f = x.first
+            val l = x.last
+            if (f == null || st.isBefore(f)) x.first = st
+            if (l == null || en.isAfter(l)) x.last = en
+        }
+        fun dump(m: HashMap<String, Acc>, type: String) {
+            m.entries.sortedByDescending { it.value.k }.forEach { (p, x) ->
+                out.put(JSONObject().put("pkg", p).put("type", type).put("kcal", Math.round(x.k)).put("n", x.n)
+                    .put("first", x.first?.toString() ?: "").put("last", x.last?.toString() ?: ""))
+            }
+        }
+        try {
+            val tot = HashMap<String, Acc>()
+            var token: String? = null
+            do {
+                val resp = client.readRecords(ReadRecordsRequest(TotalCaloriesBurnedRecord::class,
+                    TimeRangeFilter.between(a, b), ascendingOrder = true, pageSize = 1000, pageToken = token))
+                resp.records.forEach { add(tot, it.metadata.dataOrigin.packageName, it.energy.inKilocalories, it.startTime, it.endTime) }
+                token = resp.pageToken
+            } while (token != null)
+            dump(tot, "Total")
+        } catch (_: Exception) { }
+        if (active) try {
+            val act = HashMap<String, Acc>()
+            var token: String? = null
+            do {
+                val resp = client.readRecords(ReadRecordsRequest(ActiveCaloriesBurnedRecord::class,
+                    TimeRangeFilter.between(a, b), ascendingOrder = true, pageSize = 1000, pageToken = token))
+                resp.records.forEach { add(act, it.metadata.dataOrigin.packageName, it.energy.inKilocalories, it.startTime, it.endTime) }
+                token = resp.pageToken
+            } while (token != null)
+            dump(act, "Actives")
+        } catch (_: Exception) { }
+        return out
     }
 
     /**
