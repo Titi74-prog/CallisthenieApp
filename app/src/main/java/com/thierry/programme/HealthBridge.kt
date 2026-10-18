@@ -47,7 +47,7 @@ import java.time.Period
 import java.time.ZoneId
 
 /**
- * v8.4 — Pont Health Connect → JavaScript (réécriture).
+ * v8.5 — Pont Health Connect → JavaScript (réécriture).
  * Exposé dans la WebView sous le nom « HealthBridge » ; le résultat est renvoyé via window.onHealthData(json).
  *
  * Modèle calories v8.3 (calculé ici, la page ne fait qu'afficher) — par jour, sur les 30 derniers jours de la fenêtre :
@@ -302,10 +302,12 @@ class HealthBridge(private val activity: ComponentActivity, private val webView:
                 client.aggregate(AggregateRequest(setOf(TotalCaloriesBurnedRecord.ENERGY_TOTAL),
                     TimeRangeFilter.between(dStart, dEnd)))[TotalCaloriesBurnedRecord.ENERGY_TOTAL]?.inKilocalories ?: 0.0
             } catch (_: Exception) { 0.0 } else 0.0
-            val fbMax = bySrc.filterKeys { isFitbit(it) && !isOnePlus(it) }.values.maxOrNull() ?: 0.0
-            val googleHealth = if (hcTotal > 0) hcTotal else fbMax
-            val googleSrc = if (hcTotal > 0) "healthconnect" else
-                (bySrc.filterKeys { isFitbit(it) && !isOnePlus(it) }.maxByOrNull { it.value }?.key ?: "")
+            // v8.5 — l'agrégat HC suit la priorité des applis (Google Fit, incomplet) : on prend la source Fitbit
+            //        la plus élevée (com.fitbit.FitbitMobile = chiffre de l'appli Fitbit) si elle dépasse l'agrégat.
+            val fbBest = bySrc.filterKeys { isFitbit(it) && !isOnePlus(it) }.maxByOrNull { it.value }
+            val fbMax = fbBest?.value ?: 0.0
+            val googleHealth = maxOf(hcTotal, fbMax)
+            val googleSrc = if (fbBest != null && fbMax >= hcTotal) fbBest.key else "healthconnect"
             // v8.4 — diagnostic : total TotalCaloriesBurned de chaque package (aujourd'hui uniquement)
             val diag = JSONArray()
             if (d == today) bySrc.entries.sortedByDescending { it.value }.forEach {
