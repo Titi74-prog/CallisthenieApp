@@ -350,7 +350,7 @@ function loadCache(p){
 }
 /* Données valides = Health Connect renvoie quelque chose pour aujourd'hui (calories ou pas) */
 function todayOf(d){var k=ld(new Date());return (d&&d.days||[]).filter(function(x){return x.date===k;})[0]||null;}
-function hasToday(d){var t=todayOf(d);return !!(t&&((t.kcal||0)>0||(t.steps||0)>0));}
+function hasToday(d){var t=todayOf(d);return !!(t&&(((t.kcalHC!==undefined?t.kcalHC:t.kcal)||0)>0||(t.steps||0)>0));} // v7.6 — kcalHC : valeur Health Connect brute (le BMR progressif est toujours > 0)
 function showCacheBadge(d){
   var b=$('cache-badge');if(!d){b.style.display='none';return;}
   var u=d.updated?new Date(d.updated):null;
@@ -463,10 +463,10 @@ function kcalTip(b){
   var kd=b.days.filter(function(x){return x.kcal!=null;}),k=kd.map(function(x){return x.kcal;});
   if(b.type==='day'){
     var x=b.days[0],dt=new Date(b.key+'T12:00:00'),p=isPadel(b.key),m=manualType(b.key),future=b.key>ld(new Date());
-    var isToday=b.key===ld(new Date()),S=isToday&&LAST?withBMR(LAST.caloriesSources):null;
-    if(S){ // v7.3 — jour en cours : ventilation par source
+    var isToday=b.key===ld(new Date()),S=isToday&&LAST?withBMR(LAST.caloriesSources,LAST.exerciseSessions):null;
+    if(S){ // v7.6 — jour en cours : BMR progressif + sessions + fond, par montre
       var obj=getObjectifBrulees(S.total),ok=S.total>=obj;
-      return {label:'📅 '+JOURS_L[dt.getDay()]+' '+dd(dt),rows:sourceRows(S).concat(['sep',['🎯 Objectif',fmt(obj)+' kcal '+(ok?'✅':'❌')]]),
+      return {label:'📅 '+JOURS_L[dt.getDay()]+' '+dd(dt),rows:sourceRows(S).concat(['sep',['🎯 Objectif',fmt(obj)+' kcal '+(ok?'✅':'❌')],['📈 Projection minuit',fmt(S.projMinuit)+' kcal']]),
         action:{label:p?'Marquer callisthénie 🏋️':'Marquer padel 🎾',fn:function(){toggleDay(b.key);}}};
     }
     return {label:'📅 '+JOURS_L[dt.getDay()]+' '+dd(dt),
@@ -492,17 +492,25 @@ function storedBMR(){
   if(!v){try{if(window.App&&App.getPref)v=App.getPref('bmrXiaomi');}catch(e){}}
   var n=parseInt(v,10);return (n&&n>1000)?n:null;
 }
-function getBMR(){return storedBMR()||1867;} // fallback
-/* Total = BMR (pesée) + calories actives par source */
-function withBMR(s){if(!s)return null;var bmr=getBMR();
-  return {oneplus:s.oneplus||0,fitbit:s.fitbit||0,fond:s.fond||0,bmr:bmr,bmrXiaomi:storedBMR()!=null,
-    total:bmr+(s.oneplus||0)+(s.fitbit||0)+(s.fond||0)};}
-/* v7.3 — ordre : total, séparateur, BMR (balance Xiaomi), OnePlus, Fitbit, fond */
-function sourceRows(s){
-  var r=[['🔥 Total',fmt(s.total)+' kcal'],'sep',['💤 Métabolisme de base'+(s.bmrXiaomi?' ⚖️':''),fmt(s.bmr)+' kcal']];
-  if(s.fitbit>0)r.push(['⌚ Fitbit Air',fmt(s.fitbit)+' kcal']);
-  if(s.oneplus>0)r.push(['⌚ OnePlus Watch 2R',fmt(s.oneplus)+' kcal']);
-  if(s.fond>0)r.push(['🚶 Activité de fond',fmt(s.fond)+' kcal']);
+function getBMR(){return storedBMR()||1867;} // fallback (BMR 24 h)
+/* v7.6 — BMR progressif : part du métabolisme de base écoulée depuis minuit (jamais data.basalMetabolicRate) */
+function heuresEcoulees(){var n=new Date();return n.getHours()+n.getMinutes()/60;}
+function getBMRProgressif(){return Math.round(getBMR()*heuresEcoulees()/24);}
+/* Total du jour = BMR progressif + calories actives (sessions + fond, toutes montres) */
+function totalActives(s){if(!s)return 0;
+  if(s.totalActives!=null)return s.totalActives;
+  return (s.oneplusExercise||0)+(s.fitbitExercise||0)+(s.oneplusFond||0)+(s.fitbitFond||0);}
+function withBMR(s,sessions){if(!s)return null;var bmr=getBMRProgressif(),act=totalActives(s),total=bmr+act;
+  return {src:s,sessions:sessions||[],bmr:bmr,bmr24:getBMR(),bmrXiaomi:storedBMR()!=null,actives:act,total:total,
+    projMinuit:Math.round(total+getBMR()*(24-heuresEcoulees())/24)};}
+/* v7.6 — ordre : total, BMR progressif, sessions OnePlus, sessions Fitbit, fond OnePlus, fond Fitbit */
+function sourceRows(S){
+  var s=S.src,r=[['🔥 Total',fmt(S.total)+' kcal'],'sep',
+    ['💤 Métabolisme'+(S.bmrXiaomi?' ⚖️':''),fmt(S.bmr)+' kcal <span style="color:var(--t3);font-weight:600">('+fmt(S.bmr24)+'/24h)</span>']];
+  S.sessions.filter(function(x){return x.source==='oneplus';}).forEach(function(x){r.push([x.type+' (⌚ OnePlus)',fmt(x.kcal)+' kcal']);});
+  S.sessions.filter(function(x){return x.source==='fitbit';}).forEach(function(x){r.push([x.type+' (⌚ Fitbit Air)',fmt(x.kcal)+' kcal']);});
+  if(s.oneplusFond>0)r.push(['🚶 Fond OnePlus',fmt(s.oneplusFond)+' kcal']);
+  if(s.fitbitFond>0)r.push(['🚶 Fond Fitbit Air',fmt(s.fitbitFond)+' kcal']);
   return r;
 }
 
@@ -556,6 +564,7 @@ const HISTORIQUE_BASE = [
   {date:'Sun Oct 11 2026', conso:2362, brulees:2652, estimated:false},
   {date:'Wed Oct 14 2026', conso:1697, brulees:2157, estimated:false},
   {date:'Thu Oct 15 2026', conso:1636, brulees:2797, estimated:false},
+  {date:'Sat Oct 17 2026', conso:2310, brulees:2847, estimated:false},
   // ⚠️ Une entrée datée d'aujourd'hui est ignorée (Health Connect en temps réel) et ajoutée à partir du lendemain
 ];
 const HISTORIQUE_PRECHARGE = HISTORIQUE_BASE.filter(function(e){return e.date!==new Date().toDateString();}); // sécurité supplémentaire
@@ -810,6 +819,9 @@ window.onHealthData=function(d){
   if(typeof d==='string'){try{d=JSON.parse(d);}catch(e){return;}}
   clearTimeout(window._rto);
   $('btn-refresh').textContent='↻ Actualiser';hideRefreshIndicator();
+  /* v7.6 — calories brûlées du jour = BMR progressif + calories actives (jamais data.basalMetabolicRate) */
+  if(d.status==='ok'&&d.days&&d.caloriesSources){var tdk=todayOf(d);
+    if(tdk){var bmr=getBMRProgressif(),totalBrulees=bmr+totalActives(d.caloriesSources);tdk.kcalHC=tdk.kcal;tdk.kcal=totalBrulees;}}
   if(d.status==='ok'&&d.days){var td=todayOf(d);if(td&&td.kcal!=null&&td.kcal>0)LIVE_TODAY_KCAL=td.kcal;storeBurned(d.days);} // calories brûlées mémorisées pour la courbe déficit, quelle que soit la période
   if(d.period&&d.period!==PERIOD){renderDeficit();return;} // réponse d'un autre onglet / pré-chargement 30 j
   if(d.status==='ok')setTimeout(preloadMonthBurned,400);
