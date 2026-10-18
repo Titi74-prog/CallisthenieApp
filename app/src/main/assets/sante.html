@@ -185,6 +185,7 @@ html,body{background:#f2f2f6;color:#1a1a22}
       </div>
       <span class="goal-tag" id="kcal-daytype">—</span>
       <div class="src-list" id="kcal-src"></div>
+      <div class="src-list" id="hc-scan" style="display:none"></div>
       <div class="bars" id="kcal-bars"></div>
       <div class="row" style="margin-top:12px">
         <div class="mini"><div class="mini-l">Total</div><div class="mini-v" id="kcal-tot">—</div><div class="mini-s" id="kcal-tot-s">kcal</div></div>
@@ -297,7 +298,7 @@ html,body{background:#f2f2f6;color:#1a1a22}
 </div>
 
 <script>
-/* ═══════════════ Santé v8.6 ═══════════════
+/* ═══════════════ Santé v8.7 ═══════════════
    Les calories sont calculées dans HealthBridge.kt (days[i].cal) ; la page ne fait qu'afficher.
    Stockage conservé : deficitHist, sante_padel_days, sante_period, healthCache_<période>, hc_skinTemp.
    Nouveau : santeBurnV8 { 'AAAA-MM-JJ': total kcal du modèle v8 } (jours passés). */
@@ -405,6 +406,24 @@ function rowsHtml(r){return r.map(function(x){
 function projMinuit(c){if(!BMR24)return null;var n=new Date(),min=n.getHours()*60+n.getMinutes();return c.total+BMR24.v*(1440-min)/1440;}
 function sportKcal(c){return c?sum((c.sessions||[]).map(function(s){return s.kcal;})):null;}
 
+
+/* ═════════ v8.7 — Scan Health Connect ═════════
+   Toutes les lectures possibles des calories du jour ; saisis la valeur Google Health pour trier par proximité. */
+var SCAN=null;
+function renderScan(d){
+  if(d&&d.scan)SCAN=d.scan;
+  var el=$('hc-scan');if(!SCAN||!SCAN.length){el.style.display='none';return;}
+  var tg=parseFloat(lsGet('scanTarget'))||null;
+  var list=SCAN.slice();
+  if(tg)list.sort(function(a,b){return Math.abs(a.k-tg)-Math.abs(b.k-tg);});
+  var h='<div class="src-row tot"><span>🔬 Scan Health Connect<small>valeur Google Health :</small></span><b><input id="scan-tg" type="number" inputmode="numeric" value="'+(tg||'')+'" placeholder="ex. 2414" style="width:90px;background:transparent;color:inherit;border:1px solid rgba(128,128,128,.5);border-radius:6px;padding:4px 6px;font:inherit;text-align:right"></b></div>';
+  h+=rowsHtml(list.map(function(x){
+    var dlt=tg?x.k-tg:null,near=dlt!=null&&Math.abs(dlt)<=15;
+    return {l:(near?'🎯 ':'')+x.l,s:x.g+(dlt!=null&&x.k?' · écart '+(dlt>=0?'+':'−')+fmt(Math.abs(dlt)):''),v:x.k?x.k:'—',cls:near?'tot':''};
+  }));
+  el.innerHTML=h;el.style.display='block';
+  var inp=$('scan-tg');inp.addEventListener('change',function(){lsSet('scanTarget',inp.value);renderScan(null);});
+}
 /* ═════════ Rendu ═════════ */
 function redraw(){if(LAST)render(LAST);else{paintDayType();renderDeficit();}}
 
@@ -424,6 +443,7 @@ function render(d){
   var days=d.days||[],per=d.period||PERIOD,tk=todayKey();
   days.forEach(function(x){var b=burnOf(x.date,x);if(b!=null)KCAL_DAY[x.date]=b;});
   renderCalories(days,per,tk);
+  renderScan(d);
   renderDeficit();
   renderHeart(d,days,per);
   renderActivity(days,per,tk);
