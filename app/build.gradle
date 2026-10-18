@@ -9,8 +9,8 @@ android {
         applicationId "com.thierry.programme"
         minSdk 28
         targetSdk 34
-        versionCode 56
-        versionName "7.7"
+        versionCode 57
+        versionName "7.8"
     }
     // Clé de signature FIXE : chaque nouvel APK s'installe par-dessus le précédent
     // (sans désinstaller) → les données (courbe de poids) sont conservées.
