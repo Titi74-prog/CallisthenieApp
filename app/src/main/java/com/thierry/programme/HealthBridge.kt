@@ -48,7 +48,7 @@ import java.time.Period
 import java.time.ZoneId
 
 /**
- * v8.7 — Pont Health Connect → JavaScript (réécriture).
+ * v8.8 — Pont Health Connect → JavaScript (réécriture).
  * Exposé dans la WebView sous le nom « HealthBridge » ; le résultat est renvoyé via window.onHealthData(json).
  *
  * Modèle calories v8.3 (calculé ici, la page ne fait qu'afficher) — par jour, sur les 30 derniers jours de la fenêtre :
@@ -251,6 +251,8 @@ class HealthBridge(private val activity: ComponentActivity, private val webView:
         out.put("days", days)
         // v8.7 — scan Health Connect : toutes les valeurs / combinaisons de calories d'aujourd'hui
         safe { out.put("scan", scanToday(client, granted, today.atStartOfDay(zone).toInstant(), now)) }
+        // v8.8 — détail heure par heure (Total par source + Actives par source)
+        safe { out.put("hourly", hourlyToday(client, granted, today.atStartOfDay(zone).toInstant(), now)) }
 
         readBody(client, granted, out, now)
         readSleep(client, granted, out, zone, now)
@@ -453,6 +455,51 @@ class HealthBridge(private val activity: ComponentActivity, private val webView:
         totRaw.forEach { (to, tk) -> actRaw.forEach { (ao, ak) -> if (ao != to) put("Total + Actives", pkgName(to) + " + actives " + pkgName(ao), tk + ak) } }
         if (!bas) out.put(JSONObject().put("g", "Info").put("l", "Autorisation « métabolisme de base » non accordée : touche « Autoriser le reste »").put("k", 0))
         return out
+    }
+
+    /**
+     * v8.8 — Calories heure par heure aujourd'hui, par source et par type (relevés au prorata de chaque heure).
+     * Résultat : {cols: ["Appli Fitbit · Total", ...], rows: [[h, v1, v2, ...], ...]}
+     */
+    private suspend fun hourlyToday(client: HealthConnectClient, granted: Set<String>, a: Instant, b: Instant): JSONObject {
+        val nH = ((Duration.between(a, b).seconds + 3599) / 3600).toInt().coerceIn(1, 25)
+        val cols = LinkedHashMap<String, DoubleArray>()
+        fun spread(col: String, st: Instant, en: Instant, k: Double) {
+            val arr = cols.getOrPut(col) { DoubleArray(nH) }
+            val len = Duration.between(st, en).seconds
+            for (h in 0 until nH) {
+                val hs = a.plusSeconds(h * 3600L); val he = hs.plusSeconds(3600)
+                val part = if (len <= 0) (if (!st.isBefore(hs) && st.isBefore(he)) k else 0.0)
+                           else k * overlapSec(st, en, hs, he) / len
+                arr[h] += part
+            }
+        }
+        if (has(granted, "READ_TOTAL_CALORIES_BURNED")) try {
+            var token: String? = null
+            do {
+                val r = client.readRecords(ReadRecordsRequest(TotalCaloriesBurnedRecord::class,
+                    TimeRangeFilter.between(a, b), ascendingOrder = true, pageSize = 1000, pageToken = token))
+                r.records.forEach { spread(pkgName(it.metadata.dataOrigin.packageName) + " · Total", it.startTime, it.endTime, it.energy.inKilocalories) }
+                token = r.pageToken
+            } while (token != null)
+        } catch (_: Exception) { }
+        if (has(granted, "READ_ACTIVE_CALORIES_BURNED")) try {
+            var token: String? = null
+            do {
+                val r = client.readRecords(ReadRecordsRequest(ActiveCaloriesBurnedRecord::class,
+                    TimeRangeFilter.between(a, b), ascendingOrder = true, pageSize = 1000, pageToken = token))
+                r.records.forEach { spread(pkgName(it.metadata.dataOrigin.packageName) + " · Actives", it.startTime, it.endTime, it.energy.inKilocalories) }
+                token = r.pageToken
+            } while (token != null)
+        } catch (_: Exception) { }
+        val names = cols.keys.toList()
+        val rows = JSONArray()
+        for (h in 0 until nH) {
+            val row = JSONArray().put(h)
+            names.forEach { row.put(Math.round(cols[it]!![h])) }
+            rows.put(row)
+        }
+        return JSONObject().put("cols", JSONArray(names)).put("rows", rows)
     }
 
     private fun pkgName(p: String): String = when {
