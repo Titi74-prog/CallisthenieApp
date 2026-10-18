@@ -434,34 +434,31 @@ class HealthBridge(private val activity: ComponentActivity, private val webView:
                 } while (t2 != null)
             }
 
-            // 3. Calories de chaque session = calories actives de la même source, comprises dans la plage
+            // 3. Calories de chaque session = calories actives lues pendant la session, même source
             var calsExOnePlus = 0.0
             var calsExFitbit = 0.0
             val sessionsList = JSONArray()
-            val sessionRanges = ArrayList<LongArray>()
             for (s in sessions) {
                 val pkg = s.metadata.dataOrigin.packageName
-                val op = isOnePlus(pkg)
-                val fb = !op && isFitbit(pkg)
-                if (!op && !fb) continue
-                val sStart = s.startTime.epochSecond
-                val sEnd = s.endTime.epochSecond
-                sessionRanges.add(longArrayOf(sStart, sEnd))
+                val sStart = s.startTime
+                val sEnd = s.endTime
                 var sKcal = 0.0
-                for (r in actives) {
-                    if (r.metadata.dataOrigin.packageName != pkg) continue
-                    if (r.startTime.epochSecond >= sStart && r.endTime.epochSecond <= sEnd) {
-                        sKcal += r.energy.inKilocalories
-                    }
+                client.readRecords(
+                    ReadRecordsRequest(ActiveCaloriesBurnedRecord::class, TimeRangeFilter.between(sStart, sEnd))
+                ).records.forEach { r ->
+                    if (r.metadata.dataOrigin.packageName == pkg) sKcal += r.energy.inKilocalories
                 }
                 sessionsList.put(JSONObject()
                     .put("type", getExerciseLabel(s.exerciseType))
                     .put("kcal", Math.round(sKcal))
-                    .put("source", if (op) "oneplus" else "fitbit")
-                    .put("start", s.startTime.toString())
-                    .put("end", s.endTime.toString()))
-                if (op) calsExOnePlus += sKcal else calsExFitbit += sKcal
+                    .put("source", if (isOnePlus(pkg)) "oneplus" else "fitbit"))
+                if (isOnePlus(pkg)) calsExOnePlus += sKcal
+                else if (isFitbit(pkg)) calsExFitbit += sKcal
             }
+
+            // Plages des sessions pour la déduplication du fond
+            val sessionRanges = ArrayList<LongArray>()
+            for (s in sessions) sessionRanges.add(longArrayOf(s.startTime.epochSecond, s.endTime.epochSecond))
 
             // 4. Calories de fond = calories actives hors plages des sessions (déduplication)
             var fondOnePlus = 0.0
@@ -513,7 +510,6 @@ class HealthBridge(private val activity: ComponentActivity, private val webView:
         ExerciseSessionRecord.EXERCISE_TYPE_WALKING -> "🚶 Marche"
         ExerciseSessionRecord.EXERCISE_TYPE_SWIMMING_POOL -> "🏊 Natation"
         ExerciseSessionRecord.EXERCISE_TYPE_STRENGTH_TRAINING -> "💪 Force"
-        ExerciseSessionRecord.EXERCISE_TYPE_CALISTHENICS,
         ExerciseSessionRecord.EXERCISE_TYPE_OTHER_WORKOUT -> "🏋️ Callisthénie"
         else -> "🏃 Activité"
     }
