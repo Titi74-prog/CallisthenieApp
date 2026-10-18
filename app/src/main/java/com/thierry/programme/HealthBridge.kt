@@ -47,7 +47,7 @@ import java.time.Period
 import java.time.ZoneId
 
 /**
- * v8.3 — Pont Health Connect → JavaScript (réécriture).
+ * v8.4 — Pont Health Connect → JavaScript (réécriture).
  * Exposé dans la WebView sous le nom « HealthBridge » ; le résultat est renvoyé via window.onHealthData(json).
  *
  * Modèle calories v8.3 (calculé ici, la page ne fait qu'afficher) — par jour, sur les 30 derniers jours de la fenêtre :
@@ -292,8 +292,25 @@ class HealthBridge(private val activity: ComponentActivity, private val webView:
             val dStart = d.atStartOfDay(zone).toInstant()
             val dEnd = if (d == today) now else d.plusDays(1).atStartOfDay(zone).toInstant()
 
-            // 1. Google Health / Google Fit : TotalCaloriesBurned (= ce qu'affiche l'appli Fitbit, BMR + activité)
-            val googleHealth = if (hasTotal) googleTotal(client, dStart, dEnd) else 0.0
+            // 1. Fitbit Air (Google Health / Google Fit / package Health Connect du Fitbit) : TotalCaloriesBurned
+            //    = ce qu'affiche l'appli Fitbit (BMR + activité). Plusieurs relais du même Fitbit → le plus élevé.
+            val bySrc = if (hasTotal) totalBySource(client, dStart, dEnd) else emptyMap()
+            // v8.4 — base = agrégat Health Connect ENERGY_TOTAL (fusion des sources par priorité + BMR des trous),
+            //        exactement le chiffre de l'écran « Énergie dépensée » de Health Connect / appli Fitbit.
+            //        Repli : la source Fitbit la plus élevée si l'agrégat échoue.
+            val hcTotal = if (hasTotal) try {
+                client.aggregate(AggregateRequest(setOf(TotalCaloriesBurnedRecord.ENERGY_TOTAL),
+                    TimeRangeFilter.between(dStart, dEnd)))[TotalCaloriesBurnedRecord.ENERGY_TOTAL]?.inKilocalories ?: 0.0
+            } catch (_: Exception) { 0.0 } else 0.0
+            val fbMax = bySrc.filterKeys { isFitbit(it) && !isOnePlus(it) }.values.maxOrNull() ?: 0.0
+            val googleHealth = if (hcTotal > 0) hcTotal else fbMax
+            val googleSrc = if (hcTotal > 0) "healthconnect" else
+                (bySrc.filterKeys { isFitbit(it) && !isOnePlus(it) }.maxByOrNull { it.value }?.key ?: "")
+            // v8.4 — diagnostic : total TotalCaloriesBurned de chaque package (aujourd'hui uniquement)
+            val diag = JSONArray()
+            if (d == today) bySrc.entries.sortedByDescending { it.value }.forEach {
+                diag.put(JSONObject().put("pkg", it.key).put("kcal", Math.round(it.value)))
+            }
 
             // 2. Sessions OnePlus : calories actives OnePlus pendant chaque session
             var calsOnePlus = 0.0
@@ -319,6 +336,7 @@ class HealthBridge(private val activity: ComponentActivity, private val webView:
                 }
 
             // 3. Total = Google Health + sessions OnePlus (pas de jour sans donnée Google : repli sur l'historique)
+            if (googleHealth <= 0 && d == today && diag.length() > 0) o.put("calDiag", diag)
             if (googleHealth > 0) {
                 val totalBrulees = googleHealth + calsOnePlus
                 o.put("cal", JSONObject()
@@ -327,7 +345,9 @@ class HealthBridge(private val activity: ComponentActivity, private val webView:
                     .put("totalActives", Math.round(totalBrulees))
                     .put("actives", Math.round(totalBrulees))
                     .put("total", Math.round(totalBrulees))
-                    .put("sessions", list))
+                    .put("sessions", list)
+                    .put("googleSrc", googleSrc)
+                    .put("diag", diag))
                 if (d == today) todaySrc = JSONObject()
                     .put("googleHealth", Math.round(googleHealth))
                     .put("oneplusExercise", Math.round(calsOnePlus))
@@ -340,13 +360,11 @@ class HealthBridge(private val activity: ComponentActivity, private val webView:
     }
 
     /**
-     * v8.3 — TotalCaloriesBurned écrit par Google Health / Google Fit sur une plage (relevés au prorata).
-     * Si les deux paquets écrivent les mêmes données (Fitbit Air relayé deux fois), on garde le plus élevé
-     * au lieu de les additionner.
+     * v8.4 — TotalCaloriesBurned par package sur une plage (relevés au prorata de leur part dans la plage).
      */
-    private suspend fun googleTotal(client: HealthConnectClient, a: Instant, b: Instant): Double {
-        if (!b.isAfter(a)) return 0.0
+    private suspend fun totalBySource(client: HealthConnectClient, a: Instant, b: Instant): Map<String, Double> {
         val bySrc = HashMap<String, Double>()
+        if (!b.isAfter(a)) return bySrc
         try {
             var token: String? = null
             do {
@@ -358,7 +376,6 @@ class HealthBridge(private val activity: ComponentActivity, private val webView:
                 )
                 resp.records.forEach { r ->
                     val p = r.metadata.dataOrigin.packageName
-                    if (p != PKG_GOOGLE_HEALTH && p != PKG_GOOGLE_FIT) return@forEach
                     val len = Duration.between(r.startTime, r.endTime).seconds
                     val ov = overlapSec(r.startTime, r.endTime, a, b)
                     val k = if (len <= 0) r.energy.inKilocalories else r.energy.inKilocalories * ov / len
@@ -367,7 +384,7 @@ class HealthBridge(private val activity: ComponentActivity, private val webView:
                 token = resp.pageToken
             } while (token != null)
         } catch (_: Exception) { }
-        return bySrc.values.maxOrNull() ?: 0.0
+        return bySrc
     }
 
     /** Calories actives (agrégat Health Connect : au prorata des relevés qui débordent la plage). */
