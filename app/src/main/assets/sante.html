@@ -175,6 +175,11 @@ html,body{background:#f2f2f6;color:#1a1a22}
         <button class="ptab" data-p="month" onclick="setPeriod('month')">Mois</button>
         <button class="ptab" data-p="year" onclick="setPeriod('year')">Année</button>
       </div>
+      <div id="wknav" style="display:none;align-items:center;justify-content:space-between;gap:8px;margin:-4px 0 10px">
+        <button class="ptab" style="flex:0 0 44px" onclick="weekNav(-1)">◀</button>
+        <span id="wknav-l" style="font-size:13px;font-weight:700;color:var(--t2)">Cette semaine</span>
+        <button class="ptab" id="wknav-next" style="flex:0 0 44px" onclick="weekNav(1)">▶</button>
+      </div>
       <div class="card-title">🔥 Calories brûlées <b id="kcal-upd"></b></div>
       <div class="big" id="kcal-today">—<small>kcal</small></div>
       <div class="track"><div class="fill" id="kcal-fill" style="width:0;background:linear-gradient(90deg,#FF7043,#FFB74D)"></div></div>
@@ -297,7 +302,7 @@ html,body{background:#f2f2f6;color:#1a1a22}
 </div>
 
 <script>
-/* ═══════════════ Santé v9.1 ═══════════════
+/* ═══════════════ Santé v9.2 ═══════════════
    Les calories sont calculées dans HealthBridge.kt (days[i].cal) ; la page ne fait qu'afficher.
    Stockage conservé : deficitHist, sante_padel_days, sante_period, healthCache_<période>, hc_skinTemp.
    Nouveau : santeBurnV8 { 'AAAA-MM-JJ': total kcal du modèle v8 } (jours passés). */
@@ -331,6 +336,7 @@ function navTo(p){var m={programme:'programme.html',respiration:'respiration.htm
 
 /* ── État ── */
 var PERIOD=lsGet('sante_period')||'week';
+var WEEK_OFF=0; // v9.2 — 0 = semaine en cours, -1 = semaine précédente…
 var LAST=null;      // dernière réponse affichée (période courante)
 var TODAY_CAL=null; // modèle calories d'aujourd'hui (quelle que soit la période reçue)
 var BMR24=null;
@@ -810,7 +816,8 @@ function refresh(){
   if(!hasBridge()){showBanner("Le pont Health Connect n'est disponible que dans l'appli Android.",null,null);return;}
   $('btn-refresh').textContent='… Lecture';
   clearTimeout(window._rto);window._rto=setTimeout(endRefresh,20000);
-  try{HealthBridge.requestDataForPeriod(PERIOD);}catch(e){try{HealthBridge.requestData();}catch(e2){}}
+  var req=PERIOD==='week'&&WEEK_OFF?'week:'+WEEK_OFF:PERIOD;
+  try{HealthBridge.requestDataForPeriod(req);}catch(e){try{HealthBridge.requestData();}catch(e2){}}
 }
 function endRefresh(){$('btn-refresh').textContent='↻ Actualiser';var p=$('ptr');p.classList.remove('ready','load','drag');p.style.height='0';}
 function openHC(){try{HealthBridge.openSettings();}catch(e){}}
@@ -820,8 +827,14 @@ function showBanner(msg,label,fn){
   $('banner-btn2').style.display=hasBridge()?'block':'none';
 }
 function hideBanner(){$('banner').style.display='none';}
-function setPeriod(p){PERIOD=p;lsSet('sante_period',p);paintTabs();hideTip();var c=loadCache(p);if(c)receive(c,true);refresh();}
-function paintTabs(){document.querySelectorAll('.ptab').forEach(function(b){b.classList.toggle('active',b.getAttribute('data-p')===PERIOD);});
+function weekMonday(off){var d=new Date();d.setHours(12,0,0,0);d.setDate(d.getDate()-((d.getDay()+6)%7)+7*off);return d;}
+function weekLbl(){return WEEK_OFF===0?'cette semaine':WEEK_OFF===-1?'semaine dernière':'semaine du '+dd(weekMonday(WEEK_OFF));}
+function paintWeekNav(){var n=$('wknav');n.style.display=PERIOD==='week'?'flex':'none';PER_LBL.week=weekLbl();
+  $('wknav-l').textContent=WEEK_OFF===0?'Cette semaine':(WEEK_OFF===-1?'Semaine dernière':'Semaine')+' · '+dd(weekMonday(WEEK_OFF))+' → '+dd(new Date(weekMonday(WEEK_OFF).getTime()+6*864e5));
+  var nx=$('wknav-next');nx.disabled=WEEK_OFF>=0;nx.style.opacity=WEEK_OFF>=0?'.35':'1';}
+function weekNav(step){var o=Math.min(0,Math.max(-104,WEEK_OFF+step));if(o===WEEK_OFF)return;WEEK_OFF=o;paintTabs();hideTip();refresh();}
+function setPeriod(p){PERIOD=p;WEEK_OFF=0;lsSet('sante_period',p);paintTabs();hideTip();var c=loadCache(p);if(c)receive(c,true);refresh();}
+function paintTabs(){paintWeekNav();document.querySelectorAll('.ptab[data-p]').forEach(function(b){b.classList.toggle('active',b.getAttribute('data-p')===PERIOD);});
   document.querySelectorAll('.per-lbl').forEach(function(e){e.textContent=PER_LBL[PERIOD];});}
 /* Cache du jour par période : affiché quand la montre est déconnectée */
 function saveCache(d){lsSet('healthCache_'+(d.period||'week'),JSON.stringify({v:8,data:d,date:new Date().toDateString()}));}
@@ -836,16 +849,16 @@ function showCacheBadge(d){
 function receive(d,fromCache){
   if(d.status==='ok'){
     if(d.bmr24)BMR24={v:d.bmr24,src:d.bmrSource};
-    var t=todayOf(d);TODAY_CAL=t&&t.cal?t.cal:null;
+    var t=todayOf(d);if(t)TODAY_CAL=t.cal||null;
     storeModel(d.days);
   }
-  if(d.period&&d.period!==PERIOD){renderDeficit();return;} // pré-chargement 30 j ou autre onglet
+  if((d.period&&d.period!==PERIOD)||(d.period==='week'&&(d.weekOffset||0)!==WEEK_OFF)){renderDeficit();return;} // pré-chargement 30 j, autre onglet ou autre semaine
   render(d);
 }
 window.onHealthData=function(d){
   if(typeof d==='string'){try{d=JSON.parse(d);}catch(e){return;}}
   clearTimeout(window._rto);endRefresh();
-  if(d.status==='ok'&&(!d.period||d.period===PERIOD)){
+  if(d.status==='ok'&&(!d.period||d.period===PERIOD)&&!(d.weekOffset||0)){
     if(hasToday(d)){saveCache(d);showCacheBadge(null);}
     else{var c=loadCache(d.period);if(c&&hasToday(c)){receive(c,true);showCacheBadge(c);return;}showCacheBadge(null);}
   }
