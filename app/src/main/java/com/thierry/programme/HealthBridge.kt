@@ -47,14 +47,13 @@ import java.time.Period
 import java.time.ZoneId
 
 /**
- * v9.2 — Pont Health Connect → JavaScript (réécriture).
+ * v10.0 — Pont Health Connect → JavaScript (réécriture).
  * Exposé dans la WebView sous le nom « HealthBridge » ; le résultat est renvoyé via window.onHealthData(json).
  *
- * Modèle calories v8.3 (calculé ici, la page ne fait qu'afficher) — par jour, sur les 30 derniers jours de la fenêtre :
- *   total = TotalCaloriesBurned Google Health / Google Fit (= ce qu'affiche l'appli Fitbit : BMR + activité)
- *         + sessions OnePlus Watch 2R : ActiveCaloriesBurned OnePlus pendant chaque session
- *   Le BMR de la balance Xiaomi S400 n'entre plus dans le calcul (affichage informatif uniquement).
- *   Jour sans donnée Google Health : pas de modèle (la page se replie sur l'historique / Health Connect brut).
+ * Calories brûlées (v10.0, réécriture) — par jour, sur toute la fenêtre affichée :
+ *   total = Fitbit Air  : TotalCaloriesBurned écrit par l'appli Fitbit (com.fitbit.FitbitMobile), BMR + activité
+ *         + OnePlus     : ActiveCaloriesBurned OnePlus pendant chaque séance OnePlus (ExerciseSession)
+ *   Le BMR de la balance Xiaomi S400 est renvoyé pour information uniquement.
  */
 class HealthBridge(private val activity: ComponentActivity, private val webView: WebView) {
 
@@ -211,12 +210,6 @@ class HealthBridge(private val activity: ComponentActivity, private val webView:
             days.put(o)
             d = d.plusDays(1)
         }
-        // Total brut Health Connect (info / jours hors modèle) — jamais utilisé pour les 30 derniers jours
-        if (has(granted, "READ_TOTAL_CALORIES_BURNED")) safe {
-            daily(client, byDay, firstDay, today, nowLdt, TotalCaloriesBurnedRecord.ENERGY_TOTAL) { o, v ->
-                o.put("kcalHC", Math.round(v.inKilocalories))
-            }
-        }
         if (has(granted, "READ_STEPS")) safe {
             daily(client, byDay, firstDay, today, nowLdt, StepsRecord.COUNT_TOTAL) { o, v -> o.put("steps", v) }
         }
@@ -238,21 +231,12 @@ class HealthBridge(private val activity: ComponentActivity, private val webView:
             } while (token != null)
         }
 
-        // Modèle calories : les 30 derniers jours de la fenêtre (jusqu'à aujourd'hui)
+        // Calories brûlées : toute la fenêtre affichée, jusqu'à aujourd'hui
         val bmr24 = getBMRFromPref()
         out.put("bmr24", Math.round(bmr24.first))
         out.put("bmrSource", if (bmr24.second) "xiaomi" else "defaut")
-        val modelEnd = if (lastDay.isBefore(today)) lastDay else today
-        val modelStart = if (firstDay.isAfter(today.minusDays(29))) firstDay else today.minusDays(29)
-        if (!modelEnd.isBefore(modelStart)) safe {
-            calories(client, granted, byDay, modelStart, modelEnd, today, zone, now)?.let { src ->
-                out.put("caloriesSources", JSONObject()
-                    .put("googleHealth", src.getLong("googleHealth"))
-                    .put("oneplusExercise", src.getLong("oneplusExercise"))
-                    .put("totalActives", src.getLong("totalActives")))
-                out.put("exerciseSessions", src.getJSONArray("sessions"))
-            }
-        }
+        val calEnd = if (lastDay.isBefore(today)) lastDay else today
+        if (!calEnd.isBefore(firstDay)) safe { calories(client, granted, byDay, firstDay, calEnd, today, zone, now) }
         out.put("days", days)
 
         readBody(client, granted, out, now)
@@ -261,132 +245,82 @@ class HealthBridge(private val activity: ComponentActivity, private val webView:
         return out
     }
 
-    // ───────── Modèle calories ─────────
+    // ───────── Calories brûlées : Fitbit + séances OnePlus ─────────
 
     private suspend fun calories(
         client: HealthConnectClient, granted: Set<String>, byDay: Map<LocalDate, JSONObject>,
         from: LocalDate, to: LocalDate, today: LocalDate, zone: ZoneId, now: Instant
-    ): JSONObject? {
-        val hasTotal = has(granted, "READ_TOTAL_CALORIES_BURNED")
-        val hasOnePlus = has(granted, "READ_EXERCISE") && has(granted, "READ_ACTIVE_CALORIES_BURNED")
-        if (!hasTotal && !hasOnePlus) return null
+    ) {
         val winStart = from.atStartOfDay(zone).toInstant()
         val winEnd = if (to == today) now else to.plusDays(1).atStartOfDay(zone).toInstant()
 
-        // Sessions OnePlus de la fenêtre (rattachées au jour de leur début)
-        val sessions = ArrayList<ExerciseSessionRecord>()
-        if (hasOnePlus) safe {
+        // 1. Fitbit : relevés TotalCaloriesBurned de l'appli Fitbit, répartis jour par jour (au prorata)
+        val fitbit = HashMap<LocalDate, Double>()
+        if (has(granted, "READ_TOTAL_CALORIES_BURNED")) {
             var token: String? = null
             do {
-                val resp = client.readRecords(
-                    ReadRecordsRequest(
-                        ExerciseSessionRecord::class, TimeRangeFilter.between(winStart, winEnd),
-                        ascendingOrder = true, pageSize = 500, pageToken = token
-                    )
-                )
-                resp.records.forEach {
-                    if (!it.startTime.isBefore(winStart) && isOnePlus(it.metadata.dataOrigin.packageName)) sessions.add(it)
+                val resp = client.readRecords(ReadRecordsRequest(TotalCaloriesBurnedRecord::class,
+                    TimeRangeFilter.between(winStart, winEnd), ascendingOrder = true, pageSize = 1000, pageToken = token))
+                for (r in resp.records) {
+                    if (r.metadata.dataOrigin.packageName != PKG_FITBIT) continue
+                    val len = Duration.between(r.startTime, r.endTime).seconds
+                    var d = r.startTime.atZone(zone).toLocalDate()
+                    while (true) {
+                        val ds = d.atStartOfDay(zone).toInstant(); val de = d.plusDays(1).atStartOfDay(zone).toInstant()
+                        if (!ds.isBefore(r.endTime) && len > 0) break
+                        val part = if (len <= 0) r.energy.inKilocalories
+                                   else r.energy.inKilocalories * overlapSec(r.startTime, r.endTime, ds, de) / len
+                        if (part > 0) fitbit[d] = (fitbit[d] ?: 0.0) + part
+                        if (len <= 0 || !de.isBefore(r.endTime)) break
+                        d = d.plusDays(1)
+                    }
                 }
                 token = resp.pageToken
             } while (token != null)
         }
 
-        var todaySrc: JSONObject? = null
+        // 2. OnePlus : séances déclarées sur la montre, calories actives OnePlus pendant la séance
+        val sessions = HashMap<LocalDate, MutableList<JSONObject>>()
+        if (has(granted, "READ_EXERCISE") && has(granted, "READ_ACTIVE_CALORIES_BURNED")) {
+            var token: String? = null
+            do {
+                val resp = client.readRecords(ReadRecordsRequest(ExerciseSessionRecord::class,
+                    TimeRangeFilter.between(winStart, winEnd), ascendingOrder = true, pageSize = 500, pageToken = token))
+                for (s in resp.records) {
+                    val pkg = s.metadata.dataOrigin.packageName
+                    if (!isOnePlus(pkg) || s.startTime.isBefore(winStart)) continue
+                    val end = minOf(s.endTime, now)
+                    if (!end.isAfter(s.startTime)) continue
+                    val kcal = activeKcal(client, s.startTime, end, setOf(DataOrigin(pkg)))
+                    sessions.getOrPut(s.startTime.atZone(zone).toLocalDate()) { mutableListOf() }.add(JSONObject()
+                        .put("label", getExerciseLabel(s.exerciseType))
+                        .put("title", s.title ?: "")
+                        .put("start", s.startTime.toString())
+                        .put("min", Math.round(Duration.between(s.startTime, end).seconds / 60.0))
+                        .put("kcal", Math.round(kcal))
+                        .put("k", kcal))
+                }
+                token = resp.pageToken
+            } while (token != null)
+        }
+
+        // 3. Jour par jour : total = Fitbit + OnePlus (jour sans donnée Fitbit : pas de total)
         var d = from
         while (!d.isAfter(to)) {
             val o = byDay[d]
-            if (o == null) { d = d.plusDays(1); continue }
-            val dStart = d.atStartOfDay(zone).toInstant()
-            val dEnd = if (d == today) now else d.plusDays(1).atStartOfDay(zone).toInstant()
-
-            // 1. Fitbit Air (Google Health / Google Fit / package Health Connect du Fitbit) : TotalCaloriesBurned
-            //    = ce qu'affiche l'appli Fitbit (BMR + activité). Plusieurs relais du même Fitbit → le plus élevé.
-            val bySrc = if (hasTotal) totalBySource(client, dStart, dEnd) else emptyMap()
-            // v8.4 — base = agrégat Health Connect ENERGY_TOTAL (fusion des sources par priorité + BMR des trous),
-            //        exactement le chiffre de l'écran « Énergie dépensée » de Health Connect / appli Fitbit.
-            //        Repli : la source Fitbit la plus élevée si l'agrégat échoue.
-            val hcTotal = if (hasTotal) try {
-                client.aggregate(AggregateRequest(setOf(TotalCaloriesBurnedRecord.ENERGY_TOTAL),
-                    TimeRangeFilter.between(dStart, dEnd)))[TotalCaloriesBurnedRecord.ENERGY_TOTAL]?.inKilocalories ?: 0.0
-            } catch (_: Exception) { 0.0 } else 0.0
-            // v8.5 — l'agrégat HC suit la priorité des applis (Google Fit, incomplet) : on prend la source Fitbit
-            //        la plus élevée (com.fitbit.FitbitMobile = chiffre de l'appli Fitbit) si elle dépasse l'agrégat.
-            val fbBest = bySrc.filterKeys { isFitbit(it) && !isOnePlus(it) }.maxByOrNull { it.value }
-            val fbMax = fbBest?.value ?: 0.0
-            val googleHealth = maxOf(hcTotal, fbMax)
-            val googleSrc = if (fbBest != null && fbMax >= hcTotal) fbBest.key else "healthconnect"
-
-            // 2. Sessions OnePlus : calories actives OnePlus pendant chaque session
-            var calsOnePlus = 0.0
-            val list = JSONArray()
-            sessions.filter { !it.startTime.isBefore(dStart) && it.startTime.isBefore(dEnd) }
-                .sortedBy { it.startTime }
-                .forEach { s ->
-                    val pkg = s.metadata.dataOrigin.packageName
-                    val sEnd = minOf(s.endTime, dEnd)
-                    if (!sEnd.isAfter(s.startTime)) return@forEach
-                    val sKcal = activeKcal(client, s.startTime, sEnd, setOf(DataOrigin(pkg)))
-                    calsOnePlus += sKcal
-                    list.put(JSONObject()
-                        .put("label", getExerciseLabel(s.exerciseType))
-                        .put("type", getExerciseLabel(s.exerciseType))
-                        .put("title", s.title ?: "")
-                        .put("source", "oneplus")
-                        .put("src", "oneplus")
-                        .put("start", s.startTime.toString())
-                        .put("end", sEnd.toString())
-                        .put("min", Math.round(Duration.between(s.startTime, sEnd).seconds / 60.0))
-                        .put("kcal", Math.round(sKcal)))
-                }
-
-            // 3. Total = Google Health + sessions OnePlus (pas de jour sans donnée Google : repli sur l'historique)
-            if (googleHealth > 0) {
-                val totalBrulees = googleHealth + calsOnePlus
+            val fb = fitbit[d] ?: 0.0
+            if (o != null && fb > 0) {
+                val list = JSONArray()
+                var op = 0.0
+                sessions[d]?.forEach { op += it.getDouble("k"); it.remove("k"); list.put(it) }
                 o.put("cal", JSONObject()
-                    .put("googleHealth", Math.round(googleHealth))      // Fitbit Air : BMR + activité
-                    .put("oneplusExercise", Math.round(calsOnePlus))    // sessions OnePlus
-                    .put("totalActives", Math.round(totalBrulees))
-                    .put("actives", Math.round(totalBrulees))
-                    .put("total", Math.round(totalBrulees))
-                    .put("sessions", list)
-                    .put("googleSrc", googleSrc))
-                if (d == today) todaySrc = JSONObject()
-                    .put("googleHealth", Math.round(googleHealth))
-                    .put("oneplusExercise", Math.round(calsOnePlus))
-                    .put("totalActives", Math.round(totalBrulees))
-                    .put("sessions", list)
+                    .put("fitbit", Math.round(fb))
+                    .put("oneplus", Math.round(op))
+                    .put("total", Math.round(fb + op))
+                    .put("sessions", list))
             }
             d = d.plusDays(1)
         }
-        return todaySrc
-    }
-
-    /**
-     * v8.4 — TotalCaloriesBurned par package sur une plage (relevés au prorata de leur part dans la plage).
-     */
-    private suspend fun totalBySource(client: HealthConnectClient, a: Instant, b: Instant): Map<String, Double> {
-        val bySrc = HashMap<String, Double>()
-        if (!b.isAfter(a)) return bySrc
-        try {
-            var token: String? = null
-            do {
-                val resp = client.readRecords(
-                    ReadRecordsRequest(
-                        TotalCaloriesBurnedRecord::class, TimeRangeFilter.between(a, b),
-                        ascendingOrder = true, pageSize = 1000, pageToken = token
-                    )
-                )
-                resp.records.forEach { r ->
-                    val p = r.metadata.dataOrigin.packageName
-                    val len = Duration.between(r.startTime, r.endTime).seconds
-                    val ov = overlapSec(r.startTime, r.endTime, a, b)
-                    val k = if (len <= 0) r.energy.inKilocalories else r.energy.inKilocalories * ov / len
-                    bySrc[p] = (bySrc[p] ?: 0.0) + k
-                }
-                token = resp.pageToken
-            } while (token != null)
-        } catch (_: Exception) { }
-        return bySrc
     }
 
     /** Calories actives (agrégat Health Connect : au prorata des relevés qui débordent la plage). */
@@ -540,18 +474,10 @@ class HealthBridge(private val activity: ComponentActivity, private val webView:
     // ───────── Utilitaires ─────────
 
     companion object {
-        // Fitbit Air : écrit via Health Connect sous un package « com.android.healthconnect.phone.<id> »
-        private const val PKG_FITBIT_PREFIX = "com.android.healthconnect.phone."
+        // Fitbit Air : total des calories écrit par l'appli Fitbit
+        private const val PKG_FITBIT = "com.fitbit.FitbitMobile"
         // OnePlus Watch 2R : synchronisée par com.xiaomi.wearable
         private const val PKG_ONEPLUS = "com.xiaomi.wearable"
-        // v8.1 — Google Health / Google Fit : intermédiaires qui écrivent les données du Fitbit Air
-        private const val PKG_GOOGLE_HEALTH = "com.google.android.apps.healthdata"
-        private const val PKG_GOOGLE_FIT = "com.google.android.apps.fitness"
-        fun isFitbit(pkg: String): Boolean =
-            pkg.startsWith(PKG_FITBIT_PREFIX) ||
-            pkg == "com.fitbit.FitbitMobile" ||
-            pkg == PKG_GOOGLE_HEALTH ||
-            pkg == PKG_GOOGLE_FIT
         fun isOnePlus(pkg: String): Boolean =
             pkg == PKG_ONEPLUS || pkg.contains("xiaomi.wearable") ||
             pkg.contains("oneplus.health") || pkg.contains("heytap.health")
