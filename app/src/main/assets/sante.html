@@ -302,7 +302,7 @@ html,body{background:#f2f2f6;color:#1a1a22}
 </div>
 
 <script>
-/* ═══════════════ Santé v10.1 ═══════════════
+/* ═══════════════ Santé v10.2 ═══════════════
    Les calories sont calculées dans HealthBridge.kt (days[i].cal) ; la page ne fait qu'afficher.
    Stockage conservé : deficitHist, sante_padel_days, sante_period, healthCache_<période>, hc_skinTemp.
    Nouveau : santeBurnV8 { 'AAAA-MM-JJ': total kcal du modèle v8 } (jours passés). */
@@ -354,10 +354,22 @@ function storeModel(days){
 }
 /* Calories brûlées d'un jour, par ordre de fiabilité :
    aujourd'hui → modèle en direct ; v9.0 : total Fitbit (modèle) prioritaire sur l'historique pré-chargé (ancien calcul) */
-/* v10.1 — valeurs corrigées à la main (prioritaires sur Health Connect) */
-var BURN_OVERRIDE={'2026-10-16':2617};
+/* v10.2 — valeurs corrigées à la main (prioritaires sur Health Connect)
+   nombre = kcal fixes ; 'avgdef' = brûlées telles que le déficit du jour = déficit moyen des autres jours (30 j) */
+var BURN_OVERRIDE={'2026-10-16':'avgdef'};
+var _ovBusy=false;
+function overrideBurn(date){
+  var o=BURN_OVERRIDE[date];
+  if(typeof o==='number')return o;
+  if(o!=='avgdef'||_ovBusy)return null;
+  _ovBusy=true;var S;try{S=deficitSeries();}finally{_ovBusy=false;}
+  var v=S.filter(function(x){return x.key!==date&&x.def!=null&&BURN_OVERRIDE[x.key]==null;}).map(function(x){return x.def;});
+  if(!v.length)return null;
+  var e=histByKey()[date],conso=e&&e.conso!=null?e.conso:1850;
+  return Math.round(conso+avg(v));
+}
 function burnOf(date,x){
-  if(BURN_OVERRIDE[date]!=null)return BURN_OVERRIDE[date];
+  if(BURN_OVERRIDE[date]!=null)return overrideBurn(date);
   if(date===todayKey())return TODAY_CAL?TODAY_CAL.total:null;
   if(x&&x.cal)return x.cal.total;
   var b=burnStore();if(b[date]!=null)return b[date];
