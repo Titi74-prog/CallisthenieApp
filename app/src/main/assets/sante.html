@@ -196,7 +196,7 @@ html,body{background:#f2f2f6;color:#1a1a22}
         <div class="mini"><div class="mini-l">Moyenne</div><div class="mini-v" id="kcal-avg">—</div><div class="mini-s">kcal / jour</div></div>
         <div class="mini"><div class="mini-l">Objectif</div><div class="mini-v" id="kcal-hit">—</div><div class="mini-s">jours atteints</div></div>
       </div>
-      <div class="note">Calcul : énergie dépensée totale écrite par l'appli Fitbit dans Health Connect (métabolisme + activité Fitbit Air ; à défaut, total Health Connect) + calories actives des séances OnePlus. Le BMR de la balance n'est plus ajouté (affiché pour information). Objectif : 2 450 kcal · force 2 550 (≥ 2 450) · padel 1h 2 950 (≥ 2 750) · padel 1h30 3 050 (≥ 3 150). Les boutons forcent le type du jour ; retouche le bouton actif pour revenir en auto. Touche une barre pour le détail.</div>
+      <div class="note">Calcul : calories totales de l'appli Fitbit (métabolisme + activité Fitbit Air) + calories actives des séances OnePlus. Le BMR de la balance n'est plus ajouté (affiché pour information). Objectif : 2 450 kcal · force 2 550 (≥ 2 450) · padel 1h 2 950 (≥ 2 750) · padel 1h30 3 050 (≥ 3 150). Les boutons forcent le type du jour ; retouche le bouton actif pour revenir en auto. Touche une barre pour le détail.</div>
     </div>
 
     <!-- Déficit -->
@@ -302,7 +302,7 @@ html,body{background:#f2f2f6;color:#1a1a22}
 </div>
 
 <script>
-/* ═══════════════ Santé v9.2 ═══════════════
+/* ═══════════════ Santé v10.0 ═══════════════
    Les calories sont calculées dans HealthBridge.kt (days[i].cal) ; la page ne fait qu'afficher.
    Stockage conservé : deficitHist, sante_padel_days, sante_period, healthCache_<période>, hc_skinTemp.
    Nouveau : santeBurnV8 { 'AAAA-MM-JJ': total kcal du modèle v8 } (jours passés). */
@@ -342,7 +342,7 @@ var TODAY_CAL=null; // modèle calories d'aujourd'hui (quelle que soit la pério
 var BMR24=null;
 
 /* ═════════ Calories : stockage par jour ═════════ */
-var BURN8_KEY='santeBurnV8';
+var BURN8_KEY='santeBurnV10'; // v10.0 — nouvelle clé : anciens modèles abandonnés
 function burnStore(){return lsJSON(BURN8_KEY,{});}
 /* Jours passés du modèle v8 mémorisés (aujourd'hui jamais : valeur en direct) */
 function storeModel(days){
@@ -360,8 +360,7 @@ function burnOf(date,x){
   var b=burnStore();if(b[date]!=null)return b[date];
   var base=BASE_BY_KEY[date];if(base)return base.brulees;
   var h=histByKey()[date];if(h&&h.brulees!=null)return h.brulees;
-  var o=lsJSON('deficitBurned',{});if(o[date]!=null)return o[date];
-  return x&&x.kcalHC!=null?x.kcalHC:null;
+  return null;
 }
 
 /* ═════════ Type de jour / objectifs ═════════ */
@@ -389,19 +388,17 @@ function getLibelleJour(c){if(c>=3350)return 'Jour padel intense 🎾🔥 — d�
 function getTypeJour(b){if(b>=3350)return '🎾 Padel intense';if(b>=2950)return '🎾 Padel 1h';if(b>=2550)return '💪 Force';return '🏋️ Normal';}
 
 /* ═════════ Détail calories d'un jour (lignes) ═════════ */
-function srcLbl(s){return s==='oneplus'?'⌚ OnePlus':'⌚ Fitbit Air';}
 /* v8.3 — Total = Fitbit Air via Google Health (BMR + activité, tout inclus) + sessions OnePlus */
 function calRows(c,isToday){
   var r=[];
-  r.push({l:'⌚ Fitbit Air (BMR + activité)',s:(c.googleSrc==='healthconnect'||!c.googleSrc?'Health Connect · Énergie dépensée':pkgShort(c.googleSrc))+(isToday?' · jusqu\'à maintenant':''),v:c.googleHealth});
-  var ss=(c.sessions||[]).filter(function(s){return (s.source||s.src)==='oneplus';}).slice().sort(function(a,b){return a.start<b.start?-1:1;});
+  r.push({l:'⌚ Fitbit Air (BMR + activité)',s:'appli Fitbit'+(isToday?' · jusqu\'à maintenant':''),v:c.fitbit});
+  var ss=(c.sessions||[]).slice().sort(function(a,b){return a.start<b.start?-1:1;});
   ss.forEach(function(s){
-    var lbl=s.type||s.label;if(lbl==='🏃 Activité'&&s.title)lbl='🏃 '+s.title;
+    var lbl=s.label;if(lbl==='🏃 Activité'&&s.title)lbl='🏃 '+s.title;
     r.push({l:lbl+' (⌚ OnePlus)',s:s.start?hhmm(s.start)+' · '+hm(s.min):'',v:s.kcal});
   });
   return r;
 }
-function pkgShort(p){return p==='com.fitbit.FitbitMobile'?'Appli Fitbit':p==='com.google.android.apps.healthdata'?'Google Health':p==='com.google.android.apps.fitness'?'Google Fit':p.indexOf('com.android.healthconnect.phone.')===0?'HC phone ('+p.slice(32)+')':p.indexOf('xiaomi.wearable')>=0?'OnePlus (xiaomi.wearable)':p;}
 function bmrRefRow(){return {l:'💤 BMR référence'+(BMR24&&BMR24.src==='xiaomi'?' ⚖️':''),s:'informatif · non ajouté au total',v:BMR24?fmt(BMR24.v)+' kcal/24h':'—'};}
 function rowsHtml(r){return r.map(function(x){
   return '<div class="src-row'+(x.dup?' dup':'')+(x.cls?' '+x.cls:'')+'"><span>'+x.l+(x.s?'<small>'+x.s+'</small>':'')+'</span><b>'+(typeof x.v==='string'?x.v:fmt(x.v)+' kcal')+'</b></div>';}).join('');}
@@ -837,10 +834,10 @@ function setPeriod(p){PERIOD=p;WEEK_OFF=0;lsSet('sante_period',p);paintTabs();hi
 function paintTabs(){paintWeekNav();document.querySelectorAll('.ptab[data-p]').forEach(function(b){b.classList.toggle('active',b.getAttribute('data-p')===PERIOD);});
   document.querySelectorAll('.per-lbl').forEach(function(e){e.textContent=PER_LBL[PERIOD];});}
 /* Cache du jour par période : affiché quand la montre est déconnectée */
-function saveCache(d){lsSet('healthCache_'+(d.period||'week'),JSON.stringify({v:8,data:d,date:new Date().toDateString()}));}
-function loadCache(p){var c=lsJSON('healthCache_'+(p||PERIOD),null);return c&&c.v===8&&c.date===new Date().toDateString()?c.data:null;}
+function saveCache(d){lsSet('healthCache_'+(d.period||'week'),JSON.stringify({v:10,data:d,date:new Date().toDateString()}));}
+function loadCache(p){var c=lsJSON('healthCache_'+(p||PERIOD),null);return c&&c.v===10&&c.date===new Date().toDateString()?c.data:null;}
 function todayOf(d){var k=todayKey();return (d&&d.days||[]).filter(function(x){return x.date===k;})[0]||null;}
-function hasToday(d){var t=todayOf(d);return !!(t&&((t.steps||0)>0||(t.cal&&t.cal.actives>0)||(t.kcalHC||0)>0));}
+function hasToday(d){var t=todayOf(d);return !!(t&&((t.steps||0)>0||(t.cal&&t.cal.total>0)));}
 function showCacheBadge(d){
   var b=$('cache-badge');if(!d){b.style.display='none';return;}
   $('cache-time').textContent=d.updated?'Dernière lecture valide à '+hhmm(d.updated):'';b.style.display='block';
