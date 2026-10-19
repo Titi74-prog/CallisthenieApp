@@ -31,10 +31,10 @@ jobs:
     - name: Build Debug APK
       run: gradle assembleDebug
     - name: Rename APK
-      run: cp app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/debug/CallisthenieApp-v10.0.apk
+      run: cp app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/debug/CallisthenieApp-v10.1.apk
     - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
-        name: CallisthenieApp-v10.0
-        path: app/build/outputs/apk/debug/CallisthenieApp-v10.0.apk
+        name: CallisthenieApp-v10.1
+        path: app/build/outputs/apk/debug/CallisthenieApp-v10.1.apk
         retention-days: 30
