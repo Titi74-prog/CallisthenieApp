@@ -302,7 +302,7 @@ html,body{background:#f2f2f6;color:#1a1a22}
 </div>
 
 <script>
-/* ═══════════════ Santé v10.0 ═══════════════
+/* ═══════════════ Santé v10.1 ═══════════════
    Les calories sont calculées dans HealthBridge.kt (days[i].cal) ; la page ne fait qu'afficher.
    Stockage conservé : deficitHist, sante_padel_days, sante_period, healthCache_<période>, hc_skinTemp.
    Nouveau : santeBurnV8 { 'AAAA-MM-JJ': total kcal du modèle v8 } (jours passés). */
@@ -354,7 +354,10 @@ function storeModel(days){
 }
 /* Calories brûlées d'un jour, par ordre de fiabilité :
    aujourd'hui → modèle en direct ; v9.0 : total Fitbit (modèle) prioritaire sur l'historique pré-chargé (ancien calcul) */
+/* v10.1 — valeurs corrigées à la main (prioritaires sur Health Connect) */
+var BURN_OVERRIDE={'2026-10-16':2617};
 function burnOf(date,x){
+  if(BURN_OVERRIDE[date]!=null)return BURN_OVERRIDE[date];
   if(date===todayKey())return TODAY_CAL?TODAY_CAL.total:null;
   if(x&&x.cal)return x.cal.total;
   var b=burnStore();if(b[date]!=null)return b[date];
@@ -467,13 +470,13 @@ function kcalTip(b){
     var x=b.days[0],dt=dkey(b.key),isT=b.key===tk,c=isT?TODAY_CAL:x.cal,k=KCAL_DAY[b.key],g=goalFor(b.key),m=manualType(b.key);
     var rows=[];
     if(k!=null)rows.push(['🔥 Total',fmt(k)+' kcal']);
-    if(c){rows.push('sep');calRows(c,isT).forEach(function(r){rows.push([r.l,fmt(r.v)+' kcal']);});}
+    if(c&&BURN_OVERRIDE[b.key]==null){rows.push('sep');calRows(c,isT).forEach(function(r){rows.push([r.l,fmt(r.v)+' kcal']);});}
     rows.push('sep');
     var br=bmrRefRow();rows.push([br.l,br.v]);
     rows.push(['🎯 Objectif',fmt(g)+' kcal '+(k!=null?(k>=g?'✅':'❌'):'')]);
     rows.push(['Type',goalLabel(g)+(m==null?' · auto':' · manuel')]);
     if(isT&&c){var p=projMinuit(c);if(p!=null)rows.push(['📈 Projection minuit',fmt(p)+' kcal']);}
-    var note=!c&&k!=null?'Détail disponible sur les 30 derniers jours':null;
+    var note=BURN_OVERRIDE[b.key]!=null?'Valeur corrigée manuellement':(!c&&k!=null?'Détail non disponible pour ce jour':null);
     return {label:'📅 '+JOURS_L[dt.getDay()]+' '+dd(dt),rows:rows,note:note,
       action:{label:isPadel(b.key)?'Marquer callisthénie 🏋️':'Marquer padel 🎾',fn:function(){toggleDay(b.key);}}};
   }
