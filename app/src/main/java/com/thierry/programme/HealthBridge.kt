@@ -47,7 +47,7 @@ import java.time.Period
 import java.time.ZoneId
 
 /**
- * v8.9 — Pont Health Connect → JavaScript (réécriture).
+ * v9.2 — Pont Health Connect → JavaScript (réécriture).
  * Exposé dans la WebView sous le nom « HealthBridge » ; le résultat est renvoyé via window.onHealthData(json).
  *
  * Modèle calories v8.3 (calculé ici, la page ne fait qu'afficher) — par jour, sur les 30 derniers jours de la fenêtre :
@@ -129,7 +129,12 @@ class HealthBridge(private val activity: ComponentActivity, private val webView:
     /** Comme requestData(), avec la période d'historique : "week", "month" ou "year". */
     @JavascriptInterface
     fun requestDataForPeriod(p: String?) {
-        period = when (p) { "month", "year" -> p; else -> "week" }
+        // v9.2 — "week:-1" = semaine précédente, "week:-2"… (navigation ◀ ▶)
+        period = when {
+            p == "month" || p == "year" -> p
+            p != null && p.startsWith("week:") -> p
+            else -> "week"
+        }
         requestData()
     }
 
@@ -183,14 +188,16 @@ class HealthBridge(private val activity: ComponentActivity, private val webView:
         val nowLdt = LocalDateTime.now(zone)
         val now = Instant.now()
         // Fenêtres : semaine fixe (lundi → dimanche), 30 derniers jours, année civile
+        val weekOff: Long = if (p.startsWith("week:")) (p.substringAfter(":").toLongOrNull() ?: 0L).coerceIn(-104L, 0L) else 0L
         val firstDay: LocalDate
         val lastDay: LocalDate
         when (p) {
             "year" -> { firstDay = today.withDayOfYear(1); lastDay = today.withDayOfYear(today.lengthOfYear()) }
             "month" -> { firstDay = today.minusDays(29); lastDay = today }
-            else -> { firstDay = today.with(DayOfWeek.MONDAY); lastDay = firstDay.plusDays(6) }
+            else -> { firstDay = today.with(DayOfWeek.MONDAY).plusWeeks(weekOff); lastDay = firstDay.plusDays(6) }
         }
-        out.put("period", p)
+        out.put("period", if (p.startsWith("week")) "week" else p)
+        out.put("weekOffset", weekOff)
         out.put("from", firstDay.toString())
         out.put("to", lastDay.toString())
 
