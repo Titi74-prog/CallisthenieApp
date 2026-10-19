@@ -297,7 +297,7 @@ html,body{background:#f2f2f6;color:#1a1a22}
 </div>
 
 <script>
-/* ═══════════════ Santé v9.0 ═══════════════
+/* ═══════════════ Santé v9.1 ═══════════════
    Les calories sont calculées dans HealthBridge.kt (days[i].cal) ; la page ne fait qu'afficher.
    Stockage conservé : deficitHist, sante_padel_days, sante_period, healthCache_<période>, hc_skinTemp.
    Nouveau : santeBurnV8 { 'AAAA-MM-JJ': total kcal du modèle v8 } (jours passés). */
@@ -396,7 +396,7 @@ function calRows(c,isToday){
   return r;
 }
 function pkgShort(p){return p==='com.fitbit.FitbitMobile'?'Appli Fitbit':p==='com.google.android.apps.healthdata'?'Google Health':p==='com.google.android.apps.fitness'?'Google Fit':p.indexOf('com.android.healthconnect.phone.')===0?'HC phone ('+p.slice(32)+')':p.indexOf('xiaomi.wearable')>=0?'OnePlus (xiaomi.wearable)':p;}
-function bmrRefRow(){return {l:'💤 BMR ref'+(BMR24&&BMR24.src==='xiaomi'?' ⚖️':''),s:'informatif · non ajouté au total',v:BMR24?fmt(BMR24.v)+' kcal/24h':'—'};}
+function bmrRefRow(){return {l:'💤 BMR référence'+(BMR24&&BMR24.src==='xiaomi'?' ⚖️':''),s:'informatif · non ajouté au total',v:BMR24?fmt(BMR24.v)+' kcal/24h':'—'};}
 function rowsHtml(r){return r.map(function(x){
   return '<div class="src-row'+(x.dup?' dup':'')+(x.cls?' '+x.cls:'')+'"><span>'+x.l+(x.s?'<small>'+x.s+'</small>':'')+'</span><b>'+(typeof x.v==='string'?x.v:fmt(x.v)+' kcal')+'</b></div>';}).join('');}
 function projMinuit(c){if(!BMR24)return null;var n=new Date(),min=n.getHours()*60+n.getMinutes();return c.total+BMR24.v*(1440-min)/1440;}
@@ -415,8 +415,7 @@ function render(d){
   if(d.status==='denied'){showBanner("Autorise Callisthénie à lire tes données (calories, séances, pas, cœur, sommeil) dans Health Connect.",'Autoriser',function(){try{HealthBridge.askPermissions();}catch(e){}});return;}
   LAST=d;
   var nReq=d.requested||0,nOk=d.grantedCount||0;
-  if(nReq&&nOk<nReq)showBanner('Certaines données ne sont pas autorisées ('+nOk+'/'+nReq+'). Active-les dans Health Connect.','Autoriser le reste',function(){try{HealthBridge.askPermissions();}catch(e){}});
-  else hideBanner();
+  hideBanner(); // v9.1 — plus de bandeau d'information sur les autorisations Health Connect partielles
   if(d.updated)$('kcal-upd').textContent='màj '+hhmm(d.updated);
   storeSkinTemp(d);
   hideTip();
@@ -527,6 +526,7 @@ const HISTORIQUE_BASE = [
   {date:'Thu Oct 15 2026', conso:1636, brulees:2797, estimated:false},
   {date:'Sat Oct 17 2026', conso:2310, brulees:2847, estimated:false},
   {date:'Sun Oct 18 2026', conso:2012, brulees:2220, estimated:true},
+  {date:'Mon Oct 19 2026', conso:1747, brulees:3272, estimated:true},
   // ⚠️ Une entrée datée d'aujourd'hui est ignorée (Health Connect en temps réel) et ajoutée à partir du lendemain
 ];
 var BASE_BY_KEY={};HISTORIQUE_BASE.forEach(function(e){var d=new Date(e.date);if(!isNaN(d))BASE_BY_KEY[ld(d)]=e;});
