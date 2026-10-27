@@ -214,7 +214,7 @@ html,body{background:#f2f2f6;color:#1a1a22}
         <div class="mini"><div class="mini-l">Moyenne</div><div class="mini-v" id="kcal-avg">—</div><div class="mini-s">kcal / jour</div></div>
         <div class="mini"><div class="mini-l">Objectif</div><div class="mini-v" id="kcal-hit">—</div><div class="mini-s">jours atteints</div></div>
       </div>
-      <div class="note">Calcul : calories totales de l'appli Fitbit (métabolisme + activité Fitbit Air) + calories actives des séances OnePlus. Le BMR de la balance n'est plus ajouté (affiché pour information). Objectif : 2 450 kcal · force 2 550 (≥ 2 450) · padel 1h 2 950 (≥ 2 750) · padel 1h30 3 050 (≥ 3 150). Les boutons forcent le type du jour ; retouche le bouton actif pour revenir en auto. Touche une barre pour le détail.</div>
+      <div class="note">Calcul : calories totales de l'appli Fitbit (métabolisme + activité Fitbit Air) + séances OnePlus (total montre HeyTap − Fitbit sur le créneau, la Fitbit Air étant retirée). Le BMR de la balance n'est plus ajouté (affiché pour information). Objectif : 2 450 kcal · force 2 550 (≥ 2 450) · padel 1h 2 950 (≥ 2 750) · padel 1h30 3 050 (≥ 3 150). Les boutons forcent le type du jour ; retouche le bouton actif pour revenir en auto. Touche une barre pour le détail.</div>
     </div>
 
     <!-- Déficit -->
@@ -335,7 +335,10 @@ html,body{background:#f2f2f6;color:#1a1a22}
 </div>
 
 <script>
-/* ═══════════════ Santé v10.4 ═══════════════
+/* ═══════════════ Santé v10.5 ═══════════════
+   v10.5 : séances OnePlus — HeyTap écrit ses calories de séance en TotalCaloriesBurned (pas en actives).
+           Séance = total montre − Fitbit sur le même créneau (s.tot, s.fb, s.mode envoyés par HealthBridge.kt).
+           La saisie ✏️ = valeur affichée par la montre (HeyTap) ; on en retire aussi la part Fitbit du créneau.
    v10.4 : séances OnePlus — calories saisies à la main par séance (✏️ dans le tooltip du jour, prioritaires)
            et estimation de secours (Padel/Tennis ≥ 20 min lu sous 4 kcal/min → 8 kcal/min).
            Nouveau stockage : santeSessionKcalV10 { '<start ISO>': kcal }.
@@ -379,10 +382,12 @@ function applySessionFixes(days){
   var o=skStore();
   (days||[]).forEach(function(x){var c=x&&x.cal;if(!c||!c.sessions)return;var op=0;
     c.sessions.forEach(function(s){
-      if(s.measured==null)s.measured=s.kcal;              // valeur lue dans Health Connect (conservée)
-      delete s.src;
-      if(o[s.start]!=null){s.kcal=o[s.start];s.src='saisi';}
-      else if(isRacket(s)&&s.min>=20&&s.measured/s.min<EST_MIN_RATE){s.kcal=Math.round(s.min*EST_RATE);s.src='estimé';}
+      if(s.measured==null)s.measured=s.kcal;              // valeur nette calculée depuis Health Connect (conservée)
+      var fb=s.fb||0;                                     // v10.5 — Fitbit sur le créneau (métabolisme)
+      var raw=s.tot>0?s.tot:(s.act!=null?s.act:s.measured); // valeur « montre » lue dans Health Connect
+      delete s.src;s.watch=raw;
+      if(o[s.start]!=null){s.watch=o[s.start];s.kcal=Math.max(0,o[s.start]-fb);s.src='saisi';}
+      else if(isRacket(s)&&s.min>=20&&raw/s.min<EST_MIN_RATE){s.watch=Math.round(s.min*EST_RATE);s.kcal=Math.max(0,s.watch-fb);s.src='estimé';}
       else s.kcal=s.measured;
       op+=s.kcal;});
     c.oneplus=Math.round(op);c.total=Math.round(c.fitbit+c.oneplus);});
@@ -476,8 +481,11 @@ function calRows(c,isToday){
   ss.forEach(function(s){
     var lbl=s.label;if(lbl==='🏃 Activité'&&s.title)lbl='🏃 '+s.title;
     var hs=s.measured!=null&&s.measured!==s.kcal?'Health : '+fmt(s.measured)+' kcal':null;
+    // v10.5 — détail du calcul : montre − Fitbit sur le créneau
+    var calc=s.fb>0&&(s.mode==='total'||s.src)?'montre '+fmt(s.watch)+' − Fitbit '+fmt(s.fb):null;
+    if(calc)hs=calc+(hs&&s.src?' · '+hs:'');
     r.push({l:lbl+' (⌚ OnePlus)'+(s.src?' ('+s.src+')':''),s:(s.start?hhmm(s.start)+' · '+hm(s.min):'')+(hs?' · '+hs:''),v:s.kcal,
-      start:s.start,src:s.src||null,health:hs});
+      start:s.start,src:s.src||null,health:hs,watch:s.watch});
   });
   return r;
 }
@@ -666,14 +674,14 @@ function kcalTip(b){
       if(!r.start){rows.push([r.l,fmt(r.v)+' kcal']);return;}
       if(r.src==='estimé')est=true;
       rows.push([r.l+(r.health?'<small>'+r.health+'</small>':''),
-        '<span class="tkv">'+fmt(r.v)+' kcal<button class="tked" data-start="'+r.start+'" data-v="'+Math.round(r.v)+'">✏️</button></span>']);});}
+        '<span class="tkv">'+fmt(r.v)+' kcal<button class="tked" data-start="'+r.start+'" data-v="'+Math.round(r.watch!=null?r.watch:r.v)+'">✏️</button></span>']);});}
     rows.push('sep');
     var br=bmrRefRow();rows.push([br.l,br.v]);
     rows.push(['🎯 Objectif',fmt(g)+' kcal '+(k!=null?(k>=g?'✅':'❌'):'')]);
     rows.push(['Type',goalLabel(g)+(m==null?' · auto':' · manuel')]);
     if(isT&&c){var p=projMinuit(c);if(p!=null)rows.push(['📈 Projection minuit',fmt(p)+' kcal']);}
     var note=BURN_OVERRIDE[b.key]!=null?'Valeur corrigée manuellement':(!c&&k!=null?'Détail non disponible pour ce jour':null);
-    if(est)note=(note?note+'<br>':'')+'Calories incomplètes dans Health Connect, touche ✏️ pour saisir la valeur de la montre';
+    if(est)note=(note?note+'<br>':'')+'Calories incomplètes dans Health Connect, touche ✏️ pour saisir la valeur affichée par la montre (HeyTap) : la part Fitbit du créneau est déduite';
     return {label:'📅 '+JOURS_L[dt.getDay()]+' '+dd(dt),rows:rows,note:note,
       action:{label:isPadel(b.key)?'Marquer callisthénie 🏋️':'Marquer padel 🎾',fn:function(){toggleDay(b.key);}}};
   }
