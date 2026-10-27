@@ -50,9 +50,13 @@ import java.time.ZoneId
  * v10.0 — Pont Health Connect → JavaScript (réécriture).
  * Exposé dans la WebView sous le nom « HealthBridge » ; le résultat est renvoyé via window.onHealthData(json).
  *
- * Calories brûlées (v10.0, réécriture) — par jour, sur toute la fenêtre affichée :
+ * Calories brûlées (v10.5) — par jour, sur toute la fenêtre affichée :
  *   total = Fitbit Air  : TotalCaloriesBurned écrit par l'appli Fitbit (com.fitbit.FitbitMobile), BMR + activité
- *         + OnePlus     : ActiveCaloriesBurned OnePlus pendant chaque séance OnePlus (ExerciseSession)
+ *         + OnePlus     : pour chaque séance OnePlus (ExerciseSession) :
+ *             – si la montre a écrit des TotalCaloriesBurned (cas HeyTap) : total montre − Fitbit sur le créneau
+ *               (la Fitbit Air est retirée pendant le padel : Fitbit y compte le métabolisme, déjà inclus
+ *               dans le total montre → on remplace le créneau au lieu de l'ajouter)
+ *             – sinon : ActiveCaloriesBurned de la montre pendant la séance (comportement v10.0)
  *   Le BMR de la balance Xiaomi S400 est renvoyé pour information uniquement.
  */
 class HealthBridge(private val activity: ComponentActivity, private val webView: WebView) {
@@ -256,13 +260,22 @@ class HealthBridge(private val activity: ComponentActivity, private val webView:
 
         // 1. Fitbit : relevés TotalCaloriesBurned de l'appli Fitbit, répartis jour par jour (au prorata)
         val fitbit = HashMap<LocalDate, Double>()
+        val fitbitRecs = ArrayList<TotalCaloriesBurnedRecord>()      // v10.5 — pour le créneau de chaque séance
+        val watchTotRecs = ArrayList<TotalCaloriesBurnedRecord>()    // v10.5 — totaux écrits par la montre (HeyTap)
         if (has(granted, "READ_TOTAL_CALORIES_BURNED")) {
             var token: String? = null
             do {
                 val resp = client.readRecords(ReadRecordsRequest(TotalCaloriesBurnedRecord::class,
                     TimeRangeFilter.between(winStart, winEnd), ascendingOrder = true, pageSize = 1000, pageToken = token))
                 for (r in resp.records) {
-                    if (r.metadata.dataOrigin.packageName != PKG_FITBIT) continue
+                    val rp = r.metadata.dataOrigin.packageName
+                    if (isOnePlus(rp)) {
+                        // relevés de séance uniquement (un total journalier de la montre fausserait le prorata)
+                        if (Duration.between(r.startTime, r.endTime).toHours() < 6) watchTotRecs.add(r)
+                        continue
+                    }
+                    if (rp != PKG_FITBIT) continue
+                    fitbitRecs.add(r)
                     val len = Duration.between(r.startTime, r.endTime).seconds
                     var d = r.startTime.atZone(zone).toLocalDate()
                     while (true) {
@@ -279,9 +292,10 @@ class HealthBridge(private val activity: ComponentActivity, private val webView:
             } while (token != null)
         }
 
-        // 2. OnePlus : séances déclarées sur la montre, calories actives OnePlus pendant la séance
+        // 2. OnePlus : séances déclarées sur la montre
+        //    v10.5 — HeyTap n'écrit pas d'ActiveCaloriesBurned pour ses séances, seulement des TotalCaloriesBurned.
         val sessions = HashMap<LocalDate, MutableList<JSONObject>>()
-        if (has(granted, "READ_EXERCISE") && has(granted, "READ_ACTIVE_CALORIES_BURNED")) {
+        if (has(granted, "READ_EXERCISE")) {
             var token: String? = null
             do {
                 val resp = client.readRecords(ReadRecordsRequest(ExerciseSessionRecord::class,
@@ -291,13 +305,22 @@ class HealthBridge(private val activity: ComponentActivity, private val webView:
                     if (!isOnePlus(pkg) || s.startTime.isBefore(winStart)) continue
                     val end = minOf(s.endTime, now)
                     if (!end.isAfter(s.startTime)) continue
-                    val kcal = activeKcal(client, s.startTime, end, setOf(DataOrigin(pkg)))
+                    val act = if (has(granted, "READ_ACTIVE_CALORIES_BURNED"))
+                        activeKcal(client, s.startTime, end, setOf(DataOrigin(pkg))) else 0.0
+                    val tot = overlapKcal(watchTotRecs, s.startTime, end)
+                    val fb = overlapKcal(fitbitRecs, s.startTime, end)
+                    val useTot = tot > 0.0
+                    val kcal = if (useTot) maxOf(0.0, tot - fb) else act
                     sessions.getOrPut(s.startTime.atZone(zone).toLocalDate()) { mutableListOf() }.add(JSONObject()
                         .put("label", getExerciseLabel(s.exerciseType))
                         .put("title", s.title ?: "")
                         .put("start", s.startTime.toString())
                         .put("min", Math.round(Duration.between(s.startTime, end).seconds / 60.0))
                         .put("kcal", Math.round(kcal))
+                        .put("mode", if (useTot) "total" else "actif")
+                        .put("tot", Math.round(tot))   // total écrit par la montre sur la séance
+                        .put("act", Math.round(act))   // calories actives écrites par la montre
+                        .put("fb", Math.round(fb))     // Fitbit sur le même créneau (métabolisme, montre Fitbit retirée)
                         .put("k", kcal))
                 }
                 token = resp.pageToken
@@ -335,6 +358,17 @@ class HealthBridge(private val activity: ComponentActivity, private val webView:
                 )
             )[ActiveCaloriesBurnedRecord.ACTIVE_CALORIES_TOTAL]?.inKilocalories ?: 0.0
         } catch (_: Exception) { 0.0 }
+    }
+
+    /** v10.5 — Somme des relevés sur [a, b], au prorata de leur chevauchement. */
+    private fun overlapKcal(recs: List<TotalCaloriesBurnedRecord>, a: Instant, b: Instant): Double {
+        var t = 0.0
+        for (r in recs) {
+            val len = Duration.between(r.startTime, r.endTime).seconds
+            if (len <= 0) { if (!r.startTime.isBefore(a) && r.startTime.isBefore(b)) t += r.energy.inKilocalories; continue }
+            t += r.energy.inKilocalories * overlapSec(r.startTime, r.endTime, a, b) / len
+        }
+        return t
     }
 
     private fun overlapSec(a1: Instant, a2: Instant, b1: Instant, b2: Instant): Double {
