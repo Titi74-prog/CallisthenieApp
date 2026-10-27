@@ -99,6 +99,12 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
 #tip .tr b{color:#fff;font-variant-numeric:tabular-nums}
 #tip .tsep{border-top:1px solid #3a3a48;margin:6px 0}
 #tip .tna{font-size:11px;color:var(--t3);margin-top:6px}
+#tip .tr small{display:block;font-size:10px;font-weight:600;color:var(--t3)}
+#tip .tked{margin-left:4px;padding:1px 5px;border-radius:6px;border:1px solid var(--bd);background:#0f0f13;font-size:11px;line-height:1.3}
+#tip .tkedit{display:flex;align-items:center;gap:4px}
+#tip .tkin{width:62px;padding:3px 5px;border-radius:6px;border:1px solid var(--bd);background:#0f0f13;color:#fff;font-size:12px;font-weight:700}
+#tip .tkin.bad{border-color:#FF5252}
+#tip .tkok{padding:3px 6px;border-radius:6px;border:1px solid var(--bd);background:#0f0f13;color:var(--t2);font-size:11px;font-weight:800}
 #tip .tb{margin-top:8px;width:100%;padding:7px;border-radius:9px;border:1px solid var(--bd);background:#0f0f13;color:var(--t2);font-size:12px;font-weight:700}
 #banner{display:none}
 #banner .msg{font-size:13px;color:var(--t2);line-height:1.45;margin-bottom:12px}
@@ -132,6 +138,8 @@ html,body{background:#f2f2f6;color:#1a1a22}
 #tip .tr b{color:#1a1a22}
 #tip .tsep{border-top-color:#d0d0da}
 #tip .tb{background:#f2f2f6}
+#tip .tked,#tip .tkok{background:#f2f2f6;color:#1a1a22}
+#tip .tkin{background:#fff;color:#1a1a22}
 #bottom-nav{background:#ffffff;border-top:1px solid #e2e2ea}
 .nav-btn{color:#7d7b87}
 .card{box-shadow:0 1px 4px rgba(0,0,0,.06)}
@@ -327,7 +335,10 @@ html,body{background:#f2f2f6;color:#1a1a22}
 </div>
 
 <script>
-/* ═══════════════ Santé v10.3 ═══════════════
+/* ═══════════════ Santé v10.4 ═══════════════
+   v10.4 : séances OnePlus — calories saisies à la main par séance (✏️ dans le tooltip du jour, prioritaires)
+           et estimation de secours (Padel/Tennis ≥ 20 min lu sous 4 kcal/min → 8 kcal/min).
+           Nouveau stockage : santeSessionKcalV10 { '<start ISO>': kcal }.
    v10.3 : coefficient Fitbit réglable (coefFitbit, part au-dessus du métabolisme), déficit corrigé à côté du brut,
            cible de consommation sur la projection de minuit, suggestion de coefficient d'après la balance.
            Nouveau stockage : coefFitbit, santeOneplusV10 { 'AAAA-MM-JJ': kcal OnePlus } ; deficitHist[].oneplus.
@@ -356,6 +367,26 @@ function lsGet(k){try{return localStorage.getItem(k);}catch(e){return null;}}
 function lsSet(k,v){try{localStorage.setItem(k,v);}catch(e){}}
 function lsJSON(k,def){try{var v=JSON.parse(localStorage.getItem(k));return v==null?def:v;}catch(e){return def;}}
 function todayKey(){return ld(new Date());}
+
+/* v10.4 — séances OnePlus : correction manuelle + estimation de secours
+   Appliquée à la réception (avant TODAY_CAL et storeModel) : tout l'aval utilise les valeurs corrigées. */
+var SK_KEY='santeSessionKcalV10';          // { '<start ISO>': kcal } saisies à la main
+function skStore(){return lsJSON(SK_KEY,{});}
+function setSessionKcal(start,v){var o=skStore();if(v==null)delete o[start];else o[start]=v;lsSet(SK_KEY,JSON.stringify(o));}
+var EST_RATE=8, EST_MIN_RATE=4;            // kcal/min ; médiane des matchs 8,2 (plage 7,0 à 10,5)
+function isRacket(s){return s.label==='🎾 Padel/Tennis';}
+function applySessionFixes(days){
+  var o=skStore();
+  (days||[]).forEach(function(x){var c=x&&x.cal;if(!c||!c.sessions)return;var op=0;
+    c.sessions.forEach(function(s){
+      if(s.measured==null)s.measured=s.kcal;              // valeur lue dans Health Connect (conservée)
+      delete s.src;
+      if(o[s.start]!=null){s.kcal=o[s.start];s.src='saisi';}
+      else if(isRacket(s)&&s.min>=20&&s.measured/s.min<EST_MIN_RATE){s.kcal=Math.round(s.min*EST_RATE);s.src='estimé';}
+      else s.kcal=s.measured;
+      op+=s.kcal;});
+    c.oneplus=Math.round(op);c.total=Math.round(c.fitbit+c.oneplus);});
+}
 var JOURS=['Di','Lu','Ma','Me','Je','Ve','Sa'],JOURS_L=['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
 var MOIS=['Jan','Fév','Mar','Avr','Mai','Juin','Juil','Aoû','Sep','Oct','Nov','Déc'];
 var MOIS_L=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
@@ -444,7 +475,9 @@ function calRows(c,isToday){
   var ss=(c.sessions||[]).slice().sort(function(a,b){return a.start<b.start?-1:1;});
   ss.forEach(function(s){
     var lbl=s.label;if(lbl==='🏃 Activité'&&s.title)lbl='🏃 '+s.title;
-    r.push({l:lbl+' (⌚ OnePlus)',s:s.start?hhmm(s.start)+' · '+hm(s.min):'',v:s.kcal});
+    var hs=s.measured!=null&&s.measured!==s.kcal?'Health : '+fmt(s.measured)+' kcal':null;
+    r.push({l:lbl+' (⌚ OnePlus)'+(s.src?' ('+s.src+')':''),s:(s.start?hhmm(s.start)+' · '+hm(s.min):'')+(hs?' · '+hs:''),v:s.kcal,
+      start:s.start,src:s.src||null,health:hs});
   });
   return r;
 }
@@ -453,6 +486,43 @@ function rowsHtml(r){return r.map(function(x){
   return '<div class="src-row'+(x.dup?' dup':'')+(x.cls?' '+x.cls:'')+'"><span>'+x.l+(x.s?'<small>'+x.s+'</small>':'')+'</span><b>'+(typeof x.v==='string'?x.v:fmt(x.v)+' kcal')+'</b></div>';}).join('');}
 function projMinuit(c){if(!BMR24)return null;var n=new Date(),min=n.getHours()*60+n.getMinutes();return c.total+BMR24.v*(1440-min)/1440;}
 function sportKcal(c){return c?sum((c.sessions||[]).map(function(s){return s.kcal;})):null;}
+
+/* ═════════ v10.4 — Saisie des calories d'une séance (tooltip du jour) ═════════
+   Pas de prompt() : la WebView (WebChromeClient par défaut) ne l'affiche pas → champ dans le tooltip. */
+function sessionEditOpen(btn){
+  var cell=btn.closest('b');if(!cell)return;
+  cell.innerHTML='<span class="tkedit"><input type="number" class="tkin" inputmode="numeric" min="30" max="2500" placeholder="'+btn.getAttribute('data-v')+'">'
+    +'<button class="tkok" data-act="ok" data-start="'+btn.getAttribute('data-start')+'">OK</button>'
+    +'<button class="tkok" data-act="reset" data-start="'+btn.getAttribute('data-start')+'" title="Valeur d\'origine">↺</button></span>';
+  var inp=cell.querySelector('.tkin');try{inp.focus();}catch(e){}
+}
+function sessionEditSave(start,v){
+  setSessionKcal(start,v);
+  if(LAST&&LAST.days)applySessionFixes(LAST.days);
+  if(TODAY_CAL)applySessionFixes([{cal:TODAY_CAL}]);
+  if(LAST&&LAST.days)storeModel(LAST.days); // santeBurnV10, santeOneplusV10, deficitHist[].oneplus (jours passés)
+  refreshAll();
+}
+function sessionEditSubmit(box){
+  var inp=box.querySelector('.tkin'),ok=box.querySelector('[data-act=ok]'),v=parseFloat(inp.value);
+  if(isNaN(v)||v<30||v>2500){inp.classList.add('bad');return;}
+  sessionEditSave(ok.getAttribute('data-start'),Math.round(v));
+}
+function initSessionEdit(){
+  var t=$('tip');
+  t.addEventListener('click',function(e){
+    var ed=e.target.closest('.tked'),bt=e.target.closest('.tkok'),inp=e.target.closest('.tkin');
+    if(!ed&&!bt&&!inp)return;
+    e.stopPropagation(); // la cible est remplacée : sans ça, le listener global fermerait le tooltip
+    if(ed){sessionEditOpen(ed);return;}
+    if(bt){var a=bt.getAttribute('data-act');
+      if(a==='reset')sessionEditSave(bt.getAttribute('data-start'),null);
+      else sessionEditSubmit(bt.closest('.tkedit'));}
+  });
+  t.addEventListener('keydown',function(e){var inp=e.target.closest('.tkin');if(!inp)return;
+    if(e.key==='Enter'){e.preventDefault();sessionEditSubmit(inp.closest('.tkedit'));}
+    else inp.classList.remove('bad');});
+}
 
 /* ═════════ v10.3 — Coefficient Fitbit (part au-dessus du métabolisme) ═════════ */
 function getCoefFitbit(){var c=parseFloat(lsGet('coefFitbit'));return (c>=0.5&&c<=1.2)?c:1.0;}
@@ -591,13 +661,19 @@ function kcalTip(b){
     var rows=[];
     if(k!=null){if(isCorr()){rows.push(['🔥 Total',fmt(burnCorrOf(b.key,x,k))+' kcal <span style="color:var(--t3);font-weight:600">(corrigé '+coefLbl()+')</span>']);rows.push(['Total brut',fmt(k)+' kcal']);}
       else rows.push(['🔥 Total',fmt(k)+' kcal']);}
-    if(c&&BURN_OVERRIDE[b.key]==null){rows.push('sep');calRows(c,isT).forEach(function(r){rows.push([r.l,fmt(r.v)+' kcal']);});}
+    var est=false;
+    if(c&&BURN_OVERRIDE[b.key]==null){rows.push('sep');calRows(c,isT).forEach(function(r){
+      if(!r.start){rows.push([r.l,fmt(r.v)+' kcal']);return;}
+      if(r.src==='estimé')est=true;
+      rows.push([r.l+(r.health?'<small>'+r.health+'</small>':''),
+        '<span class="tkv">'+fmt(r.v)+' kcal<button class="tked" data-start="'+r.start+'" data-v="'+Math.round(r.v)+'">✏️</button></span>']);});}
     rows.push('sep');
     var br=bmrRefRow();rows.push([br.l,br.v]);
     rows.push(['🎯 Objectif',fmt(g)+' kcal '+(k!=null?(k>=g?'✅':'❌'):'')]);
     rows.push(['Type',goalLabel(g)+(m==null?' · auto':' · manuel')]);
     if(isT&&c){var p=projMinuit(c);if(p!=null)rows.push(['📈 Projection minuit',fmt(p)+' kcal']);}
     var note=BURN_OVERRIDE[b.key]!=null?'Valeur corrigée manuellement':(!c&&k!=null?'Détail non disponible pour ce jour':null);
+    if(est)note=(note?note+'<br>':'')+'Calories incomplètes dans Health Connect, touche ✏️ pour saisir la valeur de la montre';
     return {label:'📅 '+JOURS_L[dt.getDay()]+' '+dd(dt),rows:rows,note:note,
       action:{label:isPadel(b.key)?'Marquer callisthénie 🏋️':'Marquer padel 🎾',fn:function(){toggleDay(b.key);}}};
   }
@@ -1012,7 +1088,9 @@ function showCacheBadge(d){
 function receive(d,fromCache){
   if(d.status==='ok'){
     if(d.bmr24)BMR24={v:d.bmr24,src:d.bmrSource};
+    applySessionFixes(d.days); // v10.4 — avant TODAY_CAL et storeModel
     var t=todayOf(d);if(t)TODAY_CAL=t.cal||null;
+    if(TODAY_CAL)applySessionFixes([{cal:TODAY_CAL}]);
     storeModel(d.days);
   }
   if((d.period&&d.period!==PERIOD)||(d.period==='week'&&(d.weekOffset||0)!==WEEK_OFF)){renderDeficit();return;} // pré-chargement 30 j, autre onglet ou autre semaine
@@ -1066,7 +1144,8 @@ function initPullToRefresh(){
     if(!best||Math.abs(best.x-mx)>18||DEF_SEL===best.s.key){hideTip();return;}
     showDeficitDetail(best,r.left+best.x,r.top+best.y);
   });
-  $('content').addEventListener('scroll',hideTip,{passive:true});
+  $('content').addEventListener('scroll',function(){var a=document.activeElement;if(a&&a.closest&&a.closest('#tip'))return;hideTip();},{passive:true}); // v10.4 — pas de fermeture pendant la saisie (clavier)
+  initSessionEdit();
   window.addEventListener('resize',function(){deficitChart(deficitSeries());});
   initPullToRefresh();
   refresh();
