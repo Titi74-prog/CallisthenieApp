@@ -307,7 +307,7 @@ class HealthBridge(private val activity: ComponentActivity, private val webView:
                     if (!end.isAfter(s.startTime)) continue
                     val act = if (has(granted, "READ_ACTIVE_CALORIES_BURNED"))
                         activeKcal(client, s.startTime, end, setOf(DataOrigin(pkg))) else 0.0
-                    val tot = overlapKcal(watchTotRecs, s.startTime, end)
+                    val tot = watchKcal(watchTotRecs, s.startTime, end)
                     val fb = overlapKcal(fitbitRecs, s.startTime, end)
                     val useTot = tot > 0.0
                     val kcal = if (useTot) maxOf(0.0, tot - fb) else act
@@ -358,6 +358,38 @@ class HealthBridge(private val activity: ComponentActivity, private val webView:
                 )
             )[ActiveCaloriesBurnedRecord.ACTIVE_CALORIES_TOTAL]?.inKilocalories ?: 0.0
         } catch (_: Exception) { 0.0 }
+    }
+
+    /**
+     * v10.6 — Total montre sur [a, b] sans double comptage.
+     * HeyTap peut écrire la même séance plusieurs fois (doublons, ou un relevé global + des relevés détaillés,
+     * éventuellement sous deux noms d'appli) : 661 kcal lus 2 fois → 1 322 − 136 = 1 186 affichés en v10.5.
+     *  – par appli : les relevés qui se chevauchent forment un groupe, dont on garde le plus gros (au prorata)
+     *  – entre applis : on garde l'appli au total le plus élevé, sans additionner
+     */
+    private fun watchKcal(recs: List<TotalCaloriesBurnedRecord>, a: Instant, b: Instant): Double {
+        var best = 0.0
+        for ((_, list) in recs.filter { !it.endTime.isBefore(a) && !it.startTime.isAfter(b) }
+                .groupBy { it.metadata.dataOrigin.packageName }) {
+            val sorted = list.sortedBy { it.startTime }
+            var total = 0.0
+            var groupEnd: Instant? = null
+            var groupMax = 0.0
+            for (r in sorted) {
+                val v = overlapKcal(listOf(r), a, b)
+                if (groupEnd != null && r.startTime.isBefore(groupEnd)) {      // chevauche le groupe en cours
+                    groupMax = maxOf(groupMax, v)
+                    if (r.endTime.isAfter(groupEnd)) groupEnd = r.endTime
+                } else {
+                    total += groupMax
+                    groupMax = v
+                    groupEnd = r.endTime
+                }
+            }
+            total += groupMax
+            best = maxOf(best, total)
+        }
+        return best
     }
 
     /** v10.5 — Somme des relevés sur [a, b], au prorata de leur chevauchement. */
