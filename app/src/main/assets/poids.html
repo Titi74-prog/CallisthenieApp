@@ -64,6 +64,18 @@ canvas{width:100%;height:180px}
 .nav-btn.active{color:#F9A825}
 .nav-btn span{font-size:15px}
 :root{--acc:#26C6A0;--acc2:#42A5F5;--card:#1a1a22;--bd:#2a2a35;--t2:#b0aeb8;--t3:#6b6a75;--ok:#4ECDC4;--warn:#F9A825}
+/* v10.7 — Moyenne glissante 7 jours */
+.avg-top{display:flex;gap:8px}
+.avg-box{flex:1;background:#0f0f13;border-radius:10px;padding:9px 6px;text-align:center}
+.avg-l{font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px}
+.avg-v{font-size:19px;font-weight:800;font-variant-numeric:tabular-nums;margin-top:2px}
+.avg-s{font-size:10px;color:var(--t3);margin-top:1px}
+.avg-tbl{width:100%;border-collapse:collapse;margin-top:10px;font-size:12px;font-variant-numeric:tabular-nums}
+.avg-tbl th{font-size:10px;color:var(--t3);font-weight:700;text-align:right;padding:4px 2px;text-transform:uppercase;letter-spacing:.4px}
+.avg-tbl th:first-child,.avg-tbl td:first-child{text-align:left}
+.avg-tbl td{padding:5px 2px;text-align:right;border-top:1px solid var(--bd);color:var(--t2)}
+.avg-tbl td b{color:inherit}
+.lg-avg{display:inline-block;width:14px;height:3px;border-radius:2px;background:#FF9800;margin-right:4px;vertical-align:middle}
 /* v6.4 — Balance S400 (déplacée depuis Santé) */
 .card{background:var(--card);border-radius:14px;padding:14px;margin-bottom:12px}
 .card-title{font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center}
@@ -118,6 +130,7 @@ html,body{background:#f2f2f6;color:#1a1a22}
 #header-time{color:#7d7b87}
 #stats{background:#ffffff;border-bottom:1px solid #e2e2ea}
 .stat-card{background:#f2f2f6}
+.avg-box{background:#f2f2f6}
 .stat-label{color:#7d7b87}
 .stat-sub{color:#7d7b87}
 #progress-wrap{background:#ffffff;border-bottom:1px solid #e2e2ea}
@@ -188,8 +201,19 @@ html,body{background:#f2f2f6;color:#1a1a22}
     <div id="chart-wrap">
       <div id="chart-title">Courbe de progression</div>
       <canvas id="chart" onclick="onChartTap(event)"></canvas>
-      <div class="chart-leg"><span><i class="lg-man"></i>Pesée manuelle</span><span><i class="lg-s4"></i>Pesée S400</span><span class="lg-tip">Touche un point pour le détail</span></div>
+      <div class="chart-leg"><span><i class="lg-man"></i>Pesée manuelle</span><span><i class="lg-s4"></i>Pesée S400</span><span><i class="lg-avg"></i>Moyenne 7 j</span><span class="lg-tip">Touche un point pour le détail</span></div>
       <div id="comp-panel" onclick="event.stopPropagation()"></div>
+    </div>
+    <!-- v10.7 — Moyenne glissante 7 jours + comparaison semaine par semaine -->
+    <div class="card" id="avg-card">
+      <div class="card-title">📊 Moyenne 7 jours <b id="avg-n"></b></div>
+      <div class="avg-top">
+        <div class="avg-box"><div class="avg-l">Cette semaine</div><div class="avg-v" id="avg-cur">—</div><div class="avg-s" id="avg-cur-s">7 derniers jours</div></div>
+        <div class="avg-box"><div class="avg-l">Semaine d'avant</div><div class="avg-v" id="avg-prev">—</div><div class="avg-s" id="avg-prev-s">J-13 → J-7</div></div>
+        <div class="avg-box"><div class="avg-l">Écart</div><div class="avg-v" id="avg-delta">—</div><div class="avg-s" id="avg-delta-s">kg / semaine</div></div>
+      </div>
+      <table class="avg-tbl" id="avg-tbl"></table>
+      <div class="note" id="avg-note">Pèse-toi chaque matin au réveil, après les toilettes, à jeun et sans vêtements, balance au même endroit. Seules les moyennes comptent : une pesée isolée varie de ±1 kg avec l'eau. Semaines du dimanche au samedi ; une moyenne est fiable à partir de 4 pesées. Décide sur la tendance de 2 à 3 semaines.</div>
     </div>
     <!-- v6.3 — Balance Xiaomi S400 (capture Xiaomi Home lue par OCR) -->
     <div class="card" id="s400-card">
@@ -356,6 +380,7 @@ function render(){
   document.getElementById('pl-pct').textContent=(perdu>=0?'−':'+')+Math.abs(perdu).toFixed(1)+' kg · '+pct+'%';
 
   drawChart();
+  try{renderAvg();}catch(e){}
   renderHistorique();
 }
 
@@ -387,6 +412,35 @@ function showCompositionPanel(p,pesee){
   }
   pn.style.display='block';
   pn.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+/* ═════════ v10.7 — Moyenne glissante 7 jours ═════════
+   Une valeur par jour : pesée du matin (sans libellé) ; à défaut, la première pesée du jour.
+   Moyenne glissante d'un jour J = moyenne des pesées de J-6 à J (affichée si ≥ 3 pesées). */
+var AVG_MIN_PT=3, AVG_MIN_WEEK=4;
+function avgLd(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function dayMap(){var m={},man={};pesees.forEach(function(p){if(!p.lbl){m[p.date]=p.poids;man[p.date]=1;}else if(!(p.date in m))m[p.date]=p.poids;});return m;}
+function addDays(k,n){var d=new Date(k+'T12:00:00');d.setDate(d.getDate()+n);return avgLd(d);}
+function windowAvg(m,from,to){var v=[];for(var k in m)if(k>=from&&k<=to)v.push(m[k]);return v.length?{v:v.reduce(function(a,b){return a+b;},0)/v.length,n:v.length}:{v:null,n:0};}
+function rollAvg(m,k){var r=windowAvg(m,addDays(k,-6),k);return r.n>=AVG_MIN_PT?r.v:null;}
+function fmtK1(v){return v==null?'—':v.toFixed(1).replace('.',',');}
+function fmtD(v){return v==null?'—':(v>0?'+':v<0?'−':'±')+Math.abs(v).toFixed(1).replace('.',',');}
+function dColor(v){return v==null?'':v<0?'#4ECDC4':v>0?'#EF5350':TC('#6b6a75');}
+function renderAvg(){
+  var m=dayMap(),today=avgLd(new Date());
+  var cur=windowAvg(m,addDays(today,-6),today),prev=windowAvg(m,addDays(today,-13),addDays(today,-7));
+  var cv=cur.n>=AVG_MIN_PT?cur.v:null,pv=prev.n>=AVG_MIN_PT?prev.v:null,dl=cv!=null&&pv!=null?cv-pv:null;
+  document.getElementById('avg-cur').textContent=fmtK1(cv);document.getElementById('avg-cur-s').textContent=cur.n+' pesée'+(cur.n>1?'s':'')+' / 7 j';
+  document.getElementById('avg-prev').textContent=fmtK1(pv);document.getElementById('avg-prev-s').textContent=prev.n+' pesée'+(prev.n>1?'s':'')+' / 7 j';
+  document.getElementById('avg-delta').textContent=fmtD(dl);document.getElementById('avg-delta').style.color=dColor(dl);
+  document.getElementById('avg-n').textContent=cur.n>=AVG_MIN_WEEK?'fiable':cur.n?'à compléter ('+cur.n+'/'+AVG_MIN_WEEK+' min.)':'';
+  // Semaines dimanche → samedi : moyenne au samedi, écart avec la semaine d'avant
+  var t=new Date(today+'T12:00:00'),sat=addDays(today,6-t.getDay()),rows=[],last=null;
+  for(var i=7;i>=0;i--){var e=addDays(sat,-7*i),r=windowAvg(m,addDays(e,-6),e);rows.push({e:e,r:r});}
+  var h='<tr><th>Semaine au</th><th>Pesées</th><th>Moyenne</th><th>Écart</th></tr>',out=[];
+  rows.forEach(function(w){var v=w.r.n>=AVG_MIN_PT?w.r.v:null,d=v!=null&&last!=null?v-last:null;if(v!=null)last=v;
+    if(w.r.n)out.push('<tr><td>sam. '+fmtDate(w.e).slice(0,5)+(w.e>=today&&w.e<=addDays(today,6)?' (en cours)':'')+'</td><td>'+w.r.n+'</td><td><b>'+fmtK1(v)+'</b>'+(v!=null&&w.r.n<AVG_MIN_WEEK?' ~':'')+'</td><td style="color:'+dColor(d)+'">'+(d==null?'—':fmtD(d)+' kg')+'</td></tr>');});
+  document.getElementById('avg-tbl').innerHTML=out.length?h+out.reverse().slice(0,6).join(''):'';
 }
 
 function drawChart(){
@@ -434,6 +488,13 @@ function drawChart(){
     var x=xp(p),y=yp(p.poids);
     if(i===0)ctx.moveTo(x,y); else ctx.lineTo(x,y);
   });
+  ctx.stroke();
+
+  // v10.7 — Moyenne glissante 7 jours (orange)
+  var M=dayMap(),started=false;
+  ctx.strokeStyle='#FF9800';ctx.lineWidth=2;ctx.beginPath();
+  Object.keys(M).sort().forEach(function(k){var a=rollAvg(M,k);if(a==null){started=false;return;}
+    var x=xp({date:k}),y=yp(a);if(!started){ctx.moveTo(x,y);started=true;}else ctx.lineTo(x,y);});
   ctx.stroke();
 
   // Points — v6.8 : bleu = pesée manuelle, vert cerclé = pesée S400 (composition complète). Positions mémorisées pour le tap.
