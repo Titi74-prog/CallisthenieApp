@@ -224,6 +224,24 @@ html,body{background:#f2f2f6;color:#1a1a22}
       <div class="note">Lecture hors ligne sur le téléphone. Le poids est ajouté automatiquement à la courbe. Touche une tuile pour sa courbe sur 30 jours.</div>
     </div>
 
+    <!-- v10.8 — Mensurations (tour de taille / hanches) -->
+    <div class="card" id="mens-card">
+      <div class="card-title">📏 Mensurations <b id="mens-date"></b></div>
+      <div id="mens-last"></div>
+      <canvas id="mens-chart" style="display:none;width:100%;margin-top:10px"></canvas>
+      <div class="chart-leg" id="mens-leg" style="display:none"><span><i style="background:#26C6A0"></i>Taille</span><span><i style="background:#F9A825"></i>Hanches</span><span class="lg-tip">Pointillé : 0,50 × hauteur</span></div>
+      <div style="margin-top:10px">
+        <div class="s4row"><label>Date</label><input type="date" id="mn-date"></div>
+        <div class="s4row"><label>Tour de taille</label><input type="number" id="mn-taille" step="0.1" inputmode="decimal" placeholder="cm"><span class="s4u">cm</span></div>
+        <div class="s4row"><label>Tour de hanches (optionnel)</label><input type="number" id="mn-hanches" step="0.1" inputmode="decimal" placeholder="cm"><span class="s4u">cm</span></div>
+        <div class="s4row"><label>Note (optionnel)</label><input type="text" id="mn-note" maxlength="80" style="width:160px;text-align:left;font-size:13px" placeholder="ex : pantalon 42"></div>
+      </div>
+      <div id="mn-msg" style="display:none;margin-top:8px;font-size:12px;font-weight:700;line-height:1.4"></div>
+      <button class="btn btn-main" id="mn-save" onclick="mensSave()">Enregistrer la mesure</button>
+      <div id="mens-list"></div>
+      <div class="note">Une fois par semaine (samedi), à jeun, à mi-chemin entre le bas des côtes et le haut de l'os de la hanche, après une expiration normale, même mètre ruban, sans serrer. Hanches : au point le plus large. Fais 3 mesures et garde la moyenne. Une variation de moins de 2 cm n'est pas significative : regarde la tendance sur 4 à 6 semaines.</div>
+    </div>
+
     <!-- v7.1 — Température cutanée (Fitbit Air → Health Connect) -->
     <div class="card" id="temp-card">
       <div class="card-title">🌡️ Température cutanée <b id="temp-date"></b></div>
@@ -1183,5 +1201,129 @@ function s400SaveBMR(H){
   <button class="nav-btn" onclick="navTo('extra')"><span>💪</span>Extra</button>
   <button class="nav-btn" onclick="navTo('sante')"><span>📊</span>Santé</button>
 </div>
+<script>
+/* ═════════ v10.8 — Mensurations : tour de taille / hanches ═════════ */
+var MENS_KEY='mensurations_v1',MENS_HAUTEUR=189; /* cm = S400_TAILLE × 100 */
+var mnPending=null;
+function mnEl(id){return document.getElementById(id);}
+function mensLoad(){
+  var a=null;try{a=JSON.parse(localStorage.getItem(MENS_KEY));}catch(e){}
+  if(!a||!a.length){try{if(window.App&&App.getPref){var p=App.getPref(MENS_KEY);if(p)a=JSON.parse(p);}}catch(e){}}
+  return (a||[]).filter(function(x){return x&&x.date&&x.taille;}).sort(function(p,q){return p.date.localeCompare(q.date);});
+}
+function mensStore(a){var s=JSON.stringify(a);try{localStorage.setItem(MENS_KEY,s);}catch(e){}try{if(window.App&&App.setPref)App.setPref(MENS_KEY,s);}catch(e){}}
+function mnF(v){return v==null?'—':(Math.round(v*10)/10).toFixed(1).replace('.',',');}
+function mnR(v){return v==null?'—':(Math.round(v*100)/100).toFixed(2).replace('.',',');}
+function mnD(v){return v==null?'':(v>0?'+':v<0?'−':'±')+mnF(Math.abs(v));}
+function mnDm(d){var p=d.split('-');return p[2]+'/'+p[1];}
+function mnEsc(t){return String(t||'').replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+function mnToday(){var n=new Date();return n.getFullYear()+'-'+('0'+(n.getMonth()+1)).slice(-2)+'-'+('0'+n.getDate()).slice(-2);}
+function mnErr(s,ok){var m=mnEl('mn-msg');m.textContent=s;m.style.color=ok?'#4ECDC4':'#EF5350';m.style.display='block';}
+
+function mensSave(){
+  var d=mnEl('mn-date').value;
+  var t=parseFloat((mnEl('mn-taille').value||'').replace(',','.'));
+  var h=parseFloat((mnEl('mn-hanches').value||'').replace(',','.'));
+  var note=(mnEl('mn-note').value||'').trim().slice(0,80);
+  mnEl('mn-msg').style.display='none';
+  if(!d){mnErr('Choisis une date.');return;}
+  if(!(t>=50&&t<=200)){mnErr('Tour de taille : entre 50 et 200 cm.');return;}
+  if(!isNaN(h)&&!(h>=60&&h<=200)){mnErr('Tour de hanches : entre 60 et 200 cm.');return;}
+  var a=mensLoad(),prev=null;
+  a.forEach(function(x){if(x.date<d)prev=x;});
+  var key=d+'|'+t;
+  if(prev&&Math.abs(t-prev.taille)>5&&mnPending!==key){
+    mnPending=key;
+    mnErr('Écart de '+mnF(Math.abs(t-prev.taille))+' cm avec la mesure du '+mnDm(prev.date)+'. Vérifie la saisie, puis touche encore « Enregistrer » pour confirmer.');
+    return;
+  }
+  mnPending=null;
+  a=a.filter(function(x){return x.date!==d;});
+  a.push({date:d,taille:Math.round(t*10)/10,hanches:isNaN(h)?null:Math.round(h*10)/10,note:note});
+  a.sort(function(p,q){return p.date.localeCompare(q.date);});
+  mensStore(a);
+  mnEl('mn-taille').value='';mnEl('mn-hanches').value='';mnEl('mn-note').value='';
+  mensRender();
+  mnErr('Mesure enregistrée.',true);
+}
+function mensDel(d){
+  mensStore(mensLoad().filter(function(x){return x.date!==d;}));
+  mensRender();
+}
+
+function mnTile(l,v,u,st,col){
+  return '<div class="s4t" style="cursor:default"><div class="s4l">'+l+'</div><div class="s4v">'+v+(u?'<small>'+u+'</small>':'')+'</div>'+
+    (st?'<div class="s4s" style="color:'+col+';border-color:'+col+'">'+st+'</div>':'')+'</div>';
+}
+
+function mensRender(){
+  var a=mensLoad(),L=mnEl('mens-last'),list=mnEl('mens-list'),cv=mnEl('mens-chart'),lg=mnEl('mens-leg');
+  if(!a.length){
+    L.innerHTML='<div id="s400-empty">Aucune mesure. Saisis ton tour de taille ci-dessous : c\'est ton point de départ.</div>';
+    cv.style.display='none';lg.style.display='none';list.innerHTML='';mnEl('mens-date').textContent='';
+    return;
+  }
+  var last=a[a.length-1],prev=a.length>1?a[a.length-2]:null,first=a[0];
+  mnEl('mens-date').textContent=mnDm(last.date);
+  var dP=prev?last.taille-prev.taille:null,dF=a.length>1?last.taille-first.taille:null;
+  var whtr=last.taille/MENS_HAUTEUR;
+  var cw=whtr<0.5?'#4ECDC4':whtr<0.6?'#F9A825':'#EF5350';
+  var sw=whtr<0.5?'sous 0,50':whtr<0.6?'0,50 à 0,59':'0,60 et plus';
+  var whr=last.hanches?last.taille/last.hanches:null;
+  var tiles=mnTile('Taille ÷ hauteur',mnR(whtr),'',sw,cw);
+  if(last.hanches){
+    tiles+=mnTile('Hanches',mnF(last.hanches),'cm','','');
+    tiles+=mnTile('Taille ÷ hanches',mnR(whr),'',whr<0.9?'sous 0,90':'au-dessus de 0,90',whr<0.9?'#4ECDC4':'#F9A825');
+  }
+  L.innerHTML='<div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap"><div style="font-size:30px;font-weight:800;font-variant-numeric:tabular-nums">'+mnF(last.taille)+' <small style="font-size:14px;font-weight:600;color:var(--t3)">cm</small></div>'+
+    '<div style="font-size:12px;color:var(--t2);font-variant-numeric:tabular-nums">'+(dP==null?'1re mesure':('vs précédente '+mnD(dP)+(dF!=null&&a.length>2?' · vs 1re '+mnD(dF):'')))+'</div></div>'+
+    '<div class="s4grid">'+tiles+'</div>'+
+    '<div class="note">Repère : tour de taille de '+mnF(MENS_HAUTEUR*0.5)+' cm = la moitié de ta hauteur ('+MENS_HAUTEUR+' cm). Indicatif, pas un diagnostic. Marge du mètre ruban : environ ±1 cm.</div>';
+  var rows=a.slice(-8).reverse().map(function(x){
+    return '<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--bd);font-size:12.5px">'+
+      '<span style="width:44px;color:var(--t3)">'+mnDm(x.date)+'</span>'+
+      '<span style="font-weight:700;font-variant-numeric:tabular-nums;min-width:62px">'+mnF(x.taille)+' cm</span>'+
+      '<span style="color:var(--t2);font-variant-numeric:tabular-nums;min-width:62px">'+(x.hanches?mnF(x.hanches)+' cm':'')+'</span>'+
+      '<span style="flex:1;color:var(--t3);font-size:11.5px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+mnEsc(x.note)+'</span>'+
+      '<button onclick="mensDel(\''+x.date+'\')" aria-label="Supprimer la mesure du '+mnDm(x.date)+'" style="border:none;background:none;color:var(--t3);font-size:15px;cursor:pointer">✕</button></div>';
+  }).join('');
+  list.innerHTML='<div style="margin-top:10px">'+rows+'</div>';
+  if(a.length>=2){cv.style.display='block';lg.style.display='flex';mensDraw(a);}
+  else{cv.style.display='none';lg.style.display='none';}
+}
+
+function mensDraw(a){
+  var cv=mnEl('mens-chart'),dpr=window.devicePixelRatio||1,W=cv.offsetWidth||320,H=150;
+  cv.width=W*dpr;cv.height=H*dpr;cv.style.width=W+'px';cv.style.height=H+'px';
+  var ctx=cv.getContext('2d');ctx.scale(dpr,dpr);
+  var pad={t:10,r:10,b:24,l:42},w=W-pad.l-pad.r,h=H-pad.t-pad.b;
+  var vals=[];a.forEach(function(x){vals.push(x.taille);if(x.hanches)vals.push(x.hanches);});
+  var ref=MENS_HAUTEUR*0.5;vals.push(ref);
+  var min=Math.floor(Math.min.apply(null,vals))-2,max=Math.ceil(Math.max.apply(null,vals))+2;
+  var t0=new Date(a[0].date).getTime(),t1=new Date(a[a.length-1].date).getTime(),rg=t1-t0||1;
+  function xp(d){return pad.l+(new Date(d).getTime()-t0)/rg*w;}
+  function yp(v){return pad.t+(max-v)/(max-min)*h;}
+  var step=(max-min)>16?5:2;
+  ctx.lineWidth=1;ctx.font='9px sans-serif';ctx.textAlign='right';
+  for(var y=Math.ceil(min/step)*step;y<=max;y+=step){
+    ctx.strokeStyle=TC('#2a2a35');ctx.beginPath();ctx.moveTo(pad.l,yp(y));ctx.lineTo(pad.l+w,yp(y));ctx.stroke();
+    ctx.fillStyle=TC('#6b6a75');ctx.fillText(y+'cm',pad.l-4,yp(y)+3);
+  }
+  ctx.strokeStyle='#8a8994';ctx.setLineDash([3,4]);ctx.beginPath();ctx.moveTo(pad.l,yp(ref));ctx.lineTo(pad.l+w,yp(ref));ctx.stroke();ctx.setLineDash([]);
+  function line(key,col){
+    var pts=a.filter(function(x){return x[key];});if(!pts.length)return;
+    ctx.strokeStyle=col;ctx.lineWidth=2;ctx.lineJoin='round';ctx.beginPath();
+    pts.forEach(function(x,i){var X=xp(x.date),Y=yp(x[key]);if(i)ctx.lineTo(X,Y);else ctx.moveTo(X,Y);});ctx.stroke();
+    pts.forEach(function(x){ctx.fillStyle=col;ctx.beginPath();ctx.arc(xp(x.date),yp(x[key]),3.5,0,6.2832);ctx.fill();});
+  }
+  line('hanches','#F9A825');line('taille','#26C6A0');
+  ctx.fillStyle=TC('#6b6a75');ctx.textAlign='left';ctx.fillText(mnDm(a[0].date),pad.l,H-8);
+  ctx.textAlign='right';ctx.fillText(mnDm(a[a.length-1].date),pad.l+w,H-8);
+}
+document.addEventListener('DOMContentLoaded',function(){
+  var d=mnEl('mn-date');if(d&&!d.value)d.value=mnToday();
+  mensRender();
+});
+</script>
 </body>
 </html>
