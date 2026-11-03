@@ -61,7 +61,7 @@
         <activity
             android:name=".ImportCaptureActivity"
             android:exported="true"
-            android:label="Callisthénie · Balance S400"
+            android:label="Milestones · Balance S400"
             android:excludeFromRecents="true"
             android:noHistory="true"
             android:theme="@android:style/Theme.Translucent.NoTitleBar">
@@ -74,7 +74,7 @@
         <receiver
             android:name=".ProgrammeWidget"
             android:exported="true"
-            android:label="Callisthénie">
+            android:label="Milestones">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
