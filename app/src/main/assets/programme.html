@@ -694,10 +694,27 @@ function toggleCard(sid,i){
   if(!isOpen)card.classList.add('open');
 }
 
+/* v11.0 — séances faites pour les défis Milestones : seances_v1 = { 'AAAA-MM-JJ':'A' } */
+var SEANCES_KEY='seances_v1';
+function seLoad(){var a=null;try{a=JSON.parse(localStorage.getItem(SEANCES_KEY));}catch(e){}
+  if(a==null){try{if(window.App&&App.getPref){var p=App.getPref(SEANCES_KEY);if(p)a=JSON.parse(p);}}catch(e){}}
+  return a&&typeof a==='object'?a:{};}
+function seStore(o){var s=JSON.stringify(o);try{localStorage.setItem(SEANCES_KEY,s);}catch(e){}try{if(window.App&&App.setPref)App.setPref(SEANCES_KEY,s);}catch(e){}}
+function seanceTrack(sid){
+  var s=SESSIONS.filter(function(x){return x.id===sid;})[0];if(!s)return;
+  var allExos=s.blocs?s.blocs.reduce(function(a,b){return a.concat(b.exos);},[]):s.exos;
+  var dk=doneExos[sid]||{},n=Object.keys(dk).filter(function(k){return k.indexOf('__')<0;}).length; // même calcul que doneCount
+  var d=new Date(),k=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  var o=seLoad(),ch=false;
+  if(allExos.length&&n>=allExos.length){if(o[k]!==sid){o[k]=sid;ch=true;}}
+  else if(o[k]===sid){delete o[k];ch=true;}
+  if(ch)seStore(o);
+}
 function markDone(sid,i){
   if(!doneExos[sid])doneExos[sid]={};
   if(doneExos[sid][i])delete doneExos[sid][i];
   else doneExos[sid][i]=true;
+  try{seanceTrack(sid);}catch(e){}
   var sc=document.getElementById('content').scrollTop;
   renderSession(SESSIONS[SESSION_IDX[currentTab]]);
   document.getElementById('content').scrollTop=sc;

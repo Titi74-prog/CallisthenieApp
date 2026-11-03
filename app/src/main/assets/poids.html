@@ -66,6 +66,35 @@ canvas{width:100%;height:180px}
 :root{--acc:#26C6A0;--acc2:#42A5F5;--card:#1a1a22;--bd:#2a2a35;--t2:#b0aeb8;--t3:#6b6a75;--ok:#4ECDC4;--warn:#F9A825}
 /* v10.7 — Moyenne glissante 7 jours */
 .avg-top{display:flex;gap:8px}
+/* v11.0 — Carte 🏁 Milestones */
+#ms-card .ms-path{display:flex;align-items:flex-start;overflow-x:auto;padding:4px 2px 6px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+#ms-card .ms-path::-webkit-scrollbar{display:none}
+.ms-node{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;width:32px;position:relative}
+.ms-node::before{content:'';position:absolute;top:11px;right:50%;width:32px;height:2px;background:var(--bd)}
+.ms-node:first-child::before{display:none}
+.ms-node span{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;position:relative;z-index:1;background:var(--bd);color:var(--t3)}
+.ms-node b{font-size:10px;margin-top:3px;color:var(--t3);font-weight:700;font-variant-numeric:tabular-nums}
+.ms-ok::before{background:var(--ok)}
+.ms-ok span{background:var(--ok);color:#0f0f13}
+.ms-ok b{color:var(--t2)}
+.ms-cur::before{background:linear-gradient(90deg,var(--ok),var(--warn))}
+.ms-cur span{background:var(--card);border:2px solid var(--warn);color:var(--warn);width:24px;height:24px;margin-top:-1px}
+.ms-cur b{color:var(--warn)}
+.ms-todo{opacity:.5}
+.ms-line{font-size:13px;color:var(--t2);line-height:1.45;margin-top:6px}
+.ms-line b{color:var(--t1,inherit)}
+.ms-small{font-size:11px;color:var(--t3);line-height:1.4;margin-top:2px}
+.ms-sub{font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.6px;margin:14px 0 6px;display:flex;justify-content:space-between}
+.ms-sub b{color:var(--t2);text-transform:none;letter-spacing:0}
+.ms-ch{display:flex;align-items:center;gap:8px;margin:6px 0;font-size:13px}
+.ms-ch .l{flex:0 0 128px;color:var(--t2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ms-bar{flex:1;height:7px;border-radius:4px;background:var(--bd);overflow:hidden}
+.ms-bar i{display:block;height:100%;background:var(--acc2);border-radius:4px}
+.ms-bar i.ok{background:var(--ok)}
+.ms-ch .v{flex:0 0 40px;text-align:right;font-variant-numeric:tabular-nums;font-weight:700;color:var(--t2)}
+.ms-ch .v.ok{color:var(--ok)}
+.ms-week{margin-top:8px;font-size:13px;font-weight:700;color:var(--t3)}
+.ms-week.ok{color:var(--ok)}
 .avg-box{flex:1;background:#0f0f13;border-radius:10px;padding:9px 6px;text-align:center}
 .avg-l{font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px}
 .avg-v{font-size:19px;font-weight:800;font-variant-numeric:tabular-nums;margin-top:2px}
@@ -197,6 +226,20 @@ html,body{background:#f2f2f6;color:#1a1a22}
     <div id="progress-labels"><span id="pl-left">98,5 kg</span><span id="pl-pct">0%</span><span id="pl-right">87 kg</span></div>
   </div>
   <div id="content">
+    <!-- v11.0 — Jalons et défis de la semaine -->
+    <div class="card" id="ms-card">
+      <div class="card-title">🏁 Milestones <b id="ms-count"></b></div>
+      <div class="ms-path" id="ms-path"></div>
+      <div class="ms-line" id="ms-next"></div>
+      <div class="ms-small" id="ms-last"></div>
+      <div class="ms-sub"><span>Ventre</span></div>
+      <div class="ms-line" id="ms-ventre"></div>
+      <div class="ms-line" id="ms-streak" style="margin-top:10px"></div>
+      <div class="ms-sub"><span>Défis de la semaine</span><b id="ms-score"></b></div>
+      <div id="ms-defis"></div>
+      <div class="ms-week" id="ms-week"></div>
+      <div class="note">Un jalon est validé quand la moyenne d'une semaine (dimanche → samedi, au moins 4 pesées) passe sous le seuil ; il reste acquis ensuite. Défis remis à zéro chaque dimanche.</div>
+    </div>
     <button class="btn btn-main" id="btn-import" onclick="s400Import()">📷 Importer une capture</button>
     <div id="chart-wrap">
       <div id="chart-title">Courbe de progression</div>
@@ -293,10 +336,31 @@ var T_MAP={'#2a2a35':'#e2e2ea','#6b6a75':'#7d7b87','#0f0f13':'#ffffff','#1a1a22'
 function TC(c){return LT&&T_MAP[c]?T_MAP[c]:c;}
 
 var DEPART = {date:'2026-06-20', poids:98.5};
-/* v6.3 — Objectifs par paliers : 89 kg fin octobre 2026, puis 80 kg juin 2027 (plateau hivernal prévu jan-mars) */
-var PALIERS = [{kg:89.0, fin:'2026-10-31', lbl:'Objectif fin oct.'}, {kg:80.0, fin:'2027-06-30', lbl:'Objectif juin 2027'}];
-var PALIER = (function(){var t=new Date().toISOString().slice(0,10);for(var i=0;i<PALIERS.length;i++)if(t<=PALIERS[i].fin)return PALIERS[i];return PALIERS[PALIERS.length-1];})();
-var OBJECTIF = PALIER.kg;
+/* v11.0 — Jalons Milestones (remplacent les paliers 89 / 80 kg) : un jalon par kg, de 98 à 80.
+   milestones_v1 = { poids:{ '89':{date,moy} }, ventre:{date}, semaines:{ 'AAAA-MM-JJ (dimanche)':score } } */
+var MS_KEY='milestones_v1', MS_HI=98, MS_LO=80;
+var OBJECTIF = MS_LO; // = prochain jalon, recalculé à chaque render()
+function msLoad(k,def){var a=null;try{a=JSON.parse(localStorage.getItem(k));}catch(e){}
+  if(a==null){try{if(window.App&&App.getPref){var p=App.getPref(k);if(p)a=JSON.parse(p);}}catch(e){}}
+  return a==null?def:a;}
+function msStore(k,o){var s=JSON.stringify(o);try{localStorage.setItem(k,s);}catch(e){}try{if(window.App&&App.setPref)App.setPref(k,s);}catch(e){}}
+function msSun(k){var d=new Date(k+'T12:00:00');return addDays(k,-d.getDay());}  // dimanche de la semaine de k
+function msState(){var s=msLoad(MS_KEY,null)||{};if(typeof s!=='object')s={};s.poids=s.poids||{};s.semaines=s.semaines||{};if(!s.ventre)s.ventre=null;return s;}
+function msUpdate(){
+  var s=msState(),m=dayMap(),keys=Object.keys(m).sort(),ch=false,N;
+  if(!s.init){ // premier lancement : jalons reconstitués si ≥ 2 pesées ≤ N (date de la 2e pesée)
+    for(N=MS_HI;N>=MS_LO;N--){if(s.poids[N])continue;var c=0;
+      for(var i=0;i<keys.length;i++)if(m[keys[i]]<=N&&++c===2){s.poids[N]={date:keys[i],moy:null,reconstitue:true};break;}}
+    s.init=true;ch=true;}
+  // Semaines dimanche → samedi, ≥ 4 pesées (même définition que le tableau « Moyenne 7 jours »)
+  var wk={};keys.forEach(function(k){var w=msSun(k);(wk[w]=wk[w]||[]).push(k);});
+  Object.keys(wk).sort().forEach(function(w){var ks=wk[w];if(ks.length<AVG_MIN_WEEK)return;
+    var moy=ks.reduce(function(a,k){return a+m[k];},0)/ks.length;
+    for(N=MS_HI;N>=MS_LO;N--)if(!s.poids[N]&&moy<=N){s.poids[N]={date:ks[ks.length-1],moy:Math.round(moy*10)/10};ch=true;}});
+  if(ch)msStore(MS_KEY,s);
+  return s;
+}
+function msNext(s){for(var N=MS_HI;N>=MS_LO;N--)if(!s.poids[N])return N;return null;}
 
 var pesees = [
   {date:'2026-06-20',poids:98.5},
@@ -368,8 +432,9 @@ function save(){
 
 function render(){
   sortP();
+  if(!(RESET&&RESET.objectif)){try{var nx=msNext(msUpdate());OBJECTIF=nx!=null?nx:MS_LO;}catch(e){}}
   document.getElementById('st-objectif').textContent=fmtKg(OBJECTIF);
-  document.getElementById('st-objectif-l').textContent=RESET&&RESET.objectif?'Objectif':PALIER.lbl;
+  document.getElementById('st-objectif-l').textContent=RESET&&RESET.objectif?'Objectif':'Prochain jalon';
   document.getElementById('pl-right').textContent=fmtKg(OBJECTIF);
   if(!pesees.length){
     ['st-depart','st-actuel','st-depart-date','st-date','st-restant'].forEach(function(id){document.getElementById(id).textContent='—';});
@@ -400,6 +465,7 @@ function render(){
   drawChart();
   try{renderAvg();}catch(e){}
   renderHistorique();
+  try{if(typeof msRender==='function')msRender();}catch(e){}
 }
 
 /* v6.8 — Tap sur un point de la courbe → composition (pesée S400) ou simple poids (pesée manuelle) */
@@ -644,12 +710,13 @@ document.addEventListener('DOMContentLoaded',function(){ // après tous les <scr
   if(typeof window.HealthBridge!=='undefined'&&!window.onHealthData){
     window.onHealthData=function(d){
       if(typeof d==='string'){try{d=JSON.parse(d);}catch(e){return;}}
+      try{if(typeof hcMerge==='function'&&hcMerge(d))msRender();}catch(e){} // v11.0 — pas et sommeil (défis)
       if(!d||d.status!=='ok'||(d.skinTemp==null&&d.skinTempDelta==null))return;
       var o={temp:d.skinTemp!=null?d.skinTemp:null,delta:d.skinTempDelta!=null?d.skinTempDelta:null,t:d.skinTempTime||d.updated||null};
       try{localStorage.setItem('hc_skinTemp',JSON.stringify(o));}catch(e){}
       renderSkinTemp(o);
     };
-    setTimeout(function(){try{HealthBridge.requestDataForPeriod('week');}catch(e){}},600);
+    setTimeout(function(){try{HealthBridge.requestDataForPeriod('month');}catch(e){}},600); // v11.0 — 30 j : couvre le dimanche (semaine HC = lundi → dimanche)
   }
 });
 </script>
@@ -1324,6 +1391,97 @@ document.addEventListener('DOMContentLoaded',function(){
   var d=mnEl('mn-date');if(d&&!d.value)d.value=mnToday();
   mensRender();
 });
+</script>
+<script>
+/* ═════════ v11.0 — Carte 🏁 Milestones : jalons, ventre, série de pesées, défis de la semaine ═════════
+   seances_v1 = { 'AAAA-MM-JJ':'A' } (écrit par programme.html) ; hc_milestones = cache pas / sommeil (Health Connect) */
+var SEANCES_KEY='seances_v1', HCMS_KEY='hc_milestones', MS_VENTRE=Math.round(MENS_HAUTEUR*0.5*10)/10; // 94,5 cm
+function msK1(v){return v==null?'—':(Math.round(v*10)/10).toFixed(1).replace('.',',');}
+function msDm(k){var p=k.split('-');return p[2]+'/'+p[1];}
+function hcLoad(){var o=null;try{o=JSON.parse(localStorage.getItem(HCMS_KEY));}catch(e){}o=o||{};o.steps=o.steps||{};o.sleep=o.sleep||{};return o;}
+function hcMerge(d){
+  if(!d||d.status!=='ok')return false;
+  var o=hcLoad(),ch=false;
+  (d.days||[]).forEach(function(x){if(x&&x.date&&x.steps!=null){o.steps[x.date]=x.steps;ch=true;}});
+  if(d.sleep&&d.sleep.length){var sl={};d.sleep.forEach(function(s){if(!s||!s.end)return;var k=avgLd(new Date(s.end));sl[k]=(sl[k]||0)+(s.min||0);});
+    for(var k in sl){o.sleep[k]=sl[k];ch=true;}}               // durée par nuit, rattachée au jour du réveil (comme la carte Sommeil)
+  var lim=addDays(avgLd(new Date()),-60);['steps','sleep'].forEach(function(t){for(var k in o[t])if(k<lim)delete o[t][k];});
+  if(ch){try{localStorage.setItem(HCMS_KEY,JSON.stringify(o));}catch(e){}}
+  return ch;
+}
+function hcFromSanteCache(){ // lectures déjà faites par l'onglet Santé
+  ['week','month'].forEach(function(p){try{var c=JSON.parse(localStorage.getItem('healthCache_'+p));if(c&&c.data)hcMerge(c.data);}catch(e){}});
+}
+function msStreak(){
+  var ks=Object.keys(dayMap()).sort();if(!ks.length)return {cur:0,best:0};
+  var best=1,run=1;for(var i=1;i<ks.length;i++){run=addDays(ks[i-1],1)===ks[i]?run+1:1;if(run>best)best=run;}
+  var today=avgLd(new Date()),last=ks[ks.length-1];
+  return {cur:(last===today||last===addDays(today,-1))?run:0,best:best};
+}
+function msVentre(s){
+  var a=typeof mensLoad==='function'?mensLoad():[];
+  if(!s.ventre)for(var i=1;i<a.length;i++){
+    if(a[i].taille<=MS_VENTRE&&a[i-1].taille<=MS_VENTRE&&msSun(a[i].date)!==msSun(a[i-1].date)){s.ventre={date:a[i].date};msStore(MS_KEY,s);break;}}
+  return a;
+}
+function msWeek(){
+  var today=avgLd(new Date()),sun=msSun(today),sat=addDays(sun,6),ks=[];for(var i=0;i<7;i++)ks.push(addDays(sun,i));
+  function inW(k){return k>=sun&&k<=sat;}
+  var m=dayMap(),hc=hcLoad(),se=msLoad(SEANCES_KEY,{})||{},mens=typeof mensLoad==='function'?mensLoad():[],hist=[];
+  try{hist=JSON.parse(localStorage.getItem('deficitHist'))||[];}catch(e){}
+  var sai={};hist.forEach(function(e){if(e&&e.manual===true){var d=new Date(e.date);if(!isNaN(d.getTime())){var k=avgLd(d);if(inW(k))sai[k]=1;}}});
+  return {sun:sun,list:[
+    {i:'⚖️',l:'Pesées',v:ks.filter(function(k){return k in m;}).length,g:6,u:'j'},
+    {i:'🏋️',l:'Séances',v:Object.keys(se).filter(inW).length,g:5,u:''},
+    {i:'👟',l:'Pas ≥ 8 000',v:ks.filter(function(k){return (hc.steps[k]||0)>=8000;}).length,g:5,u:'j'},
+    {i:'😴',l:'Sommeil ≥ 7 h',v:ks.filter(function(k){return (hc.sleep[k]||0)>=420;}).length,g:5,u:'n'},
+    {i:'📝',l:'Calories saisies',v:Object.keys(sai).length,g:5,u:'j'},
+    {i:'📏',l:'Mensuration',v:Math.min(1,mens.filter(function(x){return inW(x.date);}).length),g:1,u:''}]};
+}
+function msRender(){
+  if(!document.getElementById('ms-card'))return;
+  var s=msUpdate(),next=msNext(s),m=dayMap(),today=avgLd(new Date()),N,h='',cur=null;
+  // Chemin des jalons
+  for(N=MS_HI;N>=MS_LO;N--){var st=s.poids[N]?'ok':N===next?'cur':'todo';
+    h+='<div class="ms-node ms-'+st+'"'+(st==='cur'?' id="ms-cur"':'')+'><span>'+(st==='ok'?'✓':st==='cur'?'●':'')+'</span><b>'+N+'</b></div>';}
+  var path=document.getElementById('ms-path');path.innerHTML=h;
+  var cn=document.getElementById('ms-cur');if(cn)path.scrollLeft=Math.max(0,cn.offsetLeft-path.offsetLeft-path.clientWidth/2+16);
+  var nOk=0;for(N=MS_HI;N>=MS_LO;N--)if(s.poids[N])nOk++;
+  document.getElementById('ms-count').textContent=nOk+'/'+(MS_HI-MS_LO+1)+' jalons';
+  var r7=windowAvg(m,addDays(today,-6),today),avg=r7.n>=AVG_MIN_PT?r7.v:null;
+  var avgTxt='moyenne 7 j '+msK1(avg)+' ('+r7.n+' pesée'+(r7.n>1?'s':'')+')';
+  if(next==null)document.getElementById('ms-next').innerHTML='🎉 <b>Tous les jalons atteints</b> · '+avgTxt;
+  else{var rest=avg!=null?avg-next:null;
+    document.getElementById('ms-next').innerHTML='Prochain : <b>'+next+' kg</b>'+(rest!=null?' · reste '+(rest>0?'−'+msK1(rest)+' kg':'0 kg'):'')+' · '+avgTxt;}
+  var lastN=null;for(N=MS_LO;N<=MS_HI;N++)if(s.poids[N]){lastN=N;break;}
+  var wk=windowAvg(m,msSun(today),addDays(msSun(today),6));
+  document.getElementById('ms-last').textContent=(lastN!=null?'Dernier jalon : '+lastN+' kg le '+msDm(s.poids[lastN].date)+(s.poids[lastN].reconstitue?' (reconstitué)':s.poids[lastN].moy!=null?' (moyenne '+msK1(s.poids[lastN].moy)+')':'')+' · ':'')
+    +'semaine en cours : '+wk.n+' pesée'+(wk.n>1?'s':'')+(wk.n>=AVG_MIN_WEEK?', moyenne '+msK1(wk.v):' / '+AVG_MIN_WEEK+' min.');
+  // Ventre
+  var a=msVentre(s),v=document.getElementById('ms-ventre'),lbl='Taille ÷ hauteur &lt; 0,50 ('+msK1(MS_VENTRE)+' cm)';
+  if(s.ventre)v.innerHTML='✓ '+lbl+' · <b>validé le '+msDm(s.ventre.date)+'</b>';
+  else if(!a.length)v.innerHTML='○ '+lbl+' · à mesurer samedi';
+  else{var L=a[a.length-1],r=L.taille-MS_VENTRE;
+    v.innerHTML='○ '+lbl+' · dernière <b>'+msK1(L.taille)+' cm</b> ('+(L.taille/MENS_HAUTEUR).toFixed(2).replace('.',',')+')'
+      +(r>0?' · reste −'+msK1(r)+' cm':' · 1/2 mesures, confirme à la prochaine');}
+  // Série de pesées
+  var sk=msStreak();
+  document.getElementById('ms-streak').innerHTML='🔥 <b>'+sk.cur+' jour'+(sk.cur>1?'s':'')+' consécutif'+(sk.cur>1?'s':'')+'</b> de pesée (record '+sk.best+')';
+  // Défis de la semaine
+  var W=msWeek(),score=0,dh='';
+  W.list.forEach(function(c){var ok=c.v>=c.g;if(ok)score++;
+    dh+='<div class="ms-ch"><span class="l">'+c.i+' '+c.l+'</span><div class="ms-bar"><i'+(ok?' class="ok"':'')+' style="width:'+Math.min(100,Math.round(c.v/c.g*100))+'%"></i></div><span class="v'+(ok?' ok':'')+'">'+(ok?'✓ ':'')+c.v+'/'+c.g+'</span></div>';});
+  document.getElementById('ms-defis').innerHTML=dh;
+  document.getElementById('ms-score').textContent=score+'/6';
+  var we=document.getElementById('ms-week');
+  we.textContent=score>=5?'✅ Semaine validée':'Semaine du '+msDm(W.sun)+' au '+msDm(addDays(W.sun,6))+' · 5/6 pour valider';
+  we.className='ms-week'+(score>=5?' ok':'');
+  if(s.semaines[W.sun]!==score){s.semaines[W.sun]=score;var ks=Object.keys(s.semaines).sort();while(ks.length>60)delete s.semaines[ks.shift()];msStore(MS_KEY,s);}
+}
+(function(){ // mise à jour après une mesure de taille (enregistrement ou suppression)
+  var _mr=window.mensRender;if(typeof _mr==='function')window.mensRender=function(){_mr.apply(this,arguments);try{msRender();}catch(e){}};
+})();
+document.addEventListener('DOMContentLoaded',function(){try{hcFromSanteCache();msRender();}catch(e){}});
 </script>
 </body>
 </html>

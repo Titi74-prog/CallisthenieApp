@@ -378,17 +378,25 @@ function skStore(){return lsJSON(SK_KEY,{});}
 function setSessionKcal(start,v){var o=skStore();if(v==null)delete o[start];else o[start]=v;lsSet(SK_KEY,JSON.stringify(o));}
 var EST_RATE=8, EST_MIN_RATE=4;            // kcal/min ; médiane des matchs 8,2 (plage 7,0 à 10,5)
 function isRacket(s){return s.label==='🎾 Padel/Tennis';}
+// v11.0 — HeyTap écrit des calories actives ; le Fitbit retiré n'écrit que le métabolisme (déjà dans son total)
+function metaWin(s){return Math.round((getBMR()||1867)*(s.min||0)/1440);}   // métabolisme du créneau
+function netSession(raw,s){
+  var fb=s.fb||0,mn=s.min||0;
+  // Fitbit retiré (~1,5 kcal/min) : son total contient déjà le métabolisme → on ajoute l'effort de la montre tel quel.
+  // Fitbit porté (> 3 kcal/min) : sa dépense est remplacée par celle de la montre (effort + métabolisme).
+  return Math.round(fb>3*mn ? raw+metaWin(s)-fb : raw);
+}
 function applySessionFixes(days){
   var o=skStore();
   (days||[]).forEach(function(x){var c=x&&x.cal;if(!c||!c.sessions)return;var op=0;
     c.sessions.forEach(function(s){
-      if(s.measured==null)s.measured=s.kcal;              // valeur nette calculée depuis Health Connect (conservée)
-      var fb=s.fb||0;                                     // v10.5 — Fitbit sur le créneau (métabolisme)
-      var raw=s.tot>0?s.tot:(s.act!=null?s.act:s.measured); // valeur « montre » lue dans Health Connect
-      delete s.src;s.watch=raw;
-      if(o[s.start]!=null){s.watch=o[s.start];s.kcal=Math.max(0,o[s.start]-fb);s.src='saisi';}
-      else if(isRacket(s)&&s.min>=20&&raw/s.min<EST_MIN_RATE){s.watch=Math.round(s.min*EST_RATE);s.kcal=Math.max(0,s.watch-fb);s.src='estimé';}
-      else s.kcal=s.measured;
+      if(s.measured==null)s.measured=s.kcal;               // 1re lecture : valeur calculée par HealthBridge.kt
+      var raw=s.tot>0?s.tot:(s.act!=null?s.act:s.measured);  // valeur « montre » lue dans Health Connect
+      var auto=(s.mode==='total'&&s.tot>0)?netSession(raw,s):s.measured;
+      s.measured=auto;delete s.src;s.watch=raw;
+      if(o[s.start]!=null){s.watch=o[s.start];s.kcal=netSession(o[s.start],s);s.src='saisi';}
+      else if(isRacket(s)&&s.min>=20&&raw/s.min<EST_MIN_RATE){s.watch=Math.round(s.min*EST_RATE);s.kcal=netSession(s.watch,s);s.src='estimé';}
+      else s.kcal=auto;
       op+=s.kcal;});
     c.oneplus=Math.round(op);c.total=Math.round(c.fitbit+c.oneplus);});
 }
@@ -480,9 +488,9 @@ function calRows(c,isToday){
   var ss=(c.sessions||[]).slice().sort(function(a,b){return a.start<b.start?-1:1;});
   ss.forEach(function(s){
     var lbl=s.label;if(lbl==='🏃 Activité'&&s.title)lbl='🏃 '+s.title;
-    var hs=s.measured!=null&&s.measured!==s.kcal?'Health : '+fmt(s.measured)+' kcal':null;
-    // v10.5 — détail du calcul : montre − Fitbit sur le créneau
-    var calc=s.fb>0&&(s.mode==='total'||s.src)?'montre '+fmt(s.watch)+' − Fitbit '+fmt(s.fb):null;
+    var hs=s.measured!=null&&s.measured!==s.kcal?'avant correction : '+fmt(s.measured)+' kcal':null;
+    // v11.0 — détail du calcul de la séance
+    var calc=(s.mode==='total'||s.src) ? (s.fb>3*(s.min||0) ? 'montre '+fmt(s.watch)+' + métabolisme '+fmt(metaWin(s))+' − Fitbit '+fmt(s.fb)+' (Fitbit porté)' : 'montre '+fmt(s.watch)+' (effort seul)') : null;
     if(calc)hs=calc+(hs&&s.src?' · '+hs:'');
     r.push({l:lbl+' (⌚ OnePlus)'+(s.src?' ('+s.src+')':''),s:(s.start?hhmm(s.start)+' · '+hm(s.min):'')+(hs?' · '+hs:''),v:s.kcal,
       start:s.start,src:s.src||null,health:hs,watch:s.watch});
@@ -616,7 +624,7 @@ function render(d){
   if(d.status==='unavailable'){showBanner("Health Connect n'est pas disponible sur ce téléphone. Installe l'appli Health Connect depuis le Play Store, puis reviens ici.",'Réessayer',refresh);return;}
   if(d.status==='update_required'){showBanner("Health Connect doit être mis à jour depuis le Play Store.",'Réessayer',refresh);return;}
   if(d.status==='error'){showBanner('Erreur de lecture Health Connect : '+(d.message||''),'Réessayer',refresh);return;}
-  if(d.status==='denied'){showBanner("Autorise Callisthénie à lire tes données (calories, séances, pas, cœur, sommeil) dans Health Connect.",'Autoriser',function(){try{HealthBridge.askPermissions();}catch(e){}});return;}
+  if(d.status==='denied'){showBanner("Autorise Milestones à lire tes données (calories, séances, pas, cœur, sommeil) dans Health Connect.",'Autoriser',function(){try{HealthBridge.askPermissions();}catch(e){}});return;}
   LAST=d;
   var nReq=d.requested||0,nOk=d.grantedCount||0;
   hideBanner(); // v9.1 — plus de bandeau d'information sur les autorisations Health Connect partielles
