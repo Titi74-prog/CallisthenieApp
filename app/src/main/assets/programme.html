@@ -675,6 +675,8 @@ function renderSession(s){
     html+='</div>';
   }
 
+  var seD=seLoad(),seN=new Date(),seKey=seN.getFullYear()+'-'+String(seN.getMonth()+1).padStart(2,'0')+'-'+String(seN.getDate()).padStart(2,'0');
+  html+='<div style="margin:0 12px 12px"><button id="btn-seance" onclick="seanceToggle(\''+s.id+'\')" style="width:100%;padding:13px;border-radius:14px;border:1.5px solid '+C.bg+';background:'+(seD[seKey]===s.id?C.bg:'transparent')+';color:'+(seD[seKey]===s.id?'#fff':C.bg)+';font-size:15px;font-weight:700">'+(seD[seKey]===s.id?'✅ Faite aujourd\'hui · annuler':'✅ Séance terminée')+'</button></div>';
   html+='<div class="conseil" style="background:rgba(255,255,255,.06);border-color:'+C.bg+'55">'
     +'<div class="conseil-title" style="color:'+C.bg+'">&#x1F4A1; Conseil</div>'+s.conseil+'</div>';
 
@@ -707,8 +709,14 @@ function seanceTrack(sid){
   var d=new Date(),k=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
   var o=seLoad(),ch=false;
   if(allExos.length&&n>=allExos.length){if(o[k]!==sid){o[k]=sid;ch=true;}}
-  else if(o[k]===sid){delete o[k];ch=true;}
   if(ch)seStore(o);
+}
+function seanceToggle(sid){ // v11.1 — bouton « Séance terminée »
+  var d=new Date(),k=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  var o=seLoad();if(o[k]===sid)delete o[k];else o[k]=sid;seStore(o);
+  var sc=document.getElementById('content').scrollTop;
+  renderSession(SESSIONS[SESSION_IDX[currentTab]]);
+  document.getElementById('content').scrollTop=sc;
 }
 function markDone(sid,i){
   if(!doneExos[sid])doneExos[sid]={};

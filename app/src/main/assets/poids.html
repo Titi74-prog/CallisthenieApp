@@ -95,6 +95,10 @@ canvas{width:100%;height:180px}
 .ms-ch .v.ok{color:var(--ok)}
 .ms-week{margin-top:8px;font-size:13px;font-weight:700;color:var(--t3)}
 .ms-week.ok{color:var(--ok)}
+.ms-d{flex:1;text-align:center;border:1px solid var(--bd);border-radius:10px;padding:6px 0;background:transparent;color:var(--t2);font-size:11px;font-weight:700;cursor:pointer}
+.ms-d b{display:block;font-size:15px;margin-top:2px}
+.ms-d.on{border-color:var(--ok);color:var(--ok)}
+.ms-d.fut{opacity:.35;cursor:default}
 .avg-box{flex:1;background:#0f0f13;border-radius:10px;padding:9px 6px;text-align:center}
 .avg-l{font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px}
 .avg-v{font-size:19px;font-weight:800;font-variant-numeric:tabular-nums;margin-top:2px}
@@ -237,6 +241,8 @@ html,body{background:#f2f2f6;color:#1a1a22}
       <div class="ms-line" id="ms-streak" style="margin-top:10px"></div>
       <div class="ms-sub"><span>Défis de la semaine</span><b id="ms-score"></b></div>
       <div id="ms-defis"></div>
+      <div class="ms-sub"><span>Séances de la semaine</span><b>touche un jour pour déclarer</b></div>
+      <div id="ms-days" style="display:flex;gap:6px"></div>
       <div class="ms-week" id="ms-week"></div>
       <div class="note">Un jalon est validé quand la moyenne d'une semaine (dimanche → samedi, au moins 4 pesées) passe sous le seuil ; il reste acquis ensuite. Défis remis à zéro chaque dimanche.</div>
     </div>
@@ -1398,14 +1404,17 @@ document.addEventListener('DOMContentLoaded',function(){
 var SEANCES_KEY='seances_v1', HCMS_KEY='hc_milestones', MS_VENTRE=Math.round(MENS_HAUTEUR*0.5*10)/10; // 94,5 cm
 function msK1(v){return v==null?'—':(Math.round(v*10)/10).toFixed(1).replace('.',',');}
 function msDm(k){var p=k.split('-');return p[2]+'/'+p[1];}
-function hcLoad(){var o=null;try{o=JSON.parse(localStorage.getItem(HCMS_KEY));}catch(e){}o=o||{};o.steps=o.steps||{};o.sleep=o.sleep||{};return o;}
+function hcLoad(){var o=null;try{o=JSON.parse(localStorage.getItem(HCMS_KEY));}catch(e){}o=o||{};o.steps=o.steps||{};o.sleep=o.sleep||{};o.ses=o.ses||{};return o;}
 function hcMerge(d){
   if(!d||d.status!=='ok')return false;
   var o=hcLoad(),ch=false;
   (d.days||[]).forEach(function(x){if(x&&x.date&&x.steps!=null){o.steps[x.date]=x.steps;ch=true;}});
+  o.ses=o.ses||{};
+  (d.days||[]).forEach(function(x){var ss=x&&x.cal&&x.cal.sessions;if(!ss||!x.date)return;   // v11.1 — séance OnePlus >= 20 min (hors marche) = jour de séance
+    if(ss.some(function(q){return q&&q.min>=20&&q.label!=='🚶 Marche';})){o.ses[x.date]=1;ch=true;}});
   if(d.sleep&&d.sleep.length){var sl={};d.sleep.forEach(function(s){if(!s||!s.end)return;var k=avgLd(new Date(s.end));sl[k]=(sl[k]||0)+(s.min||0);});
     for(var k in sl){o.sleep[k]=sl[k];ch=true;}}               // durée par nuit, rattachée au jour du réveil (comme la carte Sommeil)
-  var lim=addDays(avgLd(new Date()),-60);['steps','sleep'].forEach(function(t){for(var k in o[t])if(k<lim)delete o[t][k];});
+  var lim=addDays(avgLd(new Date()),-60);['steps','sleep','ses'].forEach(function(t){for(var k in o[t])if(k<lim)delete o[t][k];});
   if(ch){try{localStorage.setItem(HCMS_KEY,JSON.stringify(o));}catch(e){}}
   return ch;
 }
@@ -1432,11 +1441,16 @@ function msWeek(){
   var sai={};hist.forEach(function(e){if(e&&e.manual===true){var d=new Date(e.date);if(!isNaN(d.getTime())){var k=avgLd(d);if(inW(k))sai[k]=1;}}});
   return {sun:sun,list:[
     {i:'⚖️',l:'Pesées',v:ks.filter(function(k){return k in m;}).length,g:6,u:'j'},
-    {i:'🏋️',l:'Séances',v:Object.keys(se).filter(inW).length,g:5,u:''},
+    {i:'🏋️',l:'Séances',v:ks.filter(function(k){return se[k]||hc.ses[k];}).length,g:5,u:'j'},
     {i:'👟',l:'Pas ≥ 8 000',v:ks.filter(function(k){return (hc.steps[k]||0)>=8000;}).length,g:5,u:'j'},
     {i:'😴',l:'Sommeil ≥ 7 h',v:ks.filter(function(k){return (hc.sleep[k]||0)>=420;}).length,g:5,u:'n'},
     {i:'📝',l:'Calories saisies',v:Object.keys(sai).length,g:5,u:'j'},
     {i:'📏',l:'Mensuration',v:Math.min(1,mens.filter(function(x){return inW(x.date);}).length),g:1,u:''}]};
+}
+function msDeclare(k){ // v11.1 — déclarer ou annuler une séance (lettre du programme selon le jour)
+  var o=msLoad(SEANCES_KEY,{})||{};
+  if(o[k])delete o[k];else o[k]=['G','A','B','C','D','E','F'][new Date(k+'T12:00:00').getDay()];
+  msStore(SEANCES_KEY,o);msRender();
 }
 function msRender(){
   if(!document.getElementById('ms-card'))return;
@@ -1472,6 +1486,10 @@ function msRender(){
   W.list.forEach(function(c){var ok=c.v>=c.g;if(ok)score++;
     dh+='<div class="ms-ch"><span class="l">'+c.i+' '+c.l+'</span><div class="ms-bar"><i'+(ok?' class="ok"':'')+' style="width:'+Math.min(100,Math.round(c.v/c.g*100))+'%"></i></div><span class="v'+(ok?' ok':'')+'">'+(ok?'✓ ':'')+c.v+'/'+c.g+'</span></div>';});
   document.getElementById('ms-defis').innerHTML=dh;
+  var SL=['D','L','M','M','J','V','S'],dd='',se2=msLoad(SEANCES_KEY,{})||{},hc2=hcLoad();   // v11.1 — séances de la semaine
+  for(var di=0;di<7;di++){var dk=addDays(W.sun,di),fut=dk>today,dec=se2[dk],aut=hc2.ses&&hc2.ses[dk];
+    dd+='<button type="button" class="ms-d'+((dec||aut)?' on':'')+(fut?' fut':'')+'"'+(fut?' disabled':' onclick="msDeclare(\''+dk+'\')"')+' aria-label="Séance du '+msDm(dk)+'">'+SL[di]+'<b>'+(dec?dec:(aut?'🎾':'○'))+'</b></button>';}
+  document.getElementById('ms-days').innerHTML=dd;
   document.getElementById('ms-score').textContent=score+'/6';
   var we=document.getElementById('ms-week');
   we.textContent=score>=5?'✅ Semaine validée':'Semaine du '+msDm(W.sun)+' au '+msDm(addDays(W.sun,6))+' · 5/6 pour valider';
