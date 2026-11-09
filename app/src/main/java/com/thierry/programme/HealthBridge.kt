@@ -215,7 +215,8 @@ class HealthBridge(private val activity: ComponentActivity, private val webView:
             d = d.plusDays(1)
         }
         if (has(granted, "READ_STEPS")) safe {
-            daily(client, byDay, firstDay, today, nowLdt, StepsRecord.COUNT_TOTAL) { o, v -> o.put("steps", v) }
+            // v11.2 — pas : uniquement la source Fitbit (pas de pas du téléphone ni de la OnePlus)
+            daily(client, byDay, firstDay, today, nowLdt, StepsRecord.COUNT_TOTAL, setOf(DataOrigin(PKG_FITBIT))) { o, v -> o.put("steps", v) }
         }
         if (has(granted, "READ_FLOORS_CLIMBED")) safe {
             daily(client, byDay, firstDay, today, nowLdt, FloorsClimbedRecord.FLOORS_CLIMBED_TOTAL) { o, v -> o.put("floors", Math.round(v)) }
@@ -605,6 +606,7 @@ class HealthBridge(private val activity: ComponentActivity, private val webView:
         today: LocalDate,
         nowLdt: LocalDateTime,
         metric: AggregateMetric<T>,
+        origins: Set<DataOrigin> = emptySet(),
         put: (JSONObject, T) -> Unit
     ) {
         var from = firstDay
@@ -616,7 +618,8 @@ class HealthBridge(private val activity: ComponentActivity, private val webView:
                 AggregateGroupByPeriodRequest(
                     metrics = setOf(metric),
                     timeRangeFilter = TimeRangeFilter.between(from.atStartOfDay(), end),
-                    timeRangeSlicer = Period.ofDays(1)
+                    timeRangeSlicer = Period.ofDays(1),
+                    dataOriginFilter = origins
                 )
             ).forEach { g ->
                 val v = g.result[metric]
