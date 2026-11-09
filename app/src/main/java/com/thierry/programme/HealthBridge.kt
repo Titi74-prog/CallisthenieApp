@@ -13,7 +13,6 @@ import androidx.health.connect.client.permission.HealthPermission
 import androidx.health.connect.client.records.ActiveCaloriesBurnedRecord
 import androidx.health.connect.client.records.BodyFatRecord
 import androidx.health.connect.client.records.ExerciseSessionRecord
-import androidx.health.connect.client.records.FloorsClimbedRecord
 import androidx.health.connect.client.records.HeartRateRecord
 import androidx.health.connect.client.records.HeartRateVariabilityRmssdRecord
 import androidx.health.connect.client.records.LeanBodyMassRecord
@@ -71,7 +70,6 @@ class HealthBridge(private val activity: ComponentActivity, private val webView:
         HealthPermission.getReadPermission(ActiveCaloriesBurnedRecord::class),
         HealthPermission.getReadPermission(ExerciseSessionRecord::class),
         HealthPermission.getReadPermission(StepsRecord::class),
-        HealthPermission.getReadPermission(FloorsClimbedRecord::class),
         HealthPermission.getReadPermission(WeightRecord::class),
         HealthPermission.getReadPermission(BodyFatRecord::class),
         HealthPermission.getReadPermission(LeanBodyMassRecord::class),
@@ -217,9 +215,6 @@ class HealthBridge(private val activity: ComponentActivity, private val webView:
         if (has(granted, "READ_STEPS")) safe {
             // v11.2 — pas : uniquement la source Fitbit (pas de pas du téléphone ni de la OnePlus)
             daily(client, byDay, firstDay, today, nowLdt, StepsRecord.COUNT_TOTAL, setOf(DataOrigin(PKG_FITBIT))) { o, v -> o.put("steps", v) }
-        }
-        if (has(granted, "READ_FLOORS_CLIMBED")) safe {
-            daily(client, byDay, firstDay, today, nowLdt, FloorsClimbedRecord.FLOORS_CLIMBED_TOTAL) { o, v -> o.put("floors", Math.round(v)) }
         }
         if (has(granted, "READ_RESTING_HEART_RATE")) safe {
             var token: String? = null
