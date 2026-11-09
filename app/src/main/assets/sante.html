@@ -301,11 +301,6 @@ html,body{background:#f2f2f6;color:#1a1a22}
         <div class="mini"><div class="mini-l">Total</div><div class="mini-v" id="steps-tot">—</div><div class="mini-s">pas</div></div>
         <div class="mini"><div class="mini-l">Moyenne</div><div class="mini-v" id="steps-avg">—</div><div class="mini-s">pas / jour</div></div>
       </div>
-      <div class="row" style="margin-top:8px">
-        <div class="mini"><div class="mini-l">Étages aujourd'hui</div><div class="mini-v" id="fl-today">—</div><div class="mini-s">étages</div></div>
-        <div class="mini"><div class="mini-l">Total</div><div class="mini-v" id="fl-tot">—</div><div class="mini-s">étages</div></div>
-        <div class="mini"><div class="mini-l">Moyenne</div><div class="mini-v" id="fl-avg">—</div><div class="mini-s">étages / jour</div></div>
-      </div>
       <div class="bars" id="steps-bars" style="height:90px"></div>
     </div>
 
@@ -959,13 +954,10 @@ function renderHeart(d,days,per){
 
 /* ═════════ Activité ═════════ */
 function renderActivity(days,per,tk){
-  var t=days.filter(function(x){return x.date===tk;})[0]||{},B=buckets(days,per),sv=vals(days,'steps'),fv=vals(days,'floors');
+  var t=days.filter(function(x){return x.date===tk;})[0]||{},B=buckets(days,per),sv=vals(days,'steps');
   $('steps-today').textContent=fmt(t.steps!=null?t.steps:null);
   $('steps-tot').textContent=sv.length?fmt(sum(sv)):'—';
   $('steps-avg').textContent=fmt(avg(sv));
-  $('fl-today').textContent=t.floors!=null?fmt(t.floors):'—';
-  $('fl-tot').textContent=fv.length?fmt(sum(fv)):'—';
-  $('fl-avg').textContent=fv.length?fmt1(avg(fv)):'—';
   bars($('steps-bars'),B.map(function(b){return {key:b.key,lbl:b.lbl,v:avg(vals(b.days,'steps'))};}),'linear-gradient(180deg,#64B5F6,#42A5F5)',0,
     function(v){return v>=1000?(Math.round(v/100)/10).toLocaleString('fr-FR')+'k':Math.round(v);});
 }
