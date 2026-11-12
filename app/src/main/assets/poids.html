@@ -27,7 +27,10 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
 #chart-wrap{background:#1a1a22;border-radius:14px;padding:12px;margin-bottom:12px}
 .chart-leg{display:flex;gap:12px;flex-wrap:wrap;align-items:center;font-size:10px;color:#6b6a75;margin-top:6px}
 .chart-leg i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:4px;vertical-align:-1px}
-.lg-man{background:#5C6BC0}.lg-s4{background:#26C6A0;box-shadow:0 0 0 2px #0f0f13,0 0 0 3.5px #26C6A0}
+.lg-man{background:#5C6BC0}.lg-s4{background:#26C6A0}
+.ch-zb{display:flex;gap:6px;align-items:center;margin-top:8px;flex-wrap:wrap}
+.ch-zb button{border:1px solid var(--bd);border-radius:8px;padding:5px 12px;background:transparent;color:var(--t2);font-size:12px;font-weight:700;cursor:pointer}
+.ch-zb button.on{border-color:var(--acc2);color:var(--acc2)}
 .lg-tip{margin-left:auto}
 #comp-panel{display:none;margin-top:10px;padding-top:10px;border-top:1px solid #2a2a35}
 .cp-hd{display:flex;justify-content:space-between;align-items:center;font-size:12px;font-weight:700;color:#b0aeb8}
@@ -171,7 +174,6 @@ html,body{background:#f2f2f6;color:#1a1a22}
 #progress-labels{color:#7d7b87}
 #chart-wrap{background:#ffffff}
 .chart-leg{color:#7d7b87}
-.lg-s4{box-shadow:0 0 0 2px #f2f2f6,0 0 0 3.5px #26C6A0}
 #comp-panel{border-top:1px solid #e2e2ea}
 .cp-hd{color:#4f4d58}
 .cp-hd button{color:#7d7b87}
@@ -249,7 +251,8 @@ html,body{background:#f2f2f6;color:#1a1a22}
     <button class="btn btn-main" id="btn-import" onclick="s400Import()">📷 Importer une capture</button>
     <div id="chart-wrap">
       <div id="chart-title">Courbe de progression</div>
-      <canvas id="chart" onclick="onChartTap(event)"></canvas>
+      <canvas id="chart" onclick="onChartTap(event)" style="touch-action:pan-y"></canvas>
+      <div class="ch-zb" id="ch-zb"><button data-z="30" onclick="chZoom(30)">30 j</button><button data-z="90" onclick="chZoom(90)">90 j</button><button data-z="0" class="on" onclick="chZoom(0)">Tout</button><span class="lg-tip">Pince pour zoomer, glisse pour te déplacer</span></div>
       <div class="chart-leg"><span><i class="lg-man"></i>Pesée manuelle</span><span><i class="lg-s4"></i>Pesée S400</span><span><i class="lg-avg"></i>Moyenne 7 j</span><span class="lg-tip">Touche un point pour le détail</span></div>
       <div id="comp-panel" onclick="event.stopPropagation()"></div>
     </div>
@@ -484,6 +487,7 @@ function getClickedPoint(e){
 }
 function onChartTap(e){
   e.stopPropagation();
+  if(Date.now()-CH_BLOCK<350)return; // v11.4 — tap fantôme après un glissement ou un pincement
   var pt=getClickedPoint(e);if(!pt){hideCompositionPanel();return;}
   var pesee=pt.p.lbl?null:s400Dates()[pt.p.date];
   showCompositionPanel(pt.p,pesee);
@@ -533,6 +537,28 @@ function renderAvg(){
   document.getElementById('avg-tbl').innerHTML=out.length?h+out.reverse().slice(0,6).join(''):'';
 }
 
+/* v11.4 — zoom : CH_VIEW = fenêtre visible {t0,t1} en ms (null = tout) ; CH_PRESET = 30, 90, 0 (tout) ou -1 (libre) */
+var CH_VIEW=null,CH_BLOCK=0,CH_PRESET=0,DAYMS=86400000;
+function chBounds(){var ds=pesees.map(function(p){return new Date(p.date).getTime()+(p.lbl?43200000:0);});return {a:ds[0],b:ds[ds.length-1]};}
+function chMarkBtn(){var bs=document.querySelectorAll('#ch-zb button');for(var i=0;i<bs.length;i++){var z=bs[i].getAttribute('data-z');bs[i].classList.toggle('on',CH_VIEW?(+z===CH_PRESET):z==='0');}}
+function chZoom(n){
+  CH_PRESET=n;try{localStorage.setItem('ch_zoom',String(n));}catch(e){}
+  if(!n||!pesees.length)CH_VIEW=null;
+  else{var B=chBounds(),t1=B.b+DAYMS;CH_VIEW={t0:Math.max(B.a,t1-n*DAYMS),t1:t1};}
+  chMarkBtn();drawChart();
+}
+function chClamp(t0,t1){var B=chBounds(),lo=B.a-2*DAYMS,hi=B.b+2*DAYMS;if(t0<lo){t1+=lo-t0;t0=lo;}if(t1>hi){t0-=t1-hi;t1=hi;}return {t0:t0,t1:t1};}
+function chPanBy(dx){ // dx en pixels ; > 0 = vers les dates plus anciennes
+  if(!CH_VIEW)return;
+  var cv=document.getElementById('chart'),w=(cv.offsetWidth||350)-52,r=CH_VIEW.t1-CH_VIEW.t0,sh=-dx/w*r;
+  CH_VIEW=chClamp(CH_VIEW.t0+sh,CH_VIEW.t1+sh);CH_PRESET=-1;chMarkBtn();drawChart();
+}
+function chPinch(scale,fx){ // scale > 1 = zoom avant ; fx = position (0..1) sous les doigts
+  var B=chBounds(),full=(B.b-B.a)+4*DAYMS,cur=CH_VIEW||{t0:B.a-2*DAYMS,t1:B.b+2*DAYMS};
+  var r=cur.t1-cur.t0,nr=Math.min(full,Math.max(7*DAYMS,r/scale)),c=cur.t0+fx*r;
+  if(nr>=full-1){CH_VIEW=null;}else{CH_VIEW=chClamp(c-fx*nr,c-fx*nr+nr);}
+  CH_PRESET=-1;chMarkBtn();drawChart();
+}
 function drawChart(){
   var canvas=document.getElementById('chart');
   var dpr=window.devicePixelRatio||1;
@@ -544,14 +570,19 @@ function drawChart(){
 
   var pad={t:10,r:10,b:30,l:42};
   var w=W-pad.l-pad.r, h=H-pad.t-pad.b;
-
-  var vals=pesees.map(function(p){return p.poids;}).concat([OBJECTIF]);
-  var min=Math.floor(Math.min.apply(null,vals))-1, max=Math.ceil(Math.max.apply(null,vals))+1;
-  if(min%2)min--; if(max%2)max++;
   function tOf(p){return new Date(p.date).getTime()+(p.lbl?43200000:0);}
-  var dates=pesees.map(tOf);
-  var minD=dates[0], maxD=dates[dates.length-1];
-  var rangeD=maxD-minD||1;
+  var B=chBounds();
+  var minD=CH_VIEW?CH_VIEW.t0:B.a, maxD=CH_VIEW?CH_VIEW.t1:B.b, rangeD=maxD-minD||1;
+
+  // Échelle verticale ajustée aux points visibles (pesées + moyenne 7 j) ; la ligne objectif ne compte que sans zoom
+  var M=dayMap(),vv=[];
+  pesees.forEach(function(p){var t=tOf(p);if(t>=minD&&t<=maxD)vv.push(p.poids);});
+  Object.keys(M).forEach(function(k){var a=rollAvg(M,k),t=new Date(k).getTime();if(a!=null&&t>=minD&&t<=maxD)vv.push(a);});
+  if(!CH_VIEW)vv.push(OBJECTIF);
+  if(!vv.length)vv=pesees.map(function(p){return p.poids;}).concat([OBJECTIF]);
+  var min=Math.floor(Math.min.apply(null,vv))-1, max=Math.ceil(Math.max.apply(null,vv))+1;
+  if(max-min<4){var c0=(max+min)/2;min=Math.floor(c0-2);max=min+4;}
+  if(min%2)min--; if(max%2)max++;
 
   function xp(p){return pad.l+(tOf(p)-minD)/rangeD*w;}
   function yp(v){return pad.t+(max-v)/(max-min)*h;}
@@ -559,19 +590,31 @@ function drawChart(){
   // Grille
   ctx.strokeStyle=TC('#2a2a35');
   ctx.lineWidth=1;
-  var step=(max-min)>16?4:2;
+  var step=(max-min)>16?4:(max-min)>6?2:1;
   for(var y=min+step;y<max;y+=step){
     ctx.beginPath();ctx.moveTo(pad.l,yp(y));ctx.lineTo(pad.l+w,yp(y));ctx.stroke();
     ctx.fillStyle=TC('#6b6a75');ctx.font='9px sans-serif';ctx.textAlign='right';
     ctx.fillText(y+'kg',pad.l-4,yp(y)+3);
   }
 
-  // Ligne objectif
-  ctx.strokeStyle='#F9A825';ctx.lineWidth=1;ctx.setLineDash([4,4]);
-  ctx.beginPath();ctx.moveTo(pad.l,yp(OBJECTIF));ctx.lineTo(pad.l+w,yp(OBJECTIF));ctx.stroke();
-  ctx.setLineDash([]);
+  // Dates sur l'axe horizontal (5 repères)
+  ctx.fillStyle=TC('#6b6a75');ctx.font='9px sans-serif';
+  for(var i=0;i<=4;i++){
+    var d=new Date(minD+i*rangeD/4),dm=('0'+d.getUTCDate()).slice(-2)+'/'+('0'+(d.getUTCMonth()+1)).slice(-2),
+        lb=rangeD>200*DAYMS?(('0'+(d.getUTCMonth()+1)).slice(-2)+'/'+String(d.getUTCFullYear()).slice(2)):dm;
+    ctx.textAlign=i===0?'left':(i===4?'right':'center');
+    ctx.fillText(lb,pad.l+i*w/4,H-10);
+  }
 
-  // Courbe mesurée
+  // Ligne objectif (visible seulement si elle tombe dans l'échelle)
+  if(OBJECTIF>=min&&OBJECTIF<=max){
+    ctx.strokeStyle='#F9A825';ctx.lineWidth=1;ctx.setLineDash([4,4]);
+    ctx.beginPath();ctx.moveTo(pad.l,yp(OBJECTIF));ctx.lineTo(pad.l+w,yp(OBJECTIF));ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  // Courbes, coupées aux bords de la zone de tracé
+  ctx.save();ctx.beginPath();ctx.rect(pad.l,pad.t-2,w,h+4);ctx.clip();
   ctx.strokeStyle='#5C6BC0';ctx.lineWidth=2.5;
   ctx.beginPath();
   pesees.forEach(function(p,i){
@@ -581,26 +624,22 @@ function drawChart(){
   ctx.stroke();
 
   // v10.7 — Moyenne glissante 7 jours (orange)
-  var M=dayMap(),started=false;
+  var started=false;
   ctx.strokeStyle='#FF9800';ctx.lineWidth=2;ctx.beginPath();
   Object.keys(M).sort().forEach(function(k){var a=rollAvg(M,k);if(a==null){started=false;return;}
     var x=xp({date:k}),y=yp(a);if(!started){ctx.moveTo(x,y);started=true;}else ctx.lineTo(x,y);});
   ctx.stroke();
+  ctx.restore();
 
-  // Points — v6.8 : bleu = pesée manuelle, vert cerclé = pesée S400 (composition complète). Positions mémorisées pour le tap.
+  // Points — v11.4 : bleu = pesée manuelle, vert = pesée S400 (sans anneau). Positions mémorisées pour le tap (points visibles seulement).
   var s4=s400Dates();CHART_PTS=[];
   pesees.forEach(function(p,i){
     var x=xp(p),y=yp(p.poids);
+    if(x<pad.l-1||x>pad.l+w+1)return;
     var isLast=i===pesees.length-1,isS4=!p.lbl&&!!s4[p.date];
     CHART_PTS.push({x:x,y:y,p:p});
-    if(isS4){
-      ctx.beginPath();ctx.arc(x,y,isLast?7:5.5,0,Math.PI*2);ctx.fillStyle=TC('#0f0f13');ctx.fill();
-      ctx.lineWidth=2;ctx.strokeStyle='#26C6A0';ctx.stroke();
-      ctx.beginPath();ctx.arc(x,y,isLast?4:3,0,Math.PI*2);ctx.fillStyle='#26C6A0';ctx.fill();
-    }else{
-      ctx.beginPath();ctx.arc(x,y,isLast?6:3.5,0,Math.PI*2);
-      ctx.fillStyle='#5C6BC0';ctx.fill();
-    }
+    ctx.beginPath();ctx.arc(x,y,isLast?6:3.5,0,Math.PI*2);
+    ctx.fillStyle=isS4?'#26C6A0':'#5C6BC0';ctx.fill();
     if(isLast){
       ctx.fillStyle=TC('#f0efec');ctx.font='bold 11px sans-serif';ctx.textAlign='center';
       ctx.fillText(p.poids.toFixed(1),x,y-10);
@@ -1500,6 +1539,33 @@ function msRender(){
   var _mr=window.mensRender;if(typeof _mr==='function')window.mensRender=function(){_mr.apply(this,arguments);try{msRender();}catch(e){}};
 })();
 document.addEventListener('DOMContentLoaded',function(){try{hcFromSanteCache();msRender();}catch(e){}});
+</script>
+<script>
+/* v11.4 — gestes sur la courbe : un doigt = déplacer (si zoomé), deux doigts = zoom */
+(function(){
+  var cv=document.getElementById('chart');if(!cv)return;
+  var g=null;
+  function P(e){return Array.prototype.map.call(e.touches||[],function(t){return {x:t.clientX,y:t.clientY};});}
+  function dist(a,b){return Math.sqrt(Math.pow(a.x-b.x,2)+Math.pow(a.y-b.y,2));}
+  cv.addEventListener('touchstart',function(e){var p=P(e);if(!p.length)return;g={x:p[0].x,d:p.length>1?dist(p[0],p[1]):0,moved:0};},{passive:true});
+  cv.addEventListener('touchmove',function(e){
+    var p=P(e);if(!g||!p.length)return;
+    if(p.length>1){
+      var d=dist(p[0],p[1]);if(g.d>0&&d>0){
+        var r=cv.getBoundingClientRect(),cx=(p[0].x+p[1].x)/2,wpx=(r.width||350)-52,
+            fx=Math.min(1,Math.max(0,(cx-r.left-42)/wpx));
+        chPinch(d/g.d,fx);g.moved+=9;
+      }
+      g.d=d;if(e.cancelable)e.preventDefault();
+    }else if(CH_VIEW){
+      var dx=p[0].x-g.x;g.x=p[0].x;g.moved+=Math.abs(dx);
+      if(dx)chPanBy(dx);
+      if(e.cancelable)e.preventDefault();
+    }
+  },{passive:false});
+  cv.addEventListener('touchend',function(e){if(g&&g.moved>6)CH_BLOCK=Date.now();if(!(e.touches&&e.touches.length))g=null;},{passive:true});
+  try{var z=parseInt(localStorage.getItem('ch_zoom'),10);if(z>0)chZoom(z);}catch(e){}
+})();
 </script>
 </body>
 </html>
