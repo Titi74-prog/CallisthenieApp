@@ -212,10 +212,7 @@ class HealthBridge(private val activity: ComponentActivity, private val webView:
             days.put(o)
             d = d.plusDays(1)
         }
-        if (has(granted, "READ_STEPS")) safe {
-            // v11.2 — pas : uniquement la source Fitbit (pas de pas du téléphone ni de la OnePlus)
-            daily(client, byDay, firstDay, today, nowLdt, StepsRecord.COUNT_TOTAL, setOf(DataOrigin(PKG_FITBIT))) { o, v -> o.put("steps", v) }
-        }
+        if (has(granted, "READ_STEPS")) safe { steps(client, byDay, firstDay, lastDay, today, zone, now, out) }
         if (has(granted, "READ_RESTING_HEART_RATE")) safe {
             var token: String? = null
             do {
@@ -343,6 +340,51 @@ class HealthBridge(private val activity: ComponentActivity, private val webView:
     }
 
     /** Calories actives (agrégat Health Connect : au prorata des relevés qui débordent la plage). */
+    /**
+     * v11.5 — pas : relevés de l'appli Fitbit + de la montre (OnePlus) uniquement ; le téléphone est ignoré.
+     * Répartis jour par jour (au prorata). "stepsDiag" = pas d'aujourd'hui par source (toutes sources), pour le diagnostic.
+     */
+    private suspend fun steps(
+        client: HealthConnectClient,
+        byDay: Map<LocalDate, JSONObject>,
+        from: LocalDate, to: LocalDate, today: LocalDate, zone: ZoneId, now: Instant, out: JSONObject
+    ) {
+        val winStart = from.atStartOfDay(zone).toInstant()
+        val winEnd = if (to == today) now else to.plusDays(1).atStartOfDay(zone).toInstant()
+        val perDay = HashMap<LocalDate, Double>()
+        val perSource = LinkedHashMap<String, Double>()
+        var token: String? = null
+        do {
+            val resp = client.readRecords(ReadRecordsRequest(StepsRecord::class,
+                TimeRangeFilter.between(winStart, winEnd), ascendingOrder = true, pageSize = 1000, pageToken = token))
+            for (r in resp.records) {
+                val pkg = r.metadata.dataOrigin.packageName
+                val counted = pkg == PKG_FITBIT || isOnePlus(pkg)
+                val len = Duration.between(r.startTime, r.endTime).seconds
+                var d = r.startTime.atZone(zone).toLocalDate()
+                while (true) {
+                    val ds = d.atStartOfDay(zone).toInstant(); val de = d.plusDays(1).atStartOfDay(zone).toInstant()
+                    if (!ds.isBefore(r.endTime) && len > 0) break
+                    val part = if (len <= 0) r.count.toDouble()
+                               else r.count.toDouble() * overlapSec(r.startTime, r.endTime, ds, de) / len
+                    if (part > 0) {
+                        if (counted) perDay[d] = (perDay[d] ?: 0.0) + part
+                        if (d == today) perSource[pkg] = (perSource[pkg] ?: 0.0) + part
+                    }
+                    if (len <= 0 || !de.isBefore(r.endTime)) break
+                    d = d.plusDays(1)
+                }
+            }
+            token = resp.pageToken
+        } while (token != null)
+        for ((day, v) in perDay) byDay[day]?.put("steps", Math.round(v))
+        val diag = JSONArray()
+        for ((pkg, v) in perSource) {
+            diag.put(JSONObject().put("pkg", pkg).put("steps", Math.round(v)).put("counted", pkg == PKG_FITBIT || isOnePlus(pkg)))
+        }
+        out.put("stepsDiag", diag)
+    }
+
     private suspend fun activeKcal(client: HealthConnectClient, a: Instant, b: Instant, origins: Set<DataOrigin>): Double {
         if (origins.isEmpty() || !b.isAfter(a)) return 0.0
         return try {
