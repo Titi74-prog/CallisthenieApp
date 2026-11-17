@@ -965,9 +965,9 @@ function renderStepsDiag(d){
   if(!a||!a.length){el.style.display='none';return;}
   var tot=0;
   var parts=a.slice().sort(function(p,q){return q.steps-p.steps;}).map(function(x){
-    if(x.counted)tot+=x.steps;
-    return stepSrc(x.pkg)+' '+fmt(x.steps)+(x.counted?'':' (ignoré)');});
-  el.textContent="Pas d'aujourd'hui par source : "+parts.join(' · ')+'. Compté : '+fmt(tot)+' (Fitbit + montre).';
+    var c=x.countedSteps!=null?x.countedSteps:(x.counted?x.steps:0);tot+=c; // v11.6
+    return stepSrc(x.pkg)+' '+fmt(x.steps)+(c>=x.steps?'':c>0?' (dont '+fmt(c)+' en séance)':' (ignoré)');});
+  el.textContent="Pas d'aujourd'hui par source : "+parts.join(' · ')+'. Compté : '+fmt(tot)+' (Fitbit + montre en séance).';
   el.style.display='block';
 }
 function renderActivity(days,per,tk){
