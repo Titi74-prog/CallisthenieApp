@@ -302,6 +302,7 @@ html,body{background:#f2f2f6;color:#1a1a22}
         <div class="mini"><div class="mini-l">Moyenne</div><div class="mini-v" id="steps-avg">—</div><div class="mini-s">pas / jour</div></div>
       </div>
       <div class="bars" id="steps-bars" style="height:90px"></div>
+      <div class="note" id="steps-diag" style="display:none;margin-top:8px"></div>
     </div>
 
     <!-- Sommeil -->
@@ -953,7 +954,24 @@ function renderHeart(d,days,per){
 }
 
 /* ═════════ Activité ═════════ */
+function stepSrc(pkg){ // v11.5 — nom lisible d'une source de pas
+  if(pkg==='com.fitbit.FitbitMobile')return 'Fitbit';
+  if(/xiaomi\.wearable|oneplus\.health|heytap\.health/.test(pkg||''))return 'Montre';
+  return String(pkg||'?').replace(/^com\./,'');
+}
+function renderStepsDiag(d){
+  var el=$('steps-diag'),a=d&&d.stepsDiag;
+  if(!el)return;
+  if(!a||!a.length){el.style.display='none';return;}
+  var tot=0;
+  var parts=a.slice().sort(function(p,q){return q.steps-p.steps;}).map(function(x){
+    if(x.counted)tot+=x.steps;
+    return stepSrc(x.pkg)+' '+fmt(x.steps)+(x.counted?'':' (ignoré)');});
+  el.textContent="Pas d'aujourd'hui par source : "+parts.join(' · ')+'. Compté : '+fmt(tot)+' (Fitbit + montre).';
+  el.style.display='block';
+}
 function renderActivity(days,per,tk){
+  renderStepsDiag(LAST);
   var t=days.filter(function(x){return x.date===tk;})[0]||{},B=buckets(days,per),sv=vals(days,'steps');
   $('steps-today').textContent=fmt(t.steps!=null?t.steps:null);
   $('steps-tot').textContent=sv.length?fmt(sum(sv)):'—';
