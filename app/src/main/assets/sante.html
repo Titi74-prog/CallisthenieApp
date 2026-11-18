@@ -239,11 +239,11 @@ html,body{background:#f2f2f6;color:#1a1a22}
       </div>
       <div class="note" style="margin-top:4px">Les repas ne sont pas corrigés (estimations). Le déficit « jusqu'ici » n'est pas comparable en journée : brûlées partielles, repas souvent complets.</div>
       <canvas id="def-canvas"></canvas>
-      <div class="leg"><span><i style="background:var(--ok)"></i>≥ 750</span><span><i style="background:var(--warn)"></i>0 – 750</span><span><i style="background:#EF5350"></i>surplus</span><span><i style="border:1.5px solid var(--t2)"></i>estimé</span><span id="leg-raw" style="display:none">┈ brut</span><span style="color:#66BB6A">–– cible du jour</span></div>
+      <div class="leg"><span><i style="background:#4ECDC4"></i>cible 400 – 500</span><span><i style="background:var(--warn)"></i>sous la cible / 500 – 800</span><span><i style="background:#EF5350"></i>&gt; 800 ou surplus</span><span><i style="border:1.5px solid var(--t2)"></i>estimé</span><span id="leg-raw" style="display:none">┈ brut</span><span style="color:#66BB6A">▬ bande cible</span><span style="color:#EF5350">┅ plafond 800</span><span style="color:#F9A825">┅ moy. 7 j</span></div>
       <div class="row" style="margin-top:12px">
         <div class="mini"><div class="mini-l">Moy. 7 j corr.</div><div class="mini-v" id="df-avg7">—</div><div class="mini-s raw" id="df-avg7-s">kcal / jour</div></div>
         <div class="mini"><div class="mini-l">Moy. 30 j corr.</div><div class="mini-v" id="df-avg30">—</div><div class="mini-s raw" id="df-avg30-s">kcal / jour</div></div>
-        <div class="mini"><div class="mini-l">≥ 750 corr.</div><div class="mini-v" id="df-hit">—</div><div class="mini-s">jours / 30</div></div>
+        <div class="mini"><div class="mini-l">Dans la cible</div><div class="mini-v" id="df-hit">—</div><div class="mini-s" id="df-hit-s">jours / 30</div></div>
       </div>
       <div class="note" id="df-note"></div>
     </div>
@@ -251,10 +251,8 @@ html,body{background:#f2f2f6;color:#1a1a22}
     <!-- Stratégie -->
     <div class="card">
       <div class="card-title">🎯 Stratégie <b>reprendre la baisse</b></div>
-      <div class="strat-row"><span>🍽️ Jour normal</span><span>Vise <b>~1 700 kcal</b> consommées, déficit cible <b>~750 kcal</b></span></div>
-      <div class="strat-row"><span>🏋️ Jour force</span><span>Vise <b>~1 700 kcal</b> consommées, déficit cible <b>~850 kcal</b></span></div>
-      <div class="strat-row"><span>🎾 Jour padel 1h</span><span>Vise <b>~2 000 kcal</b> consommées, déficit cible <b>~950 kcal</b></span></div>
-      <div class="strat-row"><span>🔥 Jour padel 1h30+</span><span>Vise <b>~2 200 kcal</b> consommées, déficit cible <b>~1 150 kcal max</b></span></div>
+      <div class="strat-row"><span>📏 Tous les jours</span><span>Déficit cible <b>400 à 500 kcal</b>, plafond <b>800</b> — on ne cherche pas plus</span></div>
+      <div class="strat-row"><span>🎾 Jour padel / force</span><span>Les calories brûlées en plus se <b>mangent</b> : la cible de déficit ne monte pas</span></div>
       <div class="strat-row"><span>🥩 Protéines</span><span><b>145 g / jour</b> — naturellement via skyr, œufs, jambon, poisson</span></div>
       <div class="strat-row"><span>🍫 Barre de récup</span><span>Uniquement après padel</span></div>
       <div class="strat-row"><span>🧱 Whey / barres</span><span>Uniquement si &lt; 120 g constatés en fin de journée</span></div>
@@ -471,9 +469,11 @@ function toggleDay(date){if(date>todayKey())return;setPadel(date,!isPadel(date))
 function paintDayType(){var d=todayKey(),p=isPadel(d),m=manualType(d),g=goalFor(d);
   $('dt-pad').classList.toggle('on',p);$('dt-cal').classList.toggle('on',!p);
   $('kcal-daytype').textContent='Jour '+goalLabel(g)+' · objectif '+fmt(g)+(m==null?' · auto':' · manuel');}
-function getDeficitCible(b){if(b>=3350)return 1150;if(b>=2950)return 950;if(b>=2550)return 850;return 750;}
+// v11.7 — déficit visé 400 à 500 kcal (milieu 450) quel que soit le jour, plafond 800
+var DEF_CIB=[400,500],DEF_PLAF=800;
+function getDeficitCible(b){return 450;}
 function getObjectifConso(b){return b-getDeficitCible(b);}
-function getLibelleJour(c){if(c>=3350)return 'Jour padel intense 🎾🔥 — déficit cible ~1 150 kcal max';if(c>=2950)return 'Jour padel 1h 🎾 — déficit cible ~950 kcal';if(c>=2550)return 'Jour force 💪 — déficit cible ~850 kcal';return 'Jour normal 🏋️ — déficit cible ~750 kcal';}
+function getLibelleJour(c){return getTypeJour(c)+' — déficit cible 400 à 500 kcal, plafond 800';}
 function getTypeJour(b){if(b>=3350)return '🎾 Padel intense';if(b>=2950)return '🎾 Padel 1h';if(b>=2550)return '💪 Force';return '🏋️ Normal';}
 
 /* ═════════ Détail calories d'un jour (lignes) ═════════ */
@@ -798,7 +798,7 @@ function deficitSeries(){
     if(v.length){x.defC=Math.round(avg(v));x.burnC=x.conso+x.defC;}});
   return out;
 }
-function defColor(v){return v>=750?'#4ECDC4':v>=0?'#F9A825':'#EF5350';}
+function defColor(v){return v<0||v>DEF_PLAF?'#EF5350':v>=DEF_CIB[0]&&v<=DEF_CIB[1]?'#4ECDC4':'#F9A825';} // v11.7
 function renderDeficit(){
   var S=deficitSeries(),t=S[S.length-1],inp=$('inp-conso'),corr=isCorr();
   if(document.activeElement!==inp)inp.value=t.saisie?t.conso:'';
@@ -827,7 +827,8 @@ function renderDeficit(){
   $('df-avg30').textContent=sgn(a30);$('df-avg30').style.color=a30!=null?defColor(a30):'';
   $('df-avg7-s').textContent=b7!=null?'brut '+sgn(b7)+' / j':'kcal / jour';
   $('df-avg30-s').textContent=b30!=null?'brut '+sgn(b30)+' / j':'kcal / jour';
-  $('df-hit').textContent=v30.length?v30.filter(function(x){return x.defC>=750;}).length:'—';
+  $('df-hit').textContent=v30.length?v30.filter(function(x){return x.defC>=DEF_CIB[0]&&x.defC<=DEF_CIB[1];}).length:'—';
+  var nOver=v30.filter(function(x){return x.defC>DEF_PLAF;}).length;$('df-hit-s').textContent='jours / 30'+(nOver?' · '+nOver+' > 800':'');
   $('leg-raw').style.display=corr?'inline':'none';
   var nEst=v30.filter(function(x){return !x.saisie||x.estimated;}).length;
   $('df-note').innerHTML='Courbe : déficit corrigé ('+coefLbl()+')'+(corr?', brut en pointillé fin':'')+'. Sans saisie, la consommation est estimée : 2 100 kcal un jour padel (&gt; 2 750 kcal brûlées), 1 850 kcal sinon. '
@@ -842,7 +843,7 @@ function deficitChart(S){
   var dpr=window.devicePixelRatio||1,W=cv.clientWidth||320,H=cv.clientHeight||150;
   cv.width=Math.round(W*dpr);cv.height=Math.round(H*dpr);
   var g=cv.getContext('2d');g.setTransform(dpr,0,0,dpr,0,0);g.clearRect(0,0,W,H);
-  var REF=deficitCibleJour(todayKey(),(S[S.length-1]&&S[S.length-1].burn)||0),pts=S.filter(function(x){return x.defC!=null;}),corr=isCorr();
+  var REF=DEF_PLAF,pts=S.filter(function(x){return x.defC!=null;}),corr=isCorr();
   DEF_PTS=[];
   if(!pts.length){g.fillStyle=TC('#6b6a75');g.font='12px sans-serif';g.textAlign='center';g.fillText('Pas encore de calories brûlées sur 30 jours',W/2,H/2);return;}
   var L=34,R=6,T=8,B=18,vs=pts.map(function(x){return x.defC;}).concat(corr?pts.filter(function(x){return x.def!=null;}).map(function(x){return x.def;}):[]).concat([0,REF]);
@@ -856,7 +857,14 @@ function deficitChart(S){
     g.beginPath();g.moveTo(L,Y(v));g.lineTo(W-R,Y(v));g.stroke();
     g.fillStyle=TC('#6b6a75');g.fillText(v===0?'0':(v>0?'':'−')+Math.abs(v),L-4,Y(v));
   }
-  g.strokeStyle='#66BB6A';g.lineWidth=1.2;g.setLineDash([5,4]);g.beginPath();g.moveTo(L,Y(REF));g.lineTo(W-R,Y(REF));g.stroke();
+  // v11.7 — bande cible 400–500 et plafond 800 (au lieu d'une ligne cible à 750+)
+  g.fillStyle='rgba(102,187,106,.22)';g.fillRect(L,Y(DEF_CIB[1]),W-L-R,Y(DEF_CIB[0])-Y(DEF_CIB[1]));
+  g.strokeStyle='#EF5350';g.lineWidth=1.2;g.setLineDash([5,4]);g.beginPath();g.moveTo(L,Y(DEF_PLAF));g.lineTo(W-R,Y(DEF_PLAF));g.stroke();
+  g.setLineDash([]);g.textAlign='right';g.textBaseline='bottom';g.fillStyle='#EF5350';g.fillText('plafond 800',W-R-2,Y(DEF_PLAF)-2);
+  // moyenne glissante 7 j (≥ 3 jours)
+  var ma=[];S.forEach(function(x,i){var w=S.slice(Math.max(0,i-6),i+1).filter(function(y){return y.defC!=null;});ma.push(x.defC!=null&&w.length>=3?avg(w.map(function(y){return y.defC;})):null);});
+  g.strokeStyle='#F9A825';g.lineWidth=1.6;g.setLineDash([5,3]);g.beginPath();var mp=false;
+  ma.forEach(function(v,i){if(v==null){mp=false;return;}if(mp)g.lineTo(X(i),Y(v));else g.moveTo(X(i),Y(v));mp=true;});g.stroke();
   g.setLineDash([]);g.textAlign='center';g.textBaseline='top';g.fillStyle=TC('#6b6a75');
   S.forEach(function(x,i){if((29-i)%7===0)g.fillText(dd(x.dt),Math.min(W-R-12,Math.max(L+12,X(i))),H-B+5);});
   var prev=null;
@@ -891,29 +899,33 @@ function showDeficitDetail(p,cx,cy){
     +(corr?'<div class="tr"><span>Déficit brut</span><b>'+sgn(x.def)+' kcal</b></div>':'')
     +'<div class="tr"><span>'+(x.defC>=0?'Déficit':'Surplus')+(corr?' corrigé':'')+'</span><b style="color:'+c+'">'+sgn(x.defC)+' kcal</b></div>'
     +'<div class="tr"><span>Type de jour</span><b>'+getTypeJour(x.burn)+'</b></div>'
-    +'<div class="tr"><span>Cible</span><b>~'+fmt(cible)+' kcal '+(x.defC>=cible?'✅':'❌')+'</b></div>'
+    +'<div class="tr"><span>Cible 400–500 · plafond 800</span><b style="color:'+c+'">'+defZone(x.defC)+'</b></div>'
     +(corr?'<div class="tna">Corrigé '+coefLbl()+' (part Fitbit au-dessus du métabolisme)</div>':'');
   placeTip(t,cx,cy);
 }
 /* v10.3 — déficit cible du jour : boutons manuels prioritaires, sinon détection actuelle (calories brûlées) */
 function deficitCibleJour(date,b){
   var m=manualType(date);
-  if(m!=null){var g=goalFor(date);return g>=3050?1150:g>=2950?950:g>=2550?850:750;}
-  return getDeficitCible(b);
+  return getDeficitCible(b); // v11.7 — même cible tous les jours
 }
-function libelleCible(c){return c>=1150?'Jour padel intense 🎾🔥 — déficit cible ~1 150 kcal max':c>=950?'Jour padel 1h 🎾 — déficit cible ~950 kcal':c>=850?'Jour force 💪 — déficit cible ~850 kcal':'Jour normal 🏋️ — déficit cible ~750 kcal';}
+function libelleCible(c){return 'Déficit cible 400 à 500 kcal · plafond 800';}
+function defZone(v){return v==null?'':v<0?'surplus':v>DEF_PLAF?'au-dessus du plafond':v>DEF_CIB[1]?'entre cible et plafond':v>=DEF_CIB[0]?'dans la cible':'sous la cible';}
 function renderStrategy(t){
   var el=$('strat-today'),tk=todayKey(),d=new Date().getDay(),padel=isPadel(tk),soir=[1,3,5].indexOf(d)>=0,h;
   if(t&&t.burn!=null){
     var cible=deficitCibleJour(tk,t.burn),hh=hoursNow(),proj=projectionMinuit(t.burnC,hh),obj=cibleConso(t.burnC,hh,cible);
-    $('strat-def').textContent='~'+fmt(cible)+' kcal aujourd\'hui';
+    $('strat-def').textContent='400 à 500 kcal (plafond 800)';
     h='<b>'+libelleCible(cible)+'</b>'+(manualType(tk)!=null?' · manuel':'')+'<br>';
     if(obj!=null)h+='Aujourd\'hui vise <b>~'+fmt(obj)+' kcal</b> consommées (projection minuit <b>~'+fmt(proj)+'</b>'+(isCorr()?' corrigée '+coefLbl():'')+', plancher : sans activité supplémentaire), et <b>145 g</b> de protéines.';
     else h+='Aujourd\'hui ('+fmt(t.burn)+' kcal brûlées) → vise <b>~'+fmt(t.burn-cible)+' kcal</b> consommées (BMR indisponible : pas de projection), et <b>145 g</b> de protéines.';
-    if(t.saisie&&t.projDefC!=null){var ec=t.projDefC-cible;h+='<br>Déficit projeté minuit <b>'+sgn(t.projDefC)+' kcal</b> → '+(ec>=0?'✅ cible atteinte (+'+fmt(ec)+')':'encore <b>'+fmt(-ec)+' kcal</b> sous la cible');}
+    if(t.saisie&&t.projDefC!=null){var v=t.projDefC;h+='<br>Déficit projeté minuit <b>'+sgn(v)+' kcal</b> → '
+      +(v>DEF_PLAF?'⚠️ au-dessus du plafond : tu peux encore manger <b>~'+fmt(v-DEF_CIB[1])+' kcal</b>'
+       :v>DEF_CIB[1]?'✅ cible dépassée, marge de <b>~'+fmt(v-DEF_CIB[1])+' kcal</b> à manger sans sortir de la cible'
+       :v>=DEF_CIB[0]?'✅ dans la cible'
+       :'encore <b>'+fmt(DEF_CIB[0]-v)+' kcal</b> sous la cible');}
     h+='<br><span style="color:var(--t3)">Toute activité en plus d\'ici ce soir augmente la marge.</span>';
   }else{
-    $('strat-def').textContent='750-1 150 kcal / jour';
+    $('strat-def').textContent='400 à 500 kcal / jour (plafond 800)';
     h='<b>Aujourd\'hui</b> · en attente des calories Health Connect pour calculer le déficit cible. Vise <b>145 g</b> de protéines.';
   }
   h+=padel?'<br>🍫 Barre de récup autorisée après le padel.':'<br>🍫 Pas de barre de récup aujourd\'hui.';
