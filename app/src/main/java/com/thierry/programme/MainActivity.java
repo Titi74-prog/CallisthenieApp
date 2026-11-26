@@ -79,6 +79,22 @@ public class MainActivity extends ComponentActivity {
             public void setPref(String key, String value) {
                 getSharedPreferences("callisthenie", MODE_PRIVATE).edit().putString(key, value).commit();
             }
+            // v11.8 — ouvre un mail prérempli (appli de messagerie au choix), l'utilisateur n'a plus qu'à envoyer
+            @JavascriptInterface
+            public void sendMail(String to, String subject, String body) {
+                runOnUiThread(() -> {
+                    try {
+                        Intent send = new Intent(Intent.ACTION_SEND);
+                        send.putExtra(Intent.EXTRA_EMAIL, new String[]{to});
+                        send.putExtra(Intent.EXTRA_SUBJECT, subject);
+                        send.putExtra(Intent.EXTRA_TEXT, body);
+                        send.setSelector(new Intent(Intent.ACTION_SENDTO, android.net.Uri.parse("mailto:")));
+                        startActivity(Intent.createChooser(send, "Envoyer la pesée"));
+                    } catch (Exception e) {
+                        android.widget.Toast.makeText(MainActivity.this, "Aucune appli de mail trouvée", android.widget.Toast.LENGTH_LONG).show();
+                    }
+                });
+            }
         }, "App");
 
         // Pont Health Connect → JS (calories, pas, poids, composition, sommeil)
