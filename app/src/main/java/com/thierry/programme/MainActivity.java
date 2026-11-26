@@ -79,6 +79,34 @@ public class MainActivity extends ComponentActivity {
             public void setPref(String key, String value) {
                 getSharedPreferences("callisthenie", MODE_PRIVATE).edit().putString(key, value).commit();
             }
+            // v11.9 — envoi d'un JSON vers le script Google (feuille « Milestones — Pesées »), hors du fil principal.
+            // Réponse renvoyée à la page : s400SheetDone(ok, texte, id).
+            @JavascriptInterface
+            public void postJson(String url, String json, String id) {
+                new Thread(() -> {
+                    boolean ok = false; String txt;
+                    try {
+                        java.net.HttpURLConnection c = (java.net.HttpURLConnection) new java.net.URL(url).openConnection();
+                        c.setInstanceFollowRedirects(true);
+                        c.setConnectTimeout(15000); c.setReadTimeout(20000);
+                        c.setRequestMethod("POST"); c.setDoOutput(true);
+                        c.setRequestProperty("Content-Type", "text/plain; charset=utf-8");
+                        byte[] b = json.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+                        try (java.io.OutputStream o = c.getOutputStream()) { o.write(b); }
+                        int code = c.getResponseCode();
+                        java.io.InputStream in = code < 400 ? c.getInputStream() : c.getErrorStream();
+                        StringBuilder sb = new StringBuilder();
+                        if (in != null) try (java.io.BufferedReader r = new java.io.BufferedReader(new java.io.InputStreamReader(in, java.nio.charset.StandardCharsets.UTF_8))) {
+                            String l; while ((l = r.readLine()) != null) sb.append(l);
+                        }
+                        txt = sb.toString();
+                        ok = code < 400 && txt.contains("\"ok\":true");
+                        if (!ok && txt.isEmpty()) txt = "HTTP " + code;
+                    } catch (Exception e) { txt = String.valueOf(e.getMessage()); }
+                    final String js = "window.s400SheetDone&&s400SheetDone(" + ok + "," + org.json.JSONObject.quote(txt) + "," + org.json.JSONObject.quote(id) + ")";
+                    runOnUiThread(() -> webView.evaluateJavascript(js, null));
+                }).start();
+            }
             // v11.8 — ouvre un mail prérempli (appli de messagerie au choix), l'utilisateur n'a plus qu'à envoyer
             @JavascriptInterface
             public void sendMail(String to, String subject, String body) {
