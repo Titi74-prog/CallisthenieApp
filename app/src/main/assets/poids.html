@@ -273,6 +273,7 @@ html,body{background:#f2f2f6;color:#1a1a22}
       <div id="s400-empty">Aucune pesée importée. Dans <b>Xiaomi Home</b> → rapport de pesée → capture longue → <b>Partager</b> → <b>Callisthénie</b>. Ou touche « 📷 Importer une capture » en haut de l'onglet.</div>
       <div class="s4grid" id="s400-grid"></div>
       <div id="s400-toast"></div>
+      <div class="note" id="s400-sheet" style="display:none"></div>
       <button class="btn btn-sec" id="s400-mail" style="display:none" onclick="s400Mail()">✉️ Envoyer la pesée</button>
       <div class="note" id="s400-mail-to" style="display:none"></div>
       <div class="note">Lecture hors ligne sur le téléphone. Le poids est ajouté automatiquement à la courbe. Touche une tuile pour sa courbe sur 30 jours.</div>
@@ -1148,6 +1149,52 @@ function renderS400(){
   $('s400-date').textContent=JOURS_L[dt.getDay()]+' '+dd(dt)+' · '+ago(dt.toISOString());
   grid.innerHTML=s400TilesHtml(last,prev);
   s400MailUi();
+  s400SheetUi();s400SheetFlush();
+}
+/* ═════════ v11.9 — Envoi automatique vers Google Sheets (script « Milestones — Pesées ») ═════════
+   'sheetUrl' = adresse du script avec ?k=jeton (saisie une fois) ; 'sheetQueue' = dates en attente d'envoi ;
+   'sheetLast' = {date, at} du dernier envoi réussi. Sans réseau, la file est renvoyée à la prochaine ouverture. */
+function prefJ(k,d){var s=null;try{s=window.App&&App.getPref?App.getPref(k):null;}catch(e){}if(s==null)try{s=localStorage.getItem(k);}catch(e){}try{return s?JSON.parse(s):d;}catch(e){return s||d;}}
+function prefS(k,o){var s=typeof o==='string'?o:JSON.stringify(o);try{localStorage.setItem(k,s);}catch(e){}try{if(window.App&&App.setPref)App.setPref(k,s);}catch(e){}}
+function sheetUrl(){var u=prefJ('sheetUrl',null);return typeof u==='string'&&/^https:\/\/script\.google\.com\//.test(u)?u:null;}
+function sheetOk(){return !!(window.App&&App.postJson&&sheetUrl());}
+var SHEET_BUSY=false;
+function s400SheetQueue(dates){var q=prefJ('sheetQueue',[]);if(!Array.isArray(q))q=[];dates.forEach(function(d){if(q.indexOf(d)<0)q.push(d);});prefS('sheetQueue',q);}
+function s400SheetFlush(){
+  if(!sheetOk()||SHEET_BUSY)return;
+  var q=prefJ('sheetQueue',[]);if(!Array.isArray(q)||!q.length)return;
+  var H=s400Load(),rows=H.filter(function(x){return q.indexOf(x.date)>=0;}).map(function(x){return {date:x.date,v:x.v};});
+  if(!rows.length){prefS('sheetQueue',[]);return;}
+  SHEET_BUSY=true;s400SheetUi('⏳ Envoi vers Google Sheets…');
+  App.postJson(sheetUrl(),JSON.stringify({rows:rows}),q.join(','));
+}
+function s400SheetDone(ok,txt,id){
+  SHEET_BUSY=false;
+  if(ok){var sent=String(id||'').split(','),q=prefJ('sheetQueue',[]);
+    prefS('sheetQueue',(Array.isArray(q)?q:[]).filter(function(d){return sent.indexOf(d)<0;}));
+    prefS('sheetLast',{date:sent[sent.length-1],at:new Date().toISOString(),n:sent.length});
+    s400SheetUi();}
+  else s400SheetUi('⚠️ Envoi Google Sheets échoué ('+String(txt||'').slice(0,60).replace(/[<>&]/g,'')+') — nouvel essai à la prochaine ouverture');
+}
+function s400SheetUi(msg){
+  var el=$('s400-sheet');if(!el)return;
+  if(!(window.App&&App.postJson)){el.style.display='none';return;}
+  el.style.display='block';
+  var lk=' · <a href="#" onclick="s400SheetSetup();return false">'+(sheetUrl()?'régler':'configurer')+'</a>';
+  if(msg){el.innerHTML=msg+lk;return;}
+  if(!sheetUrl()){el.innerHTML='📊 Envoi automatique vers Google Sheets non configuré'+lk;return;}
+  var q=prefJ('sheetQueue',[]),L=prefJ('sheetLast',null);
+  if(Array.isArray(q)&&q.length){el.innerHTML='⏳ '+q.length+' pesée'+(q.length>1?'s':'')+' en attente d\'envoi vers Google Sheets'+lk;return;}
+  el.innerHTML=L&&L.date?'✅ Google Sheets à jour · pesée du '+dd(new Date(L.date+'T12:00:00'))+' envoyée '+ago(L.at)+lk:'📊 Google Sheets configuré'+lk;
+}
+function s400SheetSetup(){
+  var u=prompt('Adresse du script Google (elle se termine par ?k=…) :',sheetUrl()||'');if(u==null)return;u=u.trim();
+  if(!u){prefS('sheetUrl','');s400SheetUi();return;}
+  if(!/^https:\/\/script\.google\.com\/macros\/s\/[^\s]+\?k=[^\s]+$/.test(u)){alert('Adresse non reconnue : elle doit commencer par https://script.google.com/macros/s/ et finir par ?k=…');return;}
+  prefS('sheetUrl',u);
+  // Première configuration : tout l'historique S400 part vers la feuille
+  s400SheetQueue(s400Load().map(function(x){return x.date;}));
+  s400SheetUi();s400SheetFlush();
 }
 /* ═════════ v11.8 — Envoi de la pesée par mail (relu ensuite par Claude dans Gmail) ═════════
    Sujet fixe « [Milestones] Pesée AAAA-MM-JJ » ; adresse demandée une fois (préférence 'mailPesee'). */
@@ -1303,8 +1350,9 @@ function s400Save(){
   renderS400();
   var t=$('s400-toast');t.textContent='✅ Pesée du '+dd(new Date(date+'T12:00:00'))+' enregistrée · '+s400Fmt('poids',v.poids)+' kg ajouté à la courbe';
   t.style.display='block';clearTimeout(window._s4t);window._s4t=setTimeout(function(){t.style.display='none';},4000);
-  // v11.8 — propose l'envoi tout de suite après l'enregistrement
-  if(window.App&&App.sendMail)setTimeout(s400Mail,400);
+  // v11.9 — envoi automatique vers Google Sheets ; le mail ne s'ouvre plus que si Sheets n'est pas configuré
+  if(sheetOk()){s400SheetQueue([date]);s400SheetFlush();}
+  else if(window.App&&App.sendMail)setTimeout(s400Mail,400);
 }
 function s400Cancel(){S400_CUR=null;s400Sheet(false);}
 /* v7.4 — BMR fixe : métabolisme de base de la dernière pesée S400 (par date), lu par l'onglet Santé */
