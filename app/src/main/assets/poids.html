@@ -274,8 +274,6 @@ html,body{background:#f2f2f6;color:#1a1a22}
       <div class="s4grid" id="s400-grid"></div>
       <div id="s400-toast"></div>
       <div class="note" id="s400-sheet" style="display:none"></div>
-      <button class="btn btn-sec" id="s400-mail" style="display:none" onclick="s400Mail()">✉️ Envoyer la pesée</button>
-      <div class="note" id="s400-mail-to" style="display:none"></div>
       <div class="note">Lecture hors ligne sur le téléphone. Le poids est ajouté automatiquement à la courbe. Touche une tuile pour sa courbe sur 30 jours.</div>
     </div>
 
@@ -1148,7 +1146,6 @@ function renderS400(){
   var dt=new Date(last.date+'T12:00:00');
   $('s400-date').textContent=JOURS_L[dt.getDay()]+' '+dd(dt)+' · '+ago(dt.toISOString());
   grid.innerHTML=s400TilesHtml(last,prev);
-  s400MailUi();
   s400SheetUi();s400SheetFlush();
 }
 /* ═════════ v11.9 — Envoi automatique vers Google Sheets (script « Milestones — Pesées ») ═════════
@@ -1195,43 +1192,6 @@ function s400SheetSetup(){
   // Première configuration : tout l'historique S400 part vers la feuille
   s400SheetQueue(s400Load().map(function(x){return x.date;}));
   s400SheetUi();s400SheetFlush();
-}
-/* ═════════ v11.8 — Envoi de la pesée par mail (relu ensuite par Claude dans Gmail) ═════════
-   Sujet fixe « [Milestones] Pesée AAAA-MM-JJ » ; adresse demandée une fois (préférence 'mailPesee'). */
-var MAIL_KEY='mailPesee';
-function mailTo(){var a=null;try{a=window.App&&App.getPref?App.getPref(MAIL_KEY):null;}catch(e){}return a||lsMail();}
-function lsMail(){try{return localStorage.getItem(MAIL_KEY);}catch(e){return null;}}
-function setMailTo(a){try{localStorage.setItem(MAIL_KEY,a);}catch(e){}try{if(window.App&&App.setPref)App.setPref(MAIL_KEY,a);}catch(e){}}
-function s400MailUi(){
-  var ok=!!(window.App&&App.sendMail),b=$('s400-mail'),n=$('s400-mail-to'),H=s400Load();
-  if(!b)return;b.style.display=ok&&H.length?'block':'none';
-  var a=mailTo();n.style.display=ok&&H.length&&a?'block':'none';
-  n.innerHTML=a?'Envoyée à '+a.replace(/[<>&]/g,'')+' · <a href="#" onclick="s400MailChange();return false">changer</a>':'';
-}
-function s400MailChange(){var a=prompt('Adresse qui reçoit les pesées :',mailTo()||'');if(a==null)return;a=a.trim();if(a&&/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(a)){setMailTo(a);s400MailUi();}}
-function s400MailBody(last,prev){
-  var L=[],dt=new Date(last.date+'T12:00:00');
-  L.push('Pesée Xiaomi S400 du '+JOURS_L[dt.getDay()]+' '+dd(dt)+'/'+last.date.slice(0,4));
-  L.push('');
-  S400_DEF.forEach(function(d){var v=last.v[d.k];if(v==null)return;
-    var s='- '+d.l+' : '+s400Fmt(d.k,v)+(d.u?' '+d.u:'');
-    var p=prev&&prev.v[d.k];if(p!=null){var df=v-p,f=Math.pow(10,d.d);df=Math.round(df*f)/f;s+=' ('+(df>0?'+':df<0?'−':'±')+s400Fmt(d.k,Math.abs(df))+' vs '+dd(new Date(prev.date+'T12:00:00'))+')';}
-    if(last.calc&&last.calc.indexOf(d.k)>=0)s+=' [calculé]';
-    L.push(s);});
-  // Moyenne des pesées des 7 derniers jours (courbe de poids)
-  var t0=new Date(last.date+'T12:00:00');t0.setDate(t0.getDate()-6);var k0=t0.toISOString().slice(0,10);
-  var w=pesees.filter(function(p){return !p.lbl&&p.date>=k0&&p.date<=last.date;}).map(function(p){return p.poids;});
-  if(w.length){L.push('');L.push('Moyenne 7 j : '+(Math.round(w.reduce(function(a,b){return a+b;},0)/w.length*10)/10).toLocaleString('fr-FR')+' kg ('+w.length+' pesée'+(w.length>1?'s':'')+')');}
-  L.push('');L.push('Données : '+JSON.stringify({date:last.date,v:last.v}));
-  L.push('— envoyé par Milestones v'+(window.App&&App.version?App.version():''));
-  return L.join('\n');
-}
-function s400Mail(){
-  if(!(window.App&&App.sendMail))return;
-  var H=s400Load(),last=H[H.length-1];if(!last)return;
-  var a=mailTo();
-  if(!a){s400MailChange();a=mailTo();if(!a)return;}
-  App.sendMail(a,'[Milestones] Pesée '+last.date,s400MailBody(last,H.length>1?H[H.length-2]:null));
 }
 /* Tuiles (carte Balance S400 et panneau de composition sous la courbe) */
 function s400TilesHtml(last,prev){
@@ -1350,9 +1310,8 @@ function s400Save(){
   renderS400();
   var t=$('s400-toast');t.textContent='✅ Pesée du '+dd(new Date(date+'T12:00:00'))+' enregistrée · '+s400Fmt('poids',v.poids)+' kg ajouté à la courbe';
   t.style.display='block';clearTimeout(window._s4t);window._s4t=setTimeout(function(){t.style.display='none';},4000);
-  // v11.9 — envoi automatique vers Google Sheets ; le mail ne s'ouvre plus que si Sheets n'est pas configuré
+  // v11.9 — envoi automatique vers Google Sheets (v11.10 : plus d'envoi par mail)
   if(sheetOk()){s400SheetQueue([date]);s400SheetFlush();}
-  else if(window.App&&App.sendMail)setTimeout(s400Mail,400);
 }
 function s400Cancel(){S400_CUR=null;s400Sheet(false);}
 /* v7.4 — BMR fixe : métabolisme de base de la dernière pesée S400 (par date), lu par l'onglet Santé */
